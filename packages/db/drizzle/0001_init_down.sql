@@ -1,0 +1,115 @@
+-- 0001_init DOWN — reverses the generated schema in 0001_init.sql.
+-- Every table is dropped with CASCADE so FK order does not matter, then the
+-- enum types are dropped. The extension (0000) is left alone: it is removed by
+-- 0000_extensions_down.sql only.
+--
+-- 70 tables, 35 enum types.
+
+-- Tables (reverse dependency order)
+DROP TABLE IF EXISTS "scheduled_reports" CASCADE;
+DROP TABLE IF EXISTS "saved_views" CASCADE;
+DROP TABLE IF EXISTS "service_standards" CASCADE;
+DROP TABLE IF EXISTS "notice_templates" CASCADE;
+DROP TABLE IF EXISTS "legal_flags" CASCADE;
+DROP TABLE IF EXISTS "insurance_policies" CASCADE;
+DROP TABLE IF EXISTS "inspections" CASCADE;
+DROP TABLE IF EXISTS "documents" CASCADE;
+DROP TABLE IF EXISTS "certifications" CASCADE;
+DROP TABLE IF EXISTS "trust_accounts" CASCADE;
+DROP TABLE IF EXISTS "ownership_shares" CASCADE;
+DROP TABLE IF EXISTS "owners" CASCADE;
+DROP TABLE IF EXISTS "owner_statements" CASCADE;
+DROP TABLE IF EXISTS "owner_approvals" CASCADE;
+DROP TABLE IF EXISTS "management_fees" CASCADE;
+DROP TABLE IF EXISTS "distributions" CASCADE;
+DROP TABLE IF EXISTS "vendor_jobs" CASCADE;
+DROP TABLE IF EXISTS "quotes" CASCADE;
+DROP TABLE IF EXISTS "performance_scores" CASCADE;
+DROP TABLE IF EXISTS "invoices" CASCADE;
+DROP TABLE IF EXISTS "work_orders" CASCADE;
+DROP TABLE IF EXISTS "vendor_quotes" CASCADE;
+DROP TABLE IF EXISTS "tickets" CASCADE;
+DROP TABLE IF EXISTS "ticket_messages" CASCADE;
+DROP TABLE IF EXISTS "ticket_embeddings" CASCADE;
+DROP TABLE IF EXISTS "sla_clocks" CASCADE;
+DROP TABLE IF EXISTS "responsibilities" CASCADE;
+DROP TABLE IF EXISTS "dispatches" CASCADE;
+DROP TABLE IF EXISTS "completions" CASCADE;
+DROP TABLE IF EXISTS "classifications" CASCADE;
+DROP TABLE IF EXISTS "attachments" CASCADE;
+DROP TABLE IF EXISTS "vendors" CASCADE;
+DROP TABLE IF EXISTS "period_locks" CASCADE;
+DROP TABLE IF EXISTS "payments" CASCADE;
+DROP TABLE IF EXISTS "payment_allocations" CASCADE;
+DROP TABLE IF EXISTS "match_suggestions" CASCADE;
+DROP TABLE IF EXISTS "late_fees" CASCADE;
+DROP TABLE IF EXISTS "journal_lines" CASCADE;
+DROP TABLE IF EXISTS "journal_entries" CASCADE;
+DROP TABLE IF EXISTS "credit_notes" CASCADE;
+DROP TABLE IF EXISTS "charges" CASCADE;
+DROP TABLE IF EXISTS "bank_lines" CASCADE;
+DROP TABLE IF EXISTS "bank_imports" CASCADE;
+DROP TABLE IF EXISTS "accounts" CASCADE;
+DROP TABLE IF EXISTS "tenants" CASCADE;
+DROP TABLE IF EXISTS "renewal_offers" CASCADE;
+DROP TABLE IF EXISTS "notices" CASCADE;
+DROP TABLE IF EXISTS "leases" CASCADE;
+DROP TABLE IF EXISTS "lease_tenants" CASCADE;
+DROP TABLE IF EXISTS "lease_addendums" CASCADE;
+DROP TABLE IF EXISTS "showings" CASCADE;
+DROP TABLE IF EXISTS "screening_results" CASCADE;
+DROP TABLE IF EXISTS "listings" CASCADE;
+DROP TABLE IF EXISTS "inquiries" CASCADE;
+DROP TABLE IF EXISTS "decisions" CASCADE;
+DROP TABLE IF EXISTS "applications" CASCADE;
+DROP TABLE IF EXISTS "applicants" CASCADE;
+DROP TABLE IF EXISTS "units" CASCADE;
+DROP TABLE IF EXISTS "unit_amenities" CASCADE;
+DROP TABLE IF EXISTS "properties" CASCADE;
+DROP TABLE IF EXISTS "meters" CASCADE;
+DROP TABLE IF EXISTS "buildings" CASCADE;
+DROP TABLE IF EXISTS "amenities" CASCADE;
+DROP TABLE IF EXISTS "users" CASCADE;
+DROP TABLE IF EXISTS "sessions" CASCADE;
+DROP TABLE IF EXISTS "otp_codes" CASCADE;
+DROP TABLE IF EXISTS "channel_identities" CASCADE;
+DROP TABLE IF EXISTS "audit_events" CASCADE;
+DROP TABLE IF EXISTS "agent_traces" CASCADE;
+DROP TABLE IF EXISTS "organizations" CASCADE;
+
+-- Enum types
+DROP TYPE IF EXISTS "public"."account_code";
+DROP TYPE IF EXISTS "public"."application_decision";
+DROP TYPE IF EXISTS "public"."application_status";
+DROP TYPE IF EXISTS "public"."charge_kind";
+DROP TYPE IF EXISTS "public"."cheque_status";
+DROP TYPE IF EXISTS "public"."decision_actor";
+DROP TYPE IF EXISTS "public"."dispatch_status";
+DROP TYPE IF EXISTS "public"."distribution_status";
+DROP TYPE IF EXISTS "public"."document_status";
+DROP TYPE IF EXISTS "public"."identity_channel";
+DROP TYPE IF EXISTS "public"."inquiry_status";
+DROP TYPE IF EXISTS "public"."invoice_status";
+DROP TYPE IF EXISTS "public"."lease_status";
+DROP TYPE IF EXISTS "public"."listing_status";
+DROP TYPE IF EXISTS "public"."locale";
+DROP TYPE IF EXISTS "public"."match_kind";
+DROP TYPE IF EXISTS "public"."message_direction";
+DROP TYPE IF EXISTS "public"."meter_kind";
+DROP TYPE IF EXISTS "public"."notice_direction";
+DROP TYPE IF EXISTS "public"."notice_kind";
+DROP TYPE IF EXISTS "public"."offer_status";
+DROP TYPE IF EXISTS "public"."owner_vote";
+DROP TYPE IF EXISTS "public"."payment_method";
+DROP TYPE IF EXISTS "public"."quote_status";
+DROP TYPE IF EXISTS "public"."responsibility";
+DROP TYPE IF EXISTS "public"."severity";
+DROP TYPE IF EXISTS "public"."showing_outcome";
+DROP TYPE IF EXISTS "public"."spend_kind";
+DROP TYPE IF EXISTS "public"."ticket_category";
+DROP TYPE IF EXISTS "public"."ticket_channel";
+DROP TYPE IF EXISTS "public"."ticket_status";
+DROP TYPE IF EXISTS "public"."unit_status";
+DROP TYPE IF EXISTS "public"."user_role";
+DROP TYPE IF EXISTS "public"."vendor_job_status";
+DROP TYPE IF EXISTS "public"."work_order_status";

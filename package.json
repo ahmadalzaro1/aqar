@@ -24,16 +24,12 @@
     "check:core-deps": "node scripts/check-core-deps.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@node-rs/argon2": "^2.2.2",
+    "eslint": "^9.25.0",
+    "globals": "^16.0.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0",
-    "eslint": "^9.25.0",
-    "typescript-eslint": "^8.30.0",
-    "@eslint/js": "^9.25.0",
-    "globals": "^16.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
+    "typescript-eslint": "^8.30.0"
   }
 }

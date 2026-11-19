@@ -1,0 +1,65 @@
+/* Aqar design tokens — dense, calm operations console. Linear/Stripe/Attio bar.
+   No violet gradients, no glassmorphism, no neon. Accent: restrained deep teal.
+   CSS logical properties everywhere; RTL is a first-class direction, not a mirror hack. */
+:root {
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --radius-sm: 4px; --radius: 6px; --radius-lg: 8px;
+  --text-xs: 11px; --text-sm: 12.5px; --text-base: 14px; --text-md: 15px;
+  --text-lg: 17px; --text-xl: 20px; --text-2xl: 24px; --text-3xl: 30px;
+  --font-latin: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', 'Segoe UI', sans-serif;
+  --surface: #ffffff;
+  --surface-2: #f6f8f8;
+  --surface-3: #eef2f1;
+  --ink: #14201e;
+  --muted: #5b6b69;
+  --border: #dfe6e4;
+  --accent: #0f766e;
+  --accent-soft: #e6f2f1;
+  --accent-ink: #ffffff;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --warn: #b54708;
+  --warn-soft: #fef0c7;
+  --ok: #067647;
+  --ok-soft: #d1fadf;
+  --info-soft: #e0eaff;
+  --shadow-1: 0 1px 2px rgb(16 32 30 / 0.06);
+  --shadow-2: 0 2px 8px rgb(16 32 30 / 0.08);
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  --surface: #0e1514;
+  --surface-2: #141d1b;
+  --surface-3: #1b2624;
+  --ink: #e7edeb;
+  --muted: #91a19e;
+  --border: #263331;
+  --accent: #17a398;
+  --accent-soft: #12312e;
+  --accent-ink: #06201d;
+  --danger: #f97066;
+  --danger-soft: #3a1d1a;
+  --warn: #fdb022;
+  --warn-soft: #3a2c10;
+  --ok: #47cd89;
+  --ok-soft: #123122;
+  --info-soft: #1c2a4a;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+html { font-family: var(--font-latin); }
+html[dir='rtl'] { font-family: var(--font-arabic); }
+body { background: var(--surface); color: var(--ink); font-size: var(--text-base); }
+.tnum, table.money td, .money { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+  @page { size: A4; margin: 16mm; }
+}
