@@ -1001,7 +1001,7 @@ export async function runSeed(url?: string): Promise<SeedCounts> {
         bankName: 'Arab Bank',
         fileName: `${key}.csv`,
         importedAt: new Date(Date.now() - (i === 0 ? 34 : 3) * 86_400_000),
-        lineCount: 8,
+        lineCount: i === 0 ? 8 : 5,
         sourceHash: uid(`source-hash:${key}`).replace(/-/g, ''),
       }));
       await tx.insert(bankImports).values(statementRows).onConflictDoNothing();
@@ -1042,11 +1042,21 @@ export async function runSeed(url?: string): Promise<SeedCounts> {
       };
 
       const statementA = [...sharedLines, ...uniqueLines.slice(0, 5)].map((spec, i) => makeLine('stmt-oct', i, spec));
-      // Statement B repeats the same three transfers (same fingerprint — dedupe must catch it).
-      const statementB = [...sharedLines, ...uniqueLines.slice(5)].map((spec, i) => makeLine('stmt-nov', i, spec));
-      // Drop anything the fingerprint engine considers a duplicate of an already imported line.
-      const freshForB = dedupeBankLines(statementA, statementB);
-      const allBankLines = [...statementA, ...freshForB];
+      // Statement B is an OVERLAPPING re-import: the same three transfers appear
+      // again (identical date/amount/payer ⇒ identical fingerprint) plus two new
+      // November lines. Both statements are stored in full — the schema allows a
+      // fingerprint to repeat ACROSS statements (unique per statement_id only).
+      // Deduplication is the reconciliation engine's job at match time, not the
+      // importer's job at rest: hiding the overlap here would destroy the demo.
+      const novemberOnly = [
+        { day: 2, amountFils: jod(450), payer: 'أحمد محمود الخطيب', ref: 'RENT 101 NOV' },
+        { day: 9, amountFils: jod(275), payer: 'هدى فؤاد النابلسي', ref: 'SERVICE NOV' },
+      ];
+      const statementB = [...sharedLines, ...novemberOnly].map((spec, i) => makeLine('stmt-nov', i, spec));
+      // The engine still runs — we report what it WOULD dedupe, without dropping rows.
+      const duplicatesAcrossStatements = statementB.length - dedupeBankLines(statementA, statementB).length;
+      console.log(`  overlapping fingerprints across statements: ${duplicatesAcrossStatements}`);
+      const allBankLines = [...statementA, ...statementB];
 
       await tx
         .insert(bankLines)

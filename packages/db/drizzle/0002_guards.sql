@@ -154,9 +154,13 @@ AS $$
 DECLARE
   target_period text;
 BEGIN
-  target_period := NEW.period;
+  -- payments has no `period` column: derive it from the human-confirmed
+  -- reference_period, else the receipt month. Accessing NEW.period on a
+  -- payments row would raise "record new has no field period".
   IF tg_table_name = 'payments' THEN
     target_period := coalesce(NEW.reference_period, to_char(NEW.received_date, 'YYYY-MM'));
+  ELSE
+    target_period := NEW.period;
   END IF;
 
   IF target_period IS NULL THEN

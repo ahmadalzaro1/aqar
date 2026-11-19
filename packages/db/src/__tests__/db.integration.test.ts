@@ -9,7 +9,6 @@ import { randomUUID } from 'node:crypto';
 import {
   APP_URL,
   TEST_URL,
-  applyPeriodGuardFix,
   createFixture,
   resetSchema,
   type Fixture,
@@ -38,7 +37,7 @@ describe('(1) migrations', () => {
     expect(Array.isArray(up.applied)).toBe(true);
 
     const down = await migrateDown(TEST_URL, 99);
-    expect(down.applied.length).toBeGreaterThanOrEqual(2);
+    expect(down.reverted.length).toBeGreaterThanOrEqual(2);
     const gone = await sql`
       select count(*)::int as n from information_schema.tables
       where table_schema = 'public' and table_name = 'charges'`;
@@ -46,8 +45,6 @@ describe('(1) migrations', () => {
 
     const again = await migrateUp(TEST_URL);
     expect(again.applied.length).toBeGreaterThanOrEqual(2);
-    // B1 workaround: the replayed migration reinstalls the broken period guard.
-    await applyPeriodGuardFix();
     const back = await sql`
       select count(*)::int as n from information_schema.tables
       where table_schema = 'public' and table_name = 'charges'`;
@@ -222,11 +219,14 @@ describe('(7) seed integrity', () => {
     const second = await runSeed(TEST_URL);
     expect(second).toEqual(first);
 
+    // Uniqueness domain is (building_id, unit_number) — the same flat number
+    // legitimately exists in both buildings. Grouping by unit_number alone
+    // would flag correct data as duplicates.
     const dupUnits = await sql`
       select count(*)::int as n from (
-        select unit_number from units
+        select building_id, unit_number from units
          where organization_id = (select id from organizations where slug = 'aqar-demo')
-         group by unit_number having count(*) > 1) d`;
+         group by building_id, unit_number having count(*) > 1) d`;
     expect(dupUnits[0]?.n).toBe(0);
     const ticketCount = await sql`
       select count(*)::int as n from tickets

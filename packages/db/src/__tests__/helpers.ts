@@ -6,60 +6,7 @@ export const TEST_URL =
   process.env.DATABASE_URL ?? 'postgres://aqar:aqar_dev@127.0.0.1:5433/aqar_test';
 export const APP_URL = TEST_URL.replace('aqar:aqar_dev@', 'aqar_app:aqar_app_dev@');
 
-/**
- * LANDING BUG B1 (drizzle/0002_guards.sql) — app.assert_period_open() does
- * `target_period := NEW.period;` before the payments branch, so EVERY insert into
- * `payments` fails with: record "new" has no field "period".
- *
- * This suite must not silently weaken the guard, so it re-applies the same
- * function with the branch reordered: the guard behaviour for charges and
- * payments is unchanged (both are still rejected in locked periods, which the
- * period-lock test asserts for both tables). Delete this once the migration is
- * fixed upstream.
- */
-export const PERIOD_GUARD_FIX = `
-CREATE OR REPLACE FUNCTION app.assert_period_open() RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  target_period text;
-BEGIN
-  IF tg_table_name = 'payments' THEN
-    target_period := coalesce(NEW.reference_period, to_char(NEW.received_date, 'YYYY-MM'));
-  ELSE
-    target_period := NEW.period;
-  END IF;
-
-  IF target_period IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  IF EXISTS (
-    SELECT 1 FROM period_locks pl
-     WHERE pl.organization_id = NEW.organization_id
-       AND pl.period = target_period
-  ) THEN
-    RAISE EXCEPTION
-      'period % is locked for organization %; no writes are accepted',
-      target_period, NEW.organization_id
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-`;
-
-export async function applyPeriodGuardFix(): Promise<void> {
-  const sql = postgres(TEST_URL, { max: 1, prepare: false, onnotice: () => {} });
-  try {
-    await sql.unsafe(PERIOD_GUARD_FIX);
-  } finally {
-    await sql.end({ timeout: 5 });
-  }
-}
-
-/** Drop both schemas, replay migrations, re-apply the guard fix. */
+/** Drop both schemas and replay the migrations from scratch. */
 export async function resetSchema(): Promise<void> {
   const sql = postgres(TEST_URL, { max: 1, prepare: false, onnotice: () => {} });
   try {
@@ -70,7 +17,6 @@ export async function resetSchema(): Promise<void> {
     await sql.end({ timeout: 5 });
   }
   await migrateUp(TEST_URL);
-  await applyPeriodGuardFix();
 }
 
 export type Fixture = {
