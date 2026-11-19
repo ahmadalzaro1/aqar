@@ -186,9 +186,9 @@ const CURRENT_TICKETS: readonly TicketSeed[] = [
   { subject: 'حريق صغير في غرفة النوم', body: 'حريق صغير صار قرب المقبس والشرر يطلع من الغرفة، طفينا المفتاح الرئيسي. البيت فيه أولاد صغار بدنا مساعدة فورية.', locale: 'ar', category: 'fire', severity: 'emergency', status: 'in_progress', daysAgo: 0 },
   { subject: 'مجاري طالعة بالحمام', body: 'تسرب مياه المجاري في الحمام الرئيسي والمية عم تغرق كل الشقة، والريحة كتير قوية.', locale: 'ar', category: 'sewage', severity: 'emergency', status: 'triaged', daysAgo: 1 },
   // --- 5 habitability (high) ---
-  { subject: 'انقطاع الماء عن الشقة', body: 'ما في مية بارد بالشقة من يومين، الجيران عندهم مية. الحنفية تفتح وما بتنزل شيء.', locale: 'ar', category: 'water', severity: 'high', status: 'dispatched', daysAgo: 2 },
+  { subject: 'انقطاع الماء عن الشقة', body: 'ضغط المية نازل كتير بالشقة من يومين والجيران عندهم ضغط عادي. الحنفية تفتح بشعرة مية بس.', locale: 'ar', category: 'water', severity: 'high', status: 'dispatched', daysAgo: 2 },
   { subject: 'عفن ورطوبة في الجدار الخارجي', body: 'الرطوبة طالعة داخل غرفة النوم والعفن كبر، عندنا طفل عنده حساسية صدرية. الموضوع صحي.', locale: 'ar', category: 'structural', severity: 'high', status: 'triaged', daysAgo: 3 },
-  { subject: 'التدفئة لا تعمل والبيت بارد', body: 'مدفأة الغاز لا تعمل والبيت برد كتير خاصة بالليل. بدنا صيانة أو مدفأة بديلة.', locale: 'ar', category: 'hvac', severity: 'high', status: 'approved', daysAgo: 4 },
+  { subject: 'التدفئة لا تعمل والبيت بارد', body: 'المدفأة الكهربائية ما بتشتغل والبيت برد كتير خاصة بالليل. بدنا صيانة أو مدفأة بديلة.', locale: 'ar', category: 'hvac', severity: 'high', status: 'approved', daysAgo: 4 },
   { subject: 'صراصير في المطبخ', body: 'في صراصير بالفوارع وبالمطبخ بشكل كبير، بدنا مكافحة حشرات للشقة كلها.', locale: 'ar', category: 'pest', severity: 'high', status: 'dispatched', daysAgo: 5 },
   { subject: 'شباك غرفة الأولاد مكسور', body: 'الشباك الزجاجي بغرفة الأولاد مكسور والزجاج مفتوح على الشارع، خطر عليهم.', locale: 'ar', category: 'structural', severity: 'high', status: 'in_progress', daysAgo: 6 },
   // --- mixed routine ---
@@ -201,8 +201,7 @@ const CURRENT_TICKETS: readonly TicketSeed[] = [
   { subject: 'تسريب ماء تحت المغسلة', body: 'المغسلة بتسرّب مية على البلاط، بدنا سباك.', locale: 'ar', category: 'plumbing', severity: 'medium', status: 'completed', daysAgo: 11 },
   { subject: 'Broken bedroom door handle', body: 'The bedroom door handle snapped off; the door cannot be closed from inside.', locale: 'en', category: 'lock', severity: 'low', status: 'completed', daysAgo: 13 },
   { subject: 'صوت تكييف عالي في الصالة', body: 'المكيف بالصالة بيعمل صوت طقطقة عالي لما يشتغل.', locale: 'ar', category: 'hvac', severity: 'low', status: 'triaged', daysAgo: 10 },
-  { subject: 'دهان السقف يتقشر', body: 'دهان سقف الحمام بيتقشر وبيوقع على الأرض.', locale: 'ar', category: 'other', severity: 'low', status: 'new', daysAgo: 12 },
-  { subject: 'مفتاح الشقة ضاع', body: 'ضاع مني مفتاح الشقة، بدي مفتاح جديد أو تغيير القفل على حسابي.', locale: 'ar', category: 'lock', severity: 'medium', status: 'completed', daysAgo: 15 },
+  { subject: 'مفتاح الشقة ضاع', body: 'ضاع مني مفتاح الشقة، بدي مفتاح جديد على حسابي.', locale: 'ar', category: 'lock', severity: 'medium', status: 'completed', daysAgo: 15 },
   { subject: 'Water pressure very low upstairs', body: 'The shower upstairs has almost no pressure in the morning.', locale: 'en', category: 'water', severity: 'medium', status: 'triaged', daysAgo: 6 },
   { subject: 'رشح من سقف الحمام', body: 'في رشح من سقف الحمام من الشقة اللي فوقنا.', locale: 'ar', category: 'water', severity: 'medium', status: 'dispatched', daysAgo: 5 },
   { subject: 'إنارة الساحة الخارجية مطفية', body: 'إنارة الساحة الخارجية مطفية من ثلاثة أيام، البناية معتمة بالليل.', locale: 'ar', category: 'common_area', severity: 'medium', status: 'in_progress', daysAgo: 4 },
@@ -214,22 +213,22 @@ const CURRENT_TICKETS: readonly TicketSeed[] = [
   { subject: 'باب البناية ما بيسكر', body: 'باب البناية الرئيسي ما بيسكر منيح، أي حد بيقدر يدخل.', locale: 'ar', category: 'lock', severity: 'medium', status: 'dispatched', daysAgo: 2 },
   { subject: 'تسريب من أنبوب المولدة', body: 'في تسريب زيت من أنبوب المولدة في القبو.', locale: 'ar', category: 'generator', severity: 'medium', status: 'triaged', daysAgo: 3 },
   { subject: 'Light flickering in hallway', body: 'The hallway light on the fourth floor flickers constantly at night.', locale: 'en', category: 'electrical', severity: 'low', status: 'completed', daysAgo: 16 },
-  { subject: 'مكيف غرفة النوم ما بيبرد', body: 'المكيف بيشتغل بس ما بيبرد، بدنا فحص غاز.', locale: 'ar', category: 'hvac', severity: 'medium', status: 'approved', daysAgo: 7 },
+  { subject: 'مكيف غرفة النوم ما بيبرد', body: 'المكيف بيشتغل بس ما بيبرد، بدنا فحص فريون وتنظيف فلاتر.', locale: 'ar', category: 'hvac', severity: 'medium', status: 'approved', daysAgo: 7 },
 ];
 
 const CLOSED_PAST_TICKETS: readonly TicketSeed[] = [
-  { subject: 'تسريب غاز من الأنبوب الرئيسي', body: 'كان في تسريب غاز من الأنبوب الرئيسي وتم إصلاحه من قبل شركة الغاز.', locale: 'ar', category: 'gas', severity: 'emergency', status: 'closed', daysAgo: 210 },
-  { subject: 'حريق بمطبخ الشقة ٤', body: 'حريق بسيط بمطبخ الشقة تم إطفاؤه وتغيير القطع الكهربائية.', locale: 'ar', category: 'fire', severity: 'emergency', status: 'closed', daysAgo: 300 },
-  { subject: 'المصعد توقف والأطفال داخله', body: 'المصعد توقف بين الطوابق وتم إخراج السكان بواسطة فريق الصيانة.', locale: 'ar', category: 'elevator', severity: 'emergency', status: 'closed', daysAgo: 160 },
-  { subject: 'انفجار أنبوب مياه رئيسي بالقبو', body: 'انفجر أنبوب رئيسي بالقبو وغرق القبو بالمياه وتم الإصلاح.', locale: 'ar', category: 'water', severity: 'high', status: 'closed', daysAgo: 190 },
-  { subject: 'تسرب مجاري في الشقة ٢٠١', body: 'تسرب مجاري تمت معالجته وتنظيف الشقة.', locale: 'ar', category: 'sewage', severity: 'high', status: 'closed', daysAgo: 240 },
-  { subject: 'عفن واسع في الحمام', body: 'عفن في الحمام تمت معالجته وإعادة الدهان.', locale: 'ar', category: 'structural', severity: 'high', status: 'closed', daysAgo: 150 },
-  { subject: 'انقطاع الماء ثلاثة أيام', body: 'انقطع الماء عن البناية ثلاثة أيام بسبب عطل بالمضخة وتم تغييرها.', locale: 'ar', category: 'water', severity: 'high', status: 'closed', daysAgo: 260 },
+  { subject: 'تسريب غاز من الأنبوب الرئيسي', body: 'تم استبدال أنبوب الخدمة الرئيسي بالبناية خلال الصيانة الدورية.', locale: 'ar', category: 'gas', severity: 'emergency', status: 'closed', daysAgo: 210 },
+  { subject: 'حريق بمطبخ الشقة ٤', body: 'تم تغيير القطع الكهربائية بمطبخ الشقة بعد ارتفاع حرارة المقبس.', locale: 'ar', category: 'fire', severity: 'emergency', status: 'closed', daysAgo: 300 },
+  { subject: 'المصعد توقف والأطفال داخله', body: 'تم تحديث لوحة تحكم المصعد وفحص الكابلات.', locale: 'ar', category: 'elevator', severity: 'emergency', status: 'closed', daysAgo: 160 },
+  { subject: 'انفجار أنبوب مياه رئيسي بالقبو', body: 'تم استبدال مضخة القبو بعد توقفها خلال الصيانة الدورية.', locale: 'ar', category: 'water', severity: 'high', status: 'closed', daysAgo: 190 },
+  { subject: 'تسرب مجاري في الشقة ٢٠١', body: 'تم تنظيف شبكة الصرف بالشقة وإعادة تركيب الغطاء.', locale: 'ar', category: 'sewage', severity: 'high', status: 'closed', daysAgo: 240 },
+  { subject: 'عفن واسع في الحمام', body: 'تمت إعادة دهان الحمام بعد معالجة الرطوبة.', locale: 'ar', category: 'structural', severity: 'high', status: 'closed', daysAgo: 150 },
+  { subject: 'انقطاع الماء ثلاثة أيام', body: 'تم تغيير مضخة الماء الرئيسية للبناية بعد توقفها.', locale: 'ar', category: 'water', severity: 'high', status: 'closed', daysAgo: 260 },
   { subject: 'صراصير في مطبخ الشقة ٥٠٢', body: 'تمت مكافحة الحشرات للشقة والبناية.', locale: 'ar', category: 'pest', severity: 'medium', status: 'closed', daysAgo: 130 },
-  { subject: 'مكيف الصالة لا يبرد', body: 'تم تعبئة غاز المكيف وتنظيف الفلتر.', locale: 'ar', category: 'hvac', severity: 'medium', status: 'closed', daysAgo: 100 },
+  { subject: 'مكيف الصالة لا يبرد', body: 'تم تعبئة الفريون وتنظيف الفلتر.', locale: 'ar', category: 'hvac', severity: 'medium', status: 'closed', daysAgo: 100 },
   { subject: 'سخان الماء لا يعمل', body: 'تم تغيير السخان الكهربائي في الشقة ٣٠٢.', locale: 'ar', category: 'appliance', severity: 'medium', status: 'closed', daysAgo: 170 },
   { subject: 'كسر زجاج مدخل البناية', body: 'تم تغيير الزجاج المكسور لمدخل البناية.', locale: 'ar', category: 'common_area', severity: 'low', status: 'closed', daysAgo: 120 },
-  { subject: 'Repeated lock jams on unit 401', body: 'The cylinder lock kept jamming; replaced with a new cylinder.', locale: 'en', category: 'lock', severity: 'low', status: 'closed', daysAgo: 140 },
+  { subject: 'Repeated lock jams on unit 401', body: 'Replaced a worn door cylinder in unit 401.', locale: 'en', category: 'lock', severity: 'low', status: 'closed', daysAgo: 140 },
 ];
 
 export async function runSeed(url?: string): Promise<SeedCounts> {
@@ -1216,7 +1215,14 @@ if (invokedDirectly) {
       printCounts(counts);
     })
     .catch((error: unknown) => {
-      console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+      if (error instanceof Error) {
+        const cause = (error as { cause?: unknown }).cause;
+        console.error('seed failed:', error.message.split('\n')[0]);
+        if (cause !== undefined) console.error('cause:', cause instanceof Error ? `${cause.name}: ${cause.message}` : JSON.stringify(cause));
+        console.error(error.stack ?? error.message);
+      } else {
+        console.error(String(error));
+      }
       process.exitCode = 1;
     });
 }
