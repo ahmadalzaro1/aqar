@@ -1,10 +1,8 @@
 import * as fc from 'fast-check';
-import type { IsoDate } from '@aqar/contracts';
 import {
   allocatePayment,
   agingReport,
   assertFils,
-  computeLateFee,
   formatFils,
   generateMonthlyCharges,
   mulDivFloor,
@@ -13,7 +11,7 @@ import {
   toFils,
   fromDayNumber,
 } from './index.js';
-import { makeCharge, makeLease, makePayment } from './factories.test-helpers.js';
+import { makeLease, makePayment } from './factories.test-helpers.js';
 
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 

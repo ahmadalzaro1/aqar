@@ -17,7 +17,7 @@ import * as schema from './schema/index.js';
 export type Sql = ReturnType<typeof postgres>;
 export type Db = ReturnType<typeof createDb>['db'];
 
-export const DEFAULT_DATABASE_URL = 'postgres://aqar:aqar_dev@127.0.0.1:5433/aqar';
+export const DEFAULT_DATABASE_URL = 'postgres://aqar:aqar@127.0.0.1:5433/aqar';
 
 export function databaseUrl(): string {
   return process.env['DATABASE_URL'] ?? DEFAULT_DATABASE_URL;

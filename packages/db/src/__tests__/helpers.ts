@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
-import { migrateDown, migrateUp } from '../migrate.js';
+import { migrateUp } from '../migrate.js';
 
 export const TEST_URL =
-  process.env.DATABASE_URL ?? 'postgres://aqar:aqar_dev@127.0.0.1:5433/aqar_test';
-export const APP_URL = TEST_URL.replace('aqar:aqar_dev@', 'aqar_app:aqar_app_dev@');
+  process.env.DATABASE_URL ?? 'postgres://aqar:aqar@127.0.0.1:5433/aqar_test';
+// Build the RLS-enforced role URL by parsing, never string replacement:
+// the test URL's password may come from env/.env and must not matter here.
+const appUrl = new URL(TEST_URL);
+appUrl.username = 'aqar_app';
+appUrl.password = 'aqar_app_dev';
+export const APP_URL = appUrl.toString();
 
 /** Drop both schemas and replay the migrations from scratch. */
 export async function resetSchema(): Promise<void> {

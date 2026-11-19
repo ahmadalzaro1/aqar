@@ -31,6 +31,8 @@ jobs:
         run: pnpm --filter @aqar/core exec vitest run property
       - name: UI unit tests
         run: pnpm --filter @aqar/ui test
+      - name: Agents offline tests (live-model lane stays gated)
+        run: pnpm --filter @aqar/agents test
 
   integration:
     runs-on: ubuntu-latest
@@ -39,7 +41,7 @@ jobs:
         image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: aqar
-          POSTGRES_PASSWORD: aqar_dev
+          POSTGRES_PASSWORD: aqar
           POSTGRES_DB: aqar
         ports: ['5433:5432']
         options: >-
@@ -51,6 +53,9 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 3s
           --health-timeout 3s --health-retries 20
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ['1025:1025', '8025:8025']
     env:
       DATABASE_URL: postgres://aqar:***@127.0.0.1:5433/aqar
       REDIS_URL: redis://127.0.0.1:6380
@@ -60,10 +65,19 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Create test database
+        run: psql "$DATABASE_URL" -c 'CREATE DATABASE aqar_test;'
       - run: pnpm db:migrate
       - name: DB integration tests (real Postgres, RLS, guards)
         run: pnpm --filter @aqar/db test
       - run: pnpm db:seed
+      - name: Worker offline unit tests (injected deps)
+        run: pnpm --filter @aqar/worker test
+      - name: Channels tests (live webhooks + Mailpit round-trip)
+        run: pnpm --filter @aqar/channels test
+      - name: Evals deterministic LAW-2 recall gate
+        run: pnpm --filter @aqar/evals evals
 
-  # e2e (Playwright AR+EN), evals, a11y and screenshot jobs are added in P5/P9
-  # when their suites exist — no placeholder green jobs.
+  # e2e (Playwright AR+EN), a11y and screenshot jobs arrive in P9 when their
+  # suites exist — no placeholder green jobs. The live-model evals lane and
+  # the worker live E2E need a local model server and stay developer-run.

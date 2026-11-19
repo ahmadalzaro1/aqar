@@ -181,20 +181,20 @@ async function main(): Promise<void> {
     const skipped = result.alreadyApplied.length
       ? ` (${result.alreadyApplied.length} already applied)`
       : '';
-    console.log(`up: applied ${result.applied.length} migration(s)${skipped}`);
+    console.info(`up: applied ${result.applied.length} migration(s)${skipped}`);
   } else if (command === 'down') {
     if (steps !== undefined && (!Number.isInteger(steps) || steps < 1)) {
       throw new Error('--steps must be a positive integer');
     }
     const result = await migrateDown(undefined, steps);
-    console.log(`down: reverted ${result.reverted.length} migration(s)`);
+    console.info(`down: reverted ${result.reverted.length} migration(s)`);
   } else if (command === 'status') {
     const applied = await appliedMigrations();
     const known = listMigrations();
     const appliedNames = new Set(applied.map((a) => a.filename));
-    console.log(`migrations dir: ${migrationsDir()}`);
+    console.info(`migrations dir: ${migrationsDir()}`);
     for (const m of known) {
-      console.log(`${appliedNames.has(m.filename) ? '[x]' : '[ ]'} ${m.filename}`);
+      console.info(`${appliedNames.has(m.filename) ? '[x]' : '[ ]'} ${m.filename}`);
     }
   } else {
     throw new Error(`unknown command '${command}' (expected up|down|status)`);

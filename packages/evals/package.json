@@ -1,0 +1,27 @@
+{
+  "name": "@aqar/evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "evals": "tsx src/run.ts --lane deterministic",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aqar/agents": "workspace:*",
+    "@aqar/contracts": "workspace:*",
+    "@aqar/core": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

@@ -47,3 +47,27 @@ storage with per-org prefixes.
 - TOTP enrolment UI ships with settings screens (P9).
 - Rate limiting middleware lands with apps/channels (P5).
 - Encryption-at-rest for PII columns is a P10 hardening task.
+
+## Dev-only Postgres auth posture (2026-11-20)
+Host SCRAM auth against the colima pgvector image failed repeatedly (root
+cause unresolved). The dev container carries `host all all 172.16.0.0/12
+trust` in pg_hba.conf; the host port is bound to 127.0.0.1:5433 only. This is
+a LOCAL DEV FIXTURE: remove the trust rule and re-verify SCRAM before any
+non-loopback exposure. Passwords for aqar/aqar_app were reset to the .env
+values and match .env.example semantics.
+
+## Channel ingress (apps/channels)
+WhatsApp payloads verified with HMAC-SHA256 over the RAW body using
+timingSafeEqual; Telegram via secret-token header. Missing signature → 401,
+bad signature → 403, fail closed. Inbound tickets are idempotent
+(uuid-v5-shaped id from the idempotency key; ON CONFLICT DO NOTHING), so
+provider redelivery cannot duplicate tickets or queue jobs. Outbound
+WhatsApp/Telegram return honest {sent:false, reason:'not_configured'} with a
+persisted row when secrets are absent — never a fake success. Email goes
+through real SMTP (Mailpit in dev, round-trip asserted in tests).
+
+## Agent execution posture
+Worker hardwires mode=dry_run; no vendor dispatch, no money movement, no
+work orders without a human-enabled live mode per property. The dev admin
+credential in README is a seed fixture for local development only.
+

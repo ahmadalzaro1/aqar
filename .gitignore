@@ -5,6 +5,8 @@ turbo/
 coverage/
 .env
 .env.local
+.turbo/
+.next/
 *.tsbuildinfo
 playwright-report/
 test-results/

@@ -1085,7 +1085,7 @@ export async function runSeed(url?: string): Promise<SeedCounts> {
       const statementB = [...sharedLines, ...novemberOnly].map((spec, i) => makeLine('stmt-nov', i, spec));
       // The engine still runs — we report what it WOULD dedupe, without dropping rows.
       const duplicatesAcrossStatements = statementB.length - dedupeBankLines(statementA, statementB).length;
-      console.log(`  overlapping fingerprints across statements: ${duplicatesAcrossStatements}`);
+      console.info(`  overlapping fingerprints across statements: ${duplicatesAcrossStatements}`);
       const allBankLines = [...statementA, ...statementB];
 
       await tx
@@ -1240,9 +1240,9 @@ function printCounts(counts: SeedCounts): void {
     ['ownership shares', counts.ownershipShares],
     ['audit events', counts.auditEvents],
   ];
-  console.log(`seed: ${SEED_ORG_SLUG} (organization ${ORG_ID})`);
+  console.info(`seed: ${SEED_ORG_SLUG} (organization ${ORG_ID})`);
   for (const [label, value] of rows) {
-    console.log(`  ${label.padEnd(22, '.')} ${value}`);
+    console.info(`  ${label.padEnd(22, '.')} ${value}`);
   }
 }
 

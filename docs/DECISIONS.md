@@ -59,3 +59,36 @@ services. Compose binds 127.0.0.1 only.
 
 Nothing has been copied verbatim from any upstream at this stage; all code is
 original. Licence verification of the reference repos is a P10 task.
+
+## D7 — Queue contract freeze (2026-11-20)
+`packages/contracts/src/queues.ts` is the ONLY producer↔consumer interface:
+TRIAGE_QUEUE_NAME='aqar.ticket.triage', ticketIngestJobSchema,
+triageJobResultSchema. Invalid payloads are rejected (JobValidationError),
+never coerced. Idempotency keys (`wa:<msg-id>`, `tg:<update-id>`, `e2e:<uuid>`)
+make redelivery safe; the worker returns the recorded prior result.
+
+## D8 — Trace persistence shape
+agent_traces.steps is typed AgentTraceStep[] in the DB schema; the worker
+persists extra `step`/`detail` jsonb keys for human-readable labels. Readers
+parse with an extended zod schema (persistedStepSchema), never cast. A richer
+contract trace type is a future additive change.
+
+## D9 — Build allowlist + test URL
+pnpm-workspace.yaml allowBuilds: esbuild + msgpackr-extract (bullmq native
+msgpack, JS fallback otherwise). db vitest derives aqar_test from the real
+DATABASE_URL (AQAR_TEST_DATABASE_URL override) — no literal placeholders.
+
+## D10 — Classifier prompt aligned to the frozen enum
+The prompt previously advertised `cleaning` (not in ticketCategorySchema),
+causing repeated schema escalations. It now lists the exact enum. Residual
+small-model drift (e.g. "noise") escalates to a human by design — measured,
+recorded in evals results, not suppressed.
+
+## D11 — Responsive console + screenshot method
+Viewport meta declared in root layout; <900px the sidebar is a 56px icon
+rail; Cards set min-inline-size:0 so wide tables scroll in-card; skip link
+uses the clip pattern (negative offsets inflate scrollWidth); shell root
+clips horizontal bleed. Screenshots at exact widths are captured through a
+same-origin iframe (CDP device emulation proved unreliable for media
+queries) — recipe in RUNBOOK.
+

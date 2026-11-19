@@ -14,7 +14,7 @@ type In = z.infer<typeof inputSchema>;
 
 const SYSTEM_PROMPT = `You are the maintenance classifier for Aqar, a property operations ledger in Jordan.
 Classify the tenant report. Reply with ONE JSON object and nothing else:
-{"category": one of [plumbing, electrical, hvac, appliance, structural, gas, elevator, water, pest, cleaning, lock, other],
+{"category": one of [gas, fire, electrical, plumbing, sewage, water, hvac, structural, lock, elevator, appliance, pest, common_area, generator, other],
  "severity": one of [emergency, high, medium, low, cosmetic],
  "emergencyFlag": boolean,
  "confidence": number 0..1,
@@ -39,7 +39,6 @@ export const classifierAgent: IAgent<In, Classification> = {
   outputSchema: classificationSchema,
   async run(input, ctx: AgentContext): Promise<AgentResult<Classification>> {
     const parsedIn = inputSchema.parse(input);
-    let schemaFailedOnce = false;
     let lastError = '';
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
@@ -64,7 +63,6 @@ export const classifierAgent: IAgent<In, Classification> = {
         };
       } catch (err) {
         if (err instanceof ProviderError) throw new EscalationError(`provider failure: ${err.message}`, 'provider');
-        schemaFailedOnce = true;
         lastError = err instanceof Error ? err.message : String(err);
       }
     }

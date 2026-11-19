@@ -48,3 +48,29 @@ went out, check the dispatch task, and only a human closes the emergency.
 ## Colima (macOS dev VM)
 `colima start` / `colima stop`. The VM auto-restarts unrelated containers;
 leave them alone.
+
+## Agentic queue path (P5)
+```bash
+pnpm --filter @aqar/worker dev        # BullMQ consumer, concurrency 2
+pnpm --filter @aqar/channels dev      # Hono ingress :8787
+pnpm --filter @aqar/worker e2e        # REAL ticket→triage→proposals proof
+pnpm --filter @aqar/evals evals       # deterministic LAW-2 recall gate
+AQAR_LIVE_MODEL=1 pnpm --filter @aqar/evals exec tsx src/run.ts --lane model
+cd apps/channels && pnpm exec tsx .mail-proof.ts   # SMTP→Mailpit round-trip
+```
+Local chat model: lfm3-local at http://127.0.0.1:11434/v1 (LOCAL_BASE_URL /
+LOCAL_MODEL in .env). :8002 is embeddings-only — chat there 404s.
+Worker E2E asserts: emergency floor, dry_run denials, 0 dispatches/work
+orders, 2 bilingual safety messages, idempotent replay with identical
+traceId and no duplicate rows.
+
+## Screenshot method (exact widths)
+CDP Emulation.setDeviceMetricsOverride did not reliably drive media queries
+in this environment. Working recipe: log in, then inside the same-origin
+console page replace the body with
+`<iframe src="/dashboard" style="position:absolute;left:0;top:0;width:390px;height:1400px">`
+(force outer document dir=ltr so the box aligns under RTL), poll for
+#main+aside, then Page.captureScreenshot with captureBeyondViewport and a
+clip at the iframe's bounding rect. Verify contentDocument scrollWidth ==
+iframe width before saving. Final set: docs/screenshots/ (24 files).
+

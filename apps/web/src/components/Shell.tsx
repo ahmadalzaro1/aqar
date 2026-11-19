@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { Locale } from '@aqar/contracts';
 import {
   LayoutDashboard, Building2, Inbox, FileText, BookOpen, Wrench,
-  Truck, Users, FolderLock, BarChart3, Settings, Search, Languages, Moon, Sun, LogOut,
+  Truck, Users, FolderLock, BarChart3, Settings, Search, Languages, Moon, LogOut,
 } from 'lucide-react';
 import { setLocale, setTheme, logoutAction } from '@/lib/actions';
 import type { SessionUser } from '@/lib/auth';

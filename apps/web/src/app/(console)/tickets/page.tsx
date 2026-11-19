@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { Card, Badge, EmptyState } from '@aqar/ui';
 import { getSessionUser } from '@/lib/auth';
-import { getLocale, getMessages, t } from '@/i18n/server';
+import { getMessages, t } from '@/i18n/server';
 import { ticketsForOrg } from '@/lib/queries';
 
 export default async function TicketsPage() {
   const user = await getSessionUser();
   if (user === null) return null;
-  const locale = await getLocale();
   const m = await getMessages();
   const tickets = await ticketsForOrg(user.orgId, 100);
   const emergencies = tickets.filter((tk) => tk.emergencyFlag && tk.status !== 'closed' && tk.status !== 'cancelled');
