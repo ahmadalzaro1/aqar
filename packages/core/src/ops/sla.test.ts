@@ -30,6 +30,9 @@ describe('defaultServiceStandard', () => {
     for (let i = 1; i < order.length; i += 1) {
       const prev = standard.clocks[order[i - 1] as Severity];
       const cur = standard.clocks[order[i] as Severity];
+      if (prev === undefined || cur === undefined) {
+        throw new Error('default service standard must define a clock for every severity');
+      }
       expect(prev.responseMinutes).toBeLessThanOrEqual(cur.responseMinutes);
       expect(prev.resolutionMinutes).toBeLessThanOrEqual(cur.resolutionMinutes);
     }
@@ -37,8 +40,12 @@ describe('defaultServiceStandard', () => {
 
   it('returns a fresh copy each call (callers may not mutate shared state)', () => {
     const a = defaultServiceStandard();
-    a.clocks.emergency.responseMinutes = 999;
-    expect(defaultServiceStandard().clocks.emergency.responseMinutes).toBe(0);
+    const clock = a.clocks.emergency;
+    if (clock === undefined) throw new Error('default pack must define an emergency clock');
+    clock.responseMinutes = 999;
+    const fresh = defaultServiceStandard().clocks.emergency;
+    if (fresh === undefined) throw new Error('default pack must define an emergency clock');
+    expect(fresh.responseMinutes).toBe(0);
   });
 });
 
@@ -116,7 +123,7 @@ describe('slaState', () => {
     expect(resolvedOnTime.responseBreached).toBe(false);
     expect(resolvedOnTime.resolutionBreached).toBe(false);
 
-    const resolvedLate = slaState(standard, 'high', OPENED, '2026-03-01T10:00:00.000Z', '2026-03-02T07:01:00.000Z', '2026-03-02T07:02:00.000Z');
+    const resolvedLate = slaState(standard, 'high', OPENED, '2026-03-01T10:00:00.000Z', '2026-03-02T08:01:00.000Z', '2026-03-02T08:02:00.000Z');
     expect(resolvedLate.resolutionBreached).toBe(true);
   });
 

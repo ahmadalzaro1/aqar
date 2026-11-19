@@ -33,7 +33,7 @@ function ratioBps(numerator: number, denominator: number): number {
 
 // ---------------------------------------------------------------- occupancy ---
 
-export type UnitStatus = 'occupied' | 'vacant' | 'notice' | 'offline';
+export type UnitStatus = 'occupied' | 'vacant' | 'turnover' | 'unavailable';
 
 export interface OccupancyUnit {
   readonly status: UnitStatus;
@@ -42,18 +42,18 @@ export interface OccupancyUnit {
 /**
  * Occupancy in basis points of leasable units.
  *
- * Leasable = occupied + vacant + notice. Units explicitly marked `offline`
- * (renovation, legal hold) are excluded from both numerator and denominator.
- * `notice` counts as occupied: the tenant is still paying and still in place.
- * Returns 0 when nothing is leasable.
+ * Leasable = occupied + vacant + turnover (frozen contracts enum). Units
+ * marked `unavailable` (renovation, legal hold) are excluded from both
+ * numerator and denominator. `turnover` is leasable stock between tenants,
+ * counted unoccupied. Returns 0 when nothing is leasable.
  */
 export function occupancyRate(units: readonly OccupancyUnit[]): number {
   let occupied = 0;
   let leasable = 0;
   for (const unit of units) {
-    if (unit.status === 'offline') continue;
+    if (unit.status === 'unavailable') continue;
     leasable += 1;
-    if (unit.status === 'occupied' || unit.status === 'notice') occupied += 1;
+    if (unit.status === 'occupied') occupied += 1;
   }
   return ratioBps(occupied, leasable);
 }

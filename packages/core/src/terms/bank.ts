@@ -30,19 +30,22 @@ function normalizeAccountKey(account: string): string {
 }
 
 /**
- * Deterministic fingerprint of a bank line over
- * `date|amount|payerName|payerAccount|reference`, all normalized (lowercase,
- * collapsed whitespace, Arabic-Indic digits to ASCII, diacritics and tatweel
- * stripped, alef variants folded). Overlapping statements produce the same
- * fingerprint for the same real movement, so imports can be deduped.
+ * Deterministic fingerprint of a bank line over `date|amount|payerName`,
+ * normalized (lowercase, collapsed whitespace, Arabic-Indic digits to ASCII,
+ * diacritics and tatweel stripped, alef variants folded).
+ *
+ * Reference and payer account are DELIBERATELY EXCLUDED (frozen spec): tenants
+ * type junk in references, and the same payer appears with different account
+ * spellings across banks. Overlapping statements therefore produce the same
+ * fingerprint for the same real movement. Known trade-off: two distinct
+ * same-day same-amount payments from one payer collide; the import wizard
+ * surfaces duplicates for human review rather than silently dropping them.
  */
 export function fingerprintBankLine(line: BankLine): string {
   const normalized = [
     normalizeArabicText(line.dateISO),
     String(line.amountFils),
     normalizeArabicText(line.payerName),
-    normalizeAccountKey(line.payerAccount ?? ''),
-    normalizeArabicText(line.reference ?? ''),
   ].join(FIELD_SEPARATOR);
   return fnv1a32Hex(normalized);
 }

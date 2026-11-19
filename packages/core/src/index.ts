@@ -1,3 +1,6 @@
-// @aqar/core — PURE domain logic. LAW 1: no I/O, no LLM, no wall-clock reads.
-// Money and ops engines are re-exported here as they land.
-export {};
+// @aqar/core — PURE domain engine. LAW 1: zero I/O, zero LLM, zero wall clock.
+// Money is integer fils (1 JOD = 1000). Dates are inputs, never read from a clock.
+// Enforced by scripts/check-core-deps.mjs in CI.
+export * from './ledger/index.js';
+export * from './terms/index.js';
+export * from './ops/index.js';

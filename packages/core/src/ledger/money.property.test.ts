@@ -81,4 +81,35 @@ describe('money properties', () => {
       }),
     );
   });
+
+  it('every money output across the engine is a safe integer (no float anywhere)', () => {
+    const collectNumbers = (value: unknown, out: number[]): void => {
+      if (typeof value === 'number') out.push(value);
+      else if (Array.isArray(value)) value.forEach((v) => collectNumbers(v, out));
+      else if (value !== null && typeof value === 'object')
+        Object.values(value).forEach((v) => collectNumbers(v, out));
+    };
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 5_000_000 }),
+        fc.integer({ min: 0, max: 5_000_000 }),
+        fc.integer({ min: 1, max: 28 }),
+        fc.integer({ min: 0, max: 5_000_000 }),
+        (rent, deposit, dueDay, payAmount) => {
+          const lease = makeLease({ rentFils: rent, depositFils: deposit, dueDay });
+          const charges = generateMonthlyCharges([lease], '2026-03', []);
+          const payment = makePayment({ amountFils: payAmount });
+          const allocations = allocatePayment(payment, charges, []);
+          const report = agingReport(charges, allocations, '2026-03-31');
+          const numbers: number[] = [];
+          collectNumbers({ charges, allocations, report }, numbers);
+          for (const n of numbers) expect(Number.isSafeInteger(n)).toBe(true);
+          for (const a of allocations) expect(a.amountFils).toBeGreaterThanOrEqual(0);
+          const dayNumber = toDayNumber('2026-03-15');
+          expect(fromDayNumber(dayNumber)).toBe('2026-03-15');
+        },
+      ),
+      { numRuns: 300 },
+    );
+  });
 });

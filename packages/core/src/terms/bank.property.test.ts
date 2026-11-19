@@ -136,10 +136,11 @@ describe('suggestMatch (properties)', () => {
     confirmed: true,
   };
 
+  let chargeSeq = 0;
   const chargeArb: fc.Arbitrary<Charge> = fc
     .tuple(fc.integer({ min: 0, max: 500_000 }), fc.constantFrom('2026-01-05', '2026-02-05'))
-    .map(([amountFils, dueDateISO], index) => ({
-      id: `charge-${String(index)}`,
+    .map(([amountFils, dueDateISO]) => ({
+      id: `charge-${String((chargeSeq += 1))}`,
       leaseId: 'lease-1',
       period: dueDateISO.slice(0, 7),
       kind: 'rent' as const,

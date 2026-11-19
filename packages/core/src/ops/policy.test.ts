@@ -130,7 +130,7 @@ describe('evaluatePolicy — not-to-exceed', () => {
   });
 
   it('skips the check when the property has no NTE limit', () => {
-    expect(evaluatePolicy(input({ amountFils: 9_000_000, nteLimitFils: null })).reasons).toEqual([]);
+    expect(evaluatePolicy(input({ amountFils: 9_000_000, nteLimitFils: null, orgDailySpendCapFils: 100_000_000 })).reasons).toEqual([]);
   });
 
   it('skips the check when no amount is committed', () => {
