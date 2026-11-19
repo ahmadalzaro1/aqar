@@ -11,13 +11,19 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const m = await getMessages();
   const rows = await sql`
-    SELECT tk.id, tk.status, tk.emergency_flag, tk.opened_at, tk.channel, tk.text,
+    SELECT tk.id, tk.status, tk.emergency_flag, tk.opened_at, tk.channel, tk.body,
       cl.category, cl.severity, cl.confidence, cl.deterministic_emergency, cl.model_severity,
       r.responsibility
     FROM tickets tk
-    LEFT JOIN classifications cl ON cl.ticket_id = tk.id
-    LEFT JOIN responsibilities r ON r.ticket_id = tk.id
-    WHERE tk.id = ${id} AND tk.org_id = ${user.orgId} LIMIT 1`;
+    LEFT JOIN LATERAL (
+      SELECT category, severity, confidence, deterministic_emergency, model_severity
+      FROM classifications WHERE ticket_id = tk.id ORDER BY created_at DESC LIMIT 1
+    ) cl ON true
+    LEFT JOIN LATERAL (
+      SELECT responsibility FROM responsibilities WHERE ticket_id = tk.id
+      ORDER BY created_at DESC LIMIT 1
+    ) r ON true
+    WHERE tk.id = ${id} AND tk.organization_id = ${user.orgId} LIMIT 1`;
   const tk = rows[0];
   if (tk === undefined) notFound();
   const messages = await ticketMessages(id);
@@ -32,7 +38,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         }}>{t(m, 'tickets.emergencyBanner')}</div>
       )}
       <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'ticket.detail')}</h1>
-      <Card title={String(tk['text'])}>
+      <Card title={String(tk['body'])}>
         <p style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Badge tone={emergency ? 'danger' : 'neutral'}>{String(tk['severity'] ?? '—')}</Badge>
           <Badge>{String(tk['category'] ?? '—')}</Badge>

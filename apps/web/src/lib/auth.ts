@@ -26,10 +26,10 @@ export async function login(
   totpCode: string | null,
 ): Promise<{ ok: true } | { ok: false; error: 'invalid' | 'totp' }> {
   const rows = await sql`
-    SELECT id, email, password_hash, role, org_id, totp_secret, name_en, name_ar
+    SELECT id, email, password_hash, role, organization_id, totp_secret, name_en, name_ar, is_active
     FROM users WHERE email = ${email} LIMIT 1`;
   const user = rows[0];
-  if (user === undefined) return { ok: false, error: 'invalid' };
+  if (user === undefined || user['is_active'] === false) return { ok: false, error: 'invalid' };
   let passwordOk = false;
   try {
     passwordOk = await verify(String(user['password_hash']), password);
@@ -46,8 +46,8 @@ export async function login(
   const token = randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000);
   await sql`
-    INSERT INTO sessions (id, token_hash, user_id, expires_at)
-    VALUES (${randomBytes(16).toString('hex')}, ${sha256(token)}, ${String(user['id'])}, ${expires})`;
+    INSERT INTO sessions (id, organization_id, token_hash, user_id, expires_at)
+    VALUES (${randomBytes(16).toString('hex')}, ${String(user['organization_id'])}, ${sha256(token)}, ${String(user['id'])}, ${expires})`;
   const store = await cookies();
   store.set(COOKIE, token, {
     httpOnly: true, sameSite: 'lax', path: '/',
@@ -62,14 +62,15 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const token = store.get(COOKIE)?.value;
   if (token === undefined) return null;
   const rows = await sql`
-    SELECT u.id, u.email, u.role, u.org_id, u.name_en, u.name_ar
+    SELECT u.id, u.email, u.role, u.organization_id, u.name_en, u.name_ar
     FROM sessions s JOIN users u ON u.id = s.user_id
-    WHERE s.token_hash = ${sha256(token)} AND s.expires_at > now() LIMIT 1`;
+    WHERE s.token_hash = ${sha256(token)} AND s.expires_at > now()
+      AND s.revoked_at IS NULL AND u.is_active = true LIMIT 1`;
   const r = rows[0];
   if (r === undefined) return null;
   return {
     id: String(r['id']), email: String(r['email']), role: String(r['role']),
-    orgId: String(r['org_id']), nameEn: String(r['name_en']), nameAr: String(r['name_ar']),
+    orgId: String(r['organization_id']), nameEn: String(r['name_en']), nameAr: String(r['name_ar']),
   };
 }
 
