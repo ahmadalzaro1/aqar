@@ -55,6 +55,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         <EmptyState title={t(m, 'ledger.empty.title')} hint={t(m, 'ledger.empty.hint')} />
       ) : (
         <Card>
+          <div className="table-scroll">
           <table className="money">
             <thead><tr>
               <th>{t(m, 'ledger.tenant')}</th><th>{t(m, 'ledger.unit')}</th>
@@ -82,6 +83,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
               <td />
             </tr></tfoot>
           </table>
+          </div>
         </Card>
       )}
     </div>

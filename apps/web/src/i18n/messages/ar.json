@@ -84,5 +84,14 @@
   "common.back": "رجوع",
   "common.prev": "السابق",
   "common.next": "التالي",
-  "common.of": "من"
+  "common.of": "من",
+  "ticketStatus.new": "جديد",
+  "ticketStatus.triaged": "تم الفرز",
+  "ticketStatus.awaiting_tenant": "بانتظار المستأجر",
+  "ticketStatus.approved": "معتمد",
+  "ticketStatus.dispatched": "تم الإرسال",
+  "ticketStatus.in_progress": "قيد التنفيذ",
+  "ticketStatus.completed": "مكتمل",
+  "ticketStatus.closed": "مغلق",
+  "ticketStatus.cancelled": "ملغى"
 }

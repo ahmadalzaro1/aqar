@@ -35,6 +35,16 @@ export function Shell({ user, orgName, locale, messages, children }: {
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)');
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  // Below 900px the sidebar is always an icon rail so content keeps >=300px.
+  const railCollapsed = collapsed || narrow;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -60,21 +70,22 @@ export function Shell({ user, orgName, locale, messages, children }: {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <a href="#main" className="no-print" style={{ position: 'absolute', insetInlineStart: -9999 }}
-        onFocus={(e) => { e.currentTarget.style.insetInlineStart = '8px'; }}
-        onBlur={(e) => { e.currentTarget.style.insetInlineStart = '-9999px'; }}>
+    <div style={{ display: 'flex', minHeight: '100vh', overflowX: 'clip' }}>
+      <a href="#main" className="no-print"
+        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}
+        onFocus={(e) => { const s = e.currentTarget.style; s.width = 'auto'; s.height = 'auto'; s.overflow = 'visible'; s.clipPath = 'none'; s.left = '8px'; s.top = '8px'; s.zIndex = '100'; s.background = 'var(--surface)'; s.padding = '8px'; }}
+        onBlur={(e) => { const s = e.currentTarget.style; s.width = '1px'; s.height = '1px'; s.overflow = 'hidden'; s.clipPath = 'inset(50%)'; s.left = ''; s.top = ''; s.zIndex = ''; s.background = ''; s.padding = ''; }}>
         Skip to content
       </a>
       <aside className="no-print" style={{
-        inlineSize: collapsed ? 56 : 220, flexShrink: 0, background: 'var(--surface-2)',
+        inlineSize: railCollapsed ? 56 : 220, flexShrink: 0, background: 'var(--surface-2)',
         borderInlineEnd: '1px solid var(--border)', padding: 'var(--space-3)',
         display: 'flex', flexDirection: 'column', gap: 2, transition: 'inline-size 150ms ease',
       }}>
         <button onClick={() => setCollapsed((v) => !v)} style={{ ...iconBtn, marginBlockEnd: 'var(--space-3)' }}
           aria-label="Toggle sidebar">
           <Building2 size={16} />
-          {!collapsed && <strong style={{ marginInlineStart: 8 }}>{t('app.name')}</strong>}
+          {!railCollapsed && <strong style={{ marginInlineStart: 8 }}>{t('app.name')}</strong>}
         </button>
         {NAV.map(({ href, key, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -86,14 +97,14 @@ export function Shell({ user, orgName, locale, messages, children }: {
               background: active ? 'var(--accent-soft)' : 'transparent', textDecoration: 'none',
             }}>
               <Icon size={15} strokeWidth={1.75} />
-              {!collapsed && <span>{t(key)}</span>}
+              {!railCollapsed && <span>{t(key)}</span>}
             </Link>
           );
         })}
       </aside>
       <div style={{ flex: 1, minInlineSize: 0, display: 'flex', flexDirection: 'column' }}>
         <header className="no-print" style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+          display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap', rowGap: 8,
           paddingBlock: 'var(--space-2)', paddingInline: 'var(--space-4)',
           borderBlockEnd: '1px solid var(--border)', background: 'var(--surface)',
         }}>
@@ -121,7 +132,7 @@ export function Shell({ user, orgName, locale, messages, children }: {
             </form>
           </div>
         </header>
-        <main id="main" style={{ padding: 'var(--space-6)', maxInlineSize: 1280, inlineSize: '100%', marginInline: 'auto' }}>
+        <main id="main" style={{ padding: 'var(--main-pad)', maxInlineSize: 1280, inlineSize: '100%', marginInline: 'auto', minInlineSize: 0 }}>
           {children}
         </main>
       </div>

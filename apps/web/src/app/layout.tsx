@@ -11,6 +11,9 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata = { title: 'Aqar — Property operations ledger' };
+// Without this, mobile browsers fall back to a ~980px layout viewport and the
+// console renders clipped at phone widths. Next injects the meta tag from it.
+export const viewport = { width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();

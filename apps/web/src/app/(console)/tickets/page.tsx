@@ -29,6 +29,7 @@ export default async function TicketsPage() {
         <EmptyState title={t(m, 'tickets.empty.title')} hint={t(m, 'tickets.empty.hint')} />
       ) : (
         <Card>
+          <div className="table-scroll">
           <table>
             <thead><tr>
               <th>{t(m, 'tickets.severity')}</th><th>{t(m, 'tickets.category')}</th>
@@ -44,12 +45,13 @@ export default async function TicketsPage() {
                   <td><Link href={`/tickets/${tk.id}`}>{tk.category ?? tk.text.slice(0, 40)}</Link></td>
                   <td>{tk.unitLabel ?? '—'} · {tk.propertyName}</td>
                   <td>{tk.channel}</td>
-                  <td>{tk.status}</td>
+                  <td>{t(m, `ticketStatus.${tk.status}`)}</td>
                   <td className="tnum">{tk.openedAt.slice(0, 10)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
     </div>

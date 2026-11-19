@@ -49,7 +49,8 @@ export async function chargesForPeriod(orgId: string, period: string): Promise<C
     ORDER BY c.due_date, u.unit_number`;
   return rows.map((r) => ({
     id: String(r['id']), leaseId: String(r['lease_id']), period: String(r['period']),
-    kind: String(r['kind']), amountFils: Number(r['amount_fils']), dueDate: String(r['due_date']),
+    kind: String(r['kind']), amountFils: Number(r['amount_fils']),
+    dueDate: (r['due_date'] instanceof Date ? r['due_date'].toISOString() : String(r['due_date'])).slice(0, 10),
     paidFils: Number(r['paid_fils']), tenantName: String(r['tenant_name']),
     unitLabel: String(r['unit_label']), propertyName: String(r['property_name']),
   }));
@@ -66,6 +67,15 @@ export async function collectionTotals(orgId: string, period: string): Promise<{
         WHERE c.organization_id = ${orgId} AND c.period = ${period}) AS collected`;
   const r = rows[0];
   return { billed: Number(r?.['billed'] ?? 0), collected: Number(r?.['collected'] ?? 0) };
+}
+
+export async function ticketCounts(orgId: string): Promise<{ open: number; emergencies: number }> {
+  const rows = await sql`
+    SELECT count(*) FILTER (WHERE status NOT IN ('closed','cancelled'))::int AS open,
+           count(*) FILTER (WHERE emergency_flag AND status NOT IN ('closed','cancelled'))::int AS emergencies
+    FROM tickets WHERE organization_id = ${orgId}`;
+  const r = rows[0] ?? { open: 0, emergencies: 0 };
+  return { open: Number(r['open']), emergencies: Number(r['emergencies']) };
 }
 
 export async function ticketsForOrg(orgId: string, limit: number): Promise<TicketRow[]> {

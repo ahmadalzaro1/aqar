@@ -84,5 +84,14 @@
   "common.back": "Back",
   "common.prev": "Previous",
   "common.next": "Next",
-  "common.of": "of"
+  "common.of": "of",
+  "ticketStatus.new": "New",
+  "ticketStatus.triaged": "Triaged",
+  "ticketStatus.awaiting_tenant": "Awaiting tenant",
+  "ticketStatus.approved": "Approved",
+  "ticketStatus.dispatched": "Dispatched",
+  "ticketStatus.in_progress": "In progress",
+  "ticketStatus.completed": "Completed",
+  "ticketStatus.closed": "Closed",
+  "ticketStatus.cancelled": "Cancelled"
 }

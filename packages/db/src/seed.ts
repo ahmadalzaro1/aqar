@@ -21,6 +21,7 @@ import {
   allocatePayment,
   dedupeBankLines,
   emergencyPrecheck,
+  hazardSignalCategory,
   fingerprintBankLine,
   generateMonthlyCharges,
   mulDivFloor,
@@ -38,6 +39,7 @@ import {
   bankLines,
   buildings,
   charges,
+  classifications,
   journalEntries,
   journalLines,
   leases,
@@ -991,6 +993,34 @@ export async function runSeed(url?: string): Promise<SeedCounts> {
         throw new Error(`seed requires 3 emergency tickets, emergencyPrecheck flagged ${emergencyCount}`);
       }
       await tx.insert(tickets).values(ticketValues).onConflictDoNothing();
+
+      // LAW-2 trace: emergency tickets carry a deterministic classification row
+      // so the UI can show WHY the flag is set. No model ran at seed time —
+      // modelId stays null and the rationale says so; modelSeverity mirrors the
+      // merged severity only because the column is NOT NULL.
+      const emergencyClassifications = ticketValues
+        .filter((t) => t.emergencyFlag)
+        .map((t) => {
+          const pre = emergencyPrecheck(t.body);
+          const firstSignal = pre.signals[0];
+          const category = (firstSignal !== undefined ? hazardSignalCategory(firstSignal) : undefined) ?? 'other';
+          return {
+            id: uid(`classification:${t.id}`),
+            organizationId: ORG_ID,
+            ticketId: t.id,
+            category,
+            severity: 'emergency' as const,
+            emergencyFlag: true,
+            confidence: '1.000',
+            deterministicEmergency: true,
+            modelSeverity: 'emergency' as const,
+            rationale: `Deterministic pre-check signals: ${pre.signals.join(', ')}. No model run at seed time; LAW-2 floor applied.`,
+            modelId: null,
+            promptVersion: 'det-1.0.0',
+            createdAt: t.openedAt,
+          };
+        });
+      await tx.insert(classifications).values(emergencyClassifications).onConflictDoNothing();
 
       // ---------------------------------------------------------------- bank
       const statementKeys = ['stmt-oct', 'stmt-nov'] as const;
