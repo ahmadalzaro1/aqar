@@ -118,6 +118,24 @@ Updated: 2026-11-20 (Asia/Amman)
   log, so gates that print no counts echoed the previous gate's numbers. It now
   reads each gate's own output and exits non-zero on failure.
 
+## Agent layer (MCP) — 2026-11-20
+- `apps/mcp` (`@aqar/mcp`) registered with Hermes as `aqar`: **18/18 tools**,
+  mode `propose`, actor `hermes`. See `docs/AGENTS.md`.
+- Verified end-to-end: `tsc` 0 · `eslint` 0 · `vitest` **35/35** ·
+  `node scripts/smoke.mjs` → `SMOKE_OK`. A gas-smell ticket filed over MCP was
+  consumed by the worker and classified `emergency / confidence 1`, ticket
+  status moved `new → triaged`.
+- Money denied by construction: `humanApprovalTokenPresent = false`, so
+  `evaluatePolicy` returns `allowed: false` for every money/vendor action and
+  the tool files a pending `action_proposals` row instead.
+- Fixed in passing (pre-existing defect): the worker never moved
+  `tickets.status` off `new` after classifying, so the console showed untriaged
+  tickets forever.
+- **Not done yet:** WhatsApp templates + media ingestion, proactive
+  outbox/scheduler, human chat surface, approvals inbox, proposal executor job.
+  The researched constraints that bound them are in `docs/AGENTS.md` § Next
+  layer and `docs/DECISIONS.md` D17.
+
 ## Exact resume point
 1. Next up: retire the RLS hole (role `aqar` is superuser + `rolbypassrls`;
    policies are correct but never evaluated for that role) — split an

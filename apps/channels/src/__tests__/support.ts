@@ -85,7 +85,13 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     close: async () => {
       for (const ticketId of ticketIds) {
         const job = await queue.getJob(ticketId);
-        if (job !== undefined) await job.remove();
+        // A dev running `apps/worker` will grab these jobs and hold the lock.
+        // That is a normal local setup, not a test failure: the assertions have
+        // already run by now, so drop what we can and let the worker's own
+        // retention remove the rest. Never let teardown decide pass/fail.
+        if (job !== undefined) {
+          await job.remove().catch(() => undefined);
+        }
       }
       await queue.close();
       if (ticketIds.length > 0) {

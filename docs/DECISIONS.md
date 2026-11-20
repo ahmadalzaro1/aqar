@@ -132,4 +132,50 @@ worth knowing:
   mismatch surfaces as Postgres `28P01` (auth failed) and a 500 on every
   console page, not as a migration error.
 
+## D15 — The MCP server is the first agent surface, and money is proposal-only
+Hermes consumes MCP, so an in-app chat UI is for humans and comes second. The
+server exposes 18 intent-level tools over the existing ledger rather than
+wrapping tables: business intent is what an agent can be trusted with, and it
+keeps the surface auditable.
+
+The consequence worth writing down: an MCP caller can **never** move money.
+`gate.ts` passes `humanApprovalTokenPresent = false` to `evaluatePolicy`
+unconditionally, so every money or vendor-commit action is denied by
+construction and the tool returns a pending `action_proposals` row instead. No
+prompt, no tool argument and no `live` mode changes this. Approval is a human
+act in the console; execution is a separate server job the agent cannot call.
+Rejected alternative: a model-facing "are you sure?" confirmation, which is a
+prompt convention, not a boundary.
+
+## D16 — Agent-filed tickets share the WhatsApp triage pipeline
+A ticket created over MCP must be classified by the same worker that handles
+WhatsApp traffic, or the agent silently creates rows nobody triages. So
+`create_ticket` enqueues the same `ticket.ingest` job on the same queue, and
+only **after** the transaction commits — a job must never reference an
+uncommitted row. Redis is optional at boot: reads keep working and the tool
+reports `triage.enqueued = false` rather than claiming dispatch.
+
+Building this exposed a defect on the existing path: the worker wrote a
+classification but never moved `tickets.status` off `new`, so the console showed
+untriaged tickets forever. The transition is now guarded `new → triaged` inside
+the same transaction, so a human's later status change is never dragged
+backwards.
+
+## D17 — WhatsApp economics and identity constrain the agent design
+Meta's primary docs (verified 2026-11-20) make three things non-optional:
+
+- **Service replies are billed.** Since 1 Oct 2026 in-window messages cost the
+  service rate — Jordan sits in *Rest of Middle East*: USD 0.0091 for service,
+  utility and authentication; 0.0392 for marketing; first 1,000 service
+  messages per number per month free. A chatty agent is a metered product, so
+  the design targets one correct reply per case, not an open dialogue.
+- **Utility → marketing reclassification is silent.** Meta re-reviews live
+  templates; a recategorised template stays `APPROVED`, keeps sending, and bills
+  at the marketing rate (4.3×). Only the `template_category_update` webhook
+  reveals it, so it must be subscribed and campaigns paused on change.
+- **The phone number is not the identity.** For users with a WhatsApp username,
+  `wa_id`/`from` may be omitted; `from_user_id` (BSUID) is the durable key.
+  Media is also ephemeral: URL 5 minutes, webhook media ID 7 days, so downloads
+  happen inside the worker job, never at webhook time.
+
 
