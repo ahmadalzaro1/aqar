@@ -82,18 +82,38 @@ written by an approved proposal. `reconcileAreas` with a 3% tolerance is the
 practitioner baseline quoted above, and a drawing outside it is a parsing failure,
 not a drawing inaccuracy.
 
+## The Python sidecar (`tools/plan-extractor`)
+
+| Lane | Reader | Status |
+|---|---|---|
+| **DXF** | `ezdxf` 1.4.5 — closed `LWPOLYLINE`/`POLYLINE`, `HATCH` boundary paths | **working** |
+| **DWG** | none — proprietary container | refused with `unsupported_format` |
+| **Vector PDF** | `pymupdf` 2.1 — `page.get_drawings()` paths, `rect`/`line`/`quad` only | **working** |
+| **Labels** | `TEXT`/`MTEXT` in DXF, text spans in PDF; each goes to the *smallest* ring containing it | **working** |
+| Raster scan | CubiCasa/MMDetection | not wired — no weights, and the schema refuses an unconfidenced guess |
+| SVG | `packages/core/src/plans/svg.ts` | working (in TS, no sidecar needed) |
+
+Measured on the committed fixtures (`make_fixtures.py` generates both):
+
+- `flats.dxf` in millimetres → `60.0 / 45.0 / 18.0 / 24.75` m², hatch `1.75` m²
+  recognised as `bedroom`, labels `Flat 101`, `Flat 102`, **`شقة 103`** (Arabic
+  survives the process boundary), bow-tie reported `self_intersecting` and excluded.
+- `flats.pdf` at 1:50 → `60.0 / 45.0 / 18.0` m² **only with** `--calibrate`;
+  without it `scale_known: false` and every `area_sqm` is `null`.
+
+Bridge: `apps/worker/src/plans/extractor.ts` → `planExtractionSchema`
+(`packages/contracts`). Tests: `apps/worker/src/__tests__/plan-extractor.test.ts`.
+
 ## Not built (honest gaps)
 
-1. **DXF/DWG adapter** — `ezdxf` (+ `ezdxf-shapely` for boolean unions) is the right
-   tool and needs a Python sidecar or a WASM build; not written.
-2. **Vector-PDF adapter** — a PDF's content stream holds the same path operators as
-   SVG; needs `pdfjs-dist` path extraction, not written.
-3. **Raster lane** — no CubiCasa/MMDetection inference wired; the schema and the
+1. **Raster lane** — no CubiCasa/MMDetection inference wired; the schema and the
    `confidence` contract exist and refuse a guess without one.
-4. **Heron/label OCR** — room names as text (`MTEXT` in DXF, `<text>` in SVG) are
-   not yet read, so labels come from XML `id`/`data-label` only.
-5. **Console UI** — no upload screen, no plan review screen, no proposal →
+2. **Console UI** — no upload screen, no plan review screen, no proposal →
    `units.area_sqm` flow yet.
-6. **Twitter/X sweep blocked** — the X session returned HTTP 429 (search quota) on
-   three attempts at 00:42–00:50; research above is from HN, GitHub and product
+3. **DXF block references and nested inserts** — geometry inside an `INSERT` is not
+   expanded yet, so a drawing whose rooms live in blocks reads as empty.
+4. **Boolean wall unions** — `ezdxf-shapely` is installed but wall centrelines are
+   not yet merged into room rings; rooms must already be drawn closed or hatched.
+5. **Twitter/X sweep blocked** — the X session returned HTTP 429 (search quota) on
+   four attempts at 00:42–00:58; research above is from HN, GitHub and product
    pages instead. Retry after cooldown.
