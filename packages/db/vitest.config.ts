@@ -12,9 +12,10 @@ const base =
 const testUrl = base.replace(/\/[^/]+$/, '/aqar_test');
 
 /**
- * Integration tests run against a REAL PostgreSQL 16 instance (no sqlite, no DB
- * mocks). They need `aqar_test` to exist; the suite resets `public`/`app` and
- * replays the migrations in `beforeAll`.
+ * Integration tests run against a REAL PostgreSQL 19 instance (no sqlite, no DB
+ * mocks). The global setup creates `aqar_test` if it is missing and refuses to
+ * run against any database whose name does not end in `_test`; the suite then
+ * resets `public`/`app` and replays the migrations in `beforeAll`.
  */
 export default defineConfig({
   test: {
@@ -22,6 +23,7 @@ export default defineConfig({
     include: ['src/__tests__/**/*.test.ts'],
     testTimeout: 30_000,
     hookTimeout: 120_000,
+    globalSetup: ['./src/__tests__/global-setup.ts'],
     pool: 'forks',
     fileParallelism: false,
     env: {

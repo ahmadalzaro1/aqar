@@ -244,8 +244,11 @@ export async function countJobsForTicket(
   queue: Queue<TicketIngestJob>,
   ticketId: string,
 ): Promise<number> {
+  // BullMQ 6 dropped the `paused` job state (pause is now a queue-level flag,
+  // not a job state) and added `prioritized` — a prioritized ingest job would
+  // otherwise be invisible to this counter.
   const jobs = await queue.getJobs(
-    ['waiting', 'active', 'delayed', 'completed', 'failed', 'paused', 'waiting-children'],
+    ['waiting', 'prioritized', 'active', 'delayed', 'completed', 'failed', 'waiting-children'],
     0,
     500,
     true,

@@ -1,22 +1,26 @@
 name: aqar
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg19
     environment:
       POSTGRES_USER: aqar
       POSTGRES_PASSWORD: aqar
       POSTGRES_DB: aqar
     ports:
       - "127.0.0.1:5433:5432"
+    # PostgreSQL 18+ images store data under a major-version subdirectory and
+    # require the mount at /var/lib/postgresql (not .../data) so pg_upgrade can
+    # work across the mount boundary. Mounting the old path makes the image
+    # refuse to start.
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U aqar -d aqar"]
       interval: 3s
       timeout: 3s
       retries: 20
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       - "127.0.0.1:6380:6379"
     volumes:
