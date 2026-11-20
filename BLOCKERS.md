@@ -16,8 +16,12 @@ Updated: 2026-11-20 (Asia/Amman)
   (commit 57ad445) and promoted into the golden set; on the new chemical-fume
   case the model emitted an invalid category, schema escalation fired, and
   the deterministic floor kept emergency+gas — LAW-2 proven on a new class.
-- 24 screenshots (3 pages × AR/EN × 1440/1024/768/390) in docs/screenshots/,
-  every capture verified scrollWidth == viewport width.
+- 40 screenshots (5 pages × AR/EN × 1440/1024/768/390) in docs/screenshots/,
+  captured with real CDP device-metrics emulation and verified two ways:
+  (a) measurement — 40/40 runs with scrollWidth == clientWidth and zero
+  overflow offenders inside <main>; (b) visual — vision review of the 390px
+  EN/AR bank and statement captures, which found defects the probe could not
+  (all fixed: see the 2026-11-20 commits).
 
 ## Environment blockers (resolved or worked around)
 1. colima stopped → started. `minio/minio` gone from Hub, quay 401 →
@@ -30,12 +34,16 @@ Updated: 2026-11-20 (Asia/Amman)
    MUST be removed before any non-local exposure.
 4. `.env` had a stray non-comment line and stale LOCAL_BASE_URL=:8002
    (embeddings-only, chat 404) → fixed; chat model is lfm3-local :11434.
-5. CDP device emulation did not drive media queries reliably → screenshots
-   captured via same-origin iframe at exact px width (method in RUNBOOK).
+5. CDP device-metrics emulation DOES drive the media queries (verified:
+   `matchMedia('(max-width: 900px)')` is true at 390px). The earlier iframe
+   captures were a workaround for a misconfigured override; screenshots now
+   use `Emulation.setDeviceMetricsOverride` + `captureBeyondViewport`, which
+   is also faithful about the fixed rail.
 
 ## Open items (honest, prioritized)
 - P1 (CLOSED 2026-11-20): M6 bank-import wizard (`/bank`) and M7 owner
-  statement (`/statements`) shipped and proven end to end. Bank: 5 offline
+  statement (`/statements`) shipped and proven end to end. Commit 0a2328d,
+  CI run 44739777530 = success. Bank: 5 offline
   tests + live write path (payments 85 -> 86, allocations 84 -> 85, audit
   +2, charge settled to 0 fils, replay returns `already_imported` with zero
   new writes) plus a real UI run (paste -> analyze -> confirm -> "Import
@@ -60,6 +68,7 @@ Updated: 2026-11-20 (Asia/Amman)
   control contributes an intrinsic width.
   Measured with real viewport emulation (not eyeballed, not a scrolling
   iframe): 5 pages x 4 widths x 2 locales = 40 runs, 0 overflow offenders.
+  Commit 36ee993; CI run 44742653326 = success.
   390px: aside 56 / main 334. 768px: 56 / 712. 1024px: 220 / 804.
   1440px: 220 / 1220. Document scrollWidth == clientWidth in every run.
 - P2: `packages/db/src/client.ts` still has a placeholder default URL and no
