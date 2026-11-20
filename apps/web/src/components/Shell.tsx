@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Building2, Inbox, FileText, BookOpen, Wrench,
   Truck, Users, FolderLock, BarChart3, Settings, Search, Languages, Moon, LogOut,
   Landmark, ReceiptText,
+  Ruler,
 } from 'lucide-react';
 import { setLocale, setTheme, logoutAction } from '@/lib/actions';
 import type { SessionUser } from '@/lib/auth';
@@ -15,6 +16,7 @@ import type { SessionUser } from '@/lib/auth';
 const NAV = [
   { href: '/dashboard', key: 'nav.dashboard', Icon: LayoutDashboard },
   { href: '/portfolio', key: 'nav.portfolio', Icon: Building2 },
+  { href: '/plans', key: 'nav.plans', Icon: Ruler },
   { href: '/leasing', key: 'nav.leasing', Icon: Inbox },
   { href: '/leases', key: 'nav.leases', Icon: FileText },
   { href: '/ledger', key: 'nav.ledger', Icon: BookOpen },

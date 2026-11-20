@@ -11,13 +11,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src --max-warnings 0",
-    "plan:ingest": "tsx src/plans/ingest.ts"
+    "plan:ingest": "tsx ../../packages/drawings/src/ingest.ts"
   },
   "dependencies": {
     "@aqar/agents": "workspace:*",
     "@aqar/contracts": "workspace:*",
     "@aqar/core": "workspace:*",
     "@aqar/db": "workspace:*",
+    "@aqar/drawings": "workspace:*",
     "bullmq": "^6.7.8",
     "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7"

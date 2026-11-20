@@ -1,7 +1,11 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-  transpilePackages: ['@aqar/ui', '@aqar/contracts', '@aqar/core'],
+  transpilePackages: ['@aqar/ui', '@aqar/contracts', '@aqar/core', '@aqar/drawings'],
+  // A DXF from a surveyor is often 5–15 MB. The default 1 MB server-action body
+  // limit would reject a perfectly ordinary drawing with a form error nobody can
+  // interpret; 25 MB matches the upload action's own cap.
+  experimental: { serverActions: { bodySizeLimit: '26mb' } },
   serverExternalPackages: ['@node-rs/argon2', 'postgres'],
   typescript: { ignoreBuildErrors: false },
   // Next 16 removed the `eslint` config key (and `next lint`) — builds never

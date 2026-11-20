@@ -35,6 +35,9 @@ importers:
       '@aqar/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@aqar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@aqar/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -118,6 +121,9 @@ importers:
       '@aqar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@aqar/drawings':
+        specifier: workspace:*
+        version: link:../../packages/drawings
       '@aqar/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -188,6 +194,9 @@ importers:
       '@aqar/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@aqar/drawings':
+        specifier: workspace:*
+        version: link:../../packages/drawings
       bullmq:
         specifier: ^6.7.8
         version: 6.7.8(ioredis@5.11.1)
@@ -286,6 +295,28 @@ importers:
       tsx:
         specifier: ^4.19.0
         version: 4.23.15
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.1.1
+        version: 5.1.1(@types/node@26.6.6)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15))
+
+  packages/drawings:
+    dependencies:
+      '@aqar/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@aqar/core':
+        specifier: workspace:*
+        version: link:../core
+      '@aqar/db':
+        specifier: workspace:*
+        version: link:../db
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

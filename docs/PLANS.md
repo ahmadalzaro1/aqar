@@ -118,6 +118,42 @@ reconciled `within` against a stated 123 m², corridor 24.75 m² and the 1.75 m�
 bedroom hatch stored but **excluded from the lettable sum** — a corridor is not
 rentable, and a bedroom hatch is already inside its flat.
 
+## The console (`/plans`)
+
+`apps/web/src/app/(console)/plans/` — the first screen where a drawing becomes
+something a person can decide about.
+
+- **Upload** (`page.tsx` → `uploadPlanAction`): property, level, stated area, an
+  optional PDF calibration line, and the file. 25 MB cap, `.dxf`/`.dwg`/`.pdf`
+  only. The file is stored under `var/plans/<sha-prefix>.<ext>` and parsed by
+  `@aqar/drawings` in the same request.
+- **Review** (`[id]/page.tsx`): rooms with kind, area, source and confidence; the
+  three-state reconciliation badge (`within` / `outside` / `no_statement`) computed
+  in the browser session by `reconcileAreas`, not by the parser.
+- **Confirm** (`confirmRoomAction`): writes `confirmed_by` + `confirmed_at`
+  together. A half-confirmation is refused by the database, not by the form.
+- **Propose** (`proposeUnitsAction`): inserts an `action_proposals` row
+  (`plans.materialize` / `create_units_from_plan`, `status='pending'`) containing
+  only *confirmed* unit rooms. Nothing touches `units`.
+
+Verified in a real browser against the live database on 2026-11-21: uploaded
+`flats.dxf` through the form, the review page listed 5 rooms (`60 / 45 / 18`
+lettable, corridor and hatch excluded), confirming `LWPOLYLINE-1` wrote
+`confirmed_by` + `confirmed_at`, and proposing created exactly one pending
+proposal for that one confirmed unit. Re-uploading the same file to the same
+level returned the **same plan id** — the upsert updates, it does not duplicate.
+
+## Two schema corrections found by using it
+
+- **0011** narrowed the drawing hash index to `(org, property, level, sha256)`.
+- **0012** dropped it entirely: reading the catalog showed
+  `floor_plans_property_level_uq` (`property_id, level WHERE status <> 'rejected'`)
+  already says one plan per level per property, whatever the file. The hash index
+  was redundant where it fired, and actively wrong where it did not — a compound's
+  two identical blocks, and the same stamped drawing issued twice, are ordinary.
+  Duplicate detection belongs in the upload path as a warning, not in the schema
+  as a refusal. `plan:ingest` now upserts on `(property_id, level)`.
+
 ## Not built (honest gaps)
 
 1. **Raster lane** — no CubiCasa/MMDetection inference wired; the schema and the

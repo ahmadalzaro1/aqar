@@ -15,3 +15,6 @@ infra/volumes/
 
 # generated eval output (recreated by pnpm --filter @aqar/evals evals)
 packages/evals/results/
+
+# local drawing uploads (never committed)
+apps/web/var/

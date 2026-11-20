@@ -15,6 +15,7 @@
   "dependencies": {
     "@aqar/contracts": "workspace:*",
     "@aqar/core": "workspace:*",
+    "@aqar/drawings": "workspace:*",
     "@aqar/ui": "workspace:*",
     "@node-rs/argon2": "^2.0.2",
     "lucide-react": "^1.76.0",

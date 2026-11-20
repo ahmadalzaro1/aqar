@@ -49,13 +49,13 @@ maybe('a schematic becomes reviewed geometry, not a charge', () => {
     await sql.end();
   });
 
-  async function insertPlan(sha: string | null): Promise<string> {
+  async function insertPlan(sha: string | null, level?: string): Promise<string> {
     const id = randomUUID();
     await sql.begin(async (tx) => {
       await tx`select set_config('app.organization_id', ${orgId}, true)`;
       await tx`
         insert into floor_plans (id, organization_id, property_id, level, format, drawing_unit, sha256, status)
-        values (${id}::uuid, ${orgId}::uuid, ${propertyId}::uuid, ${`T-${id.slice(0, 6)}`},
+        values (${id}::uuid, ${orgId}::uuid, ${propertyId}::uuid, ${level ?? `T-${id.slice(0, 6)}`},
                 'svg', 'mm', ${sha}, 'parsed')`;
     });
     planIds.push(id);
@@ -113,9 +113,13 @@ maybe('a schematic becomes reviewed geometry, not a charge', () => {
     ).rejects.toThrow(/plan_rooms_confidence_ck/);
   });
 
-  it('refuses the same file uploaded twice as two different plans', async () => {
-    await insertPlan('d'.repeat(64));
-    await expect(insertPlan('d'.repeat(64))).rejects.toThrow(/floor_plans_sha_uq/);
+  it('lets one drawing serve several levels while keeping one plan per level', async () => {
+    await insertPlan('d'.repeat(64), 'L2');
+    // Floors 2 and 3 of a building are drawn once and issued twice; refusing the
+    // second upload would force somebody to duplicate the file to satisfy a schema.
+    await expect(insertPlan('d'.repeat(64), 'L3')).resolves.toEqual(expect.any(String));
+    // What must hold is narrower: one plan per property per level, whatever the file.
+    await expect(insertPlan('f'.repeat(64), 'L2')).rejects.toThrow(/floor_plans_property_level_uq/);
   });
 
   it('treats a room as unconfirmed until a human names themselves', async () => {
