@@ -98,7 +98,20 @@ export async function planDetail(orgId: string, planId: string): Promise<PlanDet
     select warnings from plan_extractions where floor_plan_id = ${planId}::uuid
      order by created_at desc limit 1`;
 
-  const rawWarnings = warnings[0]?.warnings;
+  // postgres.js hands jsonb back as a *string* on this connection, so an
+  // `Array.isArray` check silently produced "no warnings" for every plan — the
+  // reviewer's most important line, invisible. Parse defensively instead.
+  const stored = warnings[0]?.warnings;
+  const rawWarnings =
+    typeof stored === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(stored) as unknown;
+          } catch {
+            return null;
+          }
+        })()
+      : stored;
   return {
     plan: toPlan(plan),
     rooms: rooms.map((room) => ({
@@ -110,8 +123,16 @@ export async function planDetail(orgId: string, planId: string): Promise<PlanDet
       confidence: room.confidence === null ? null : Number(room.confidence),
       confirmedAt: room.confirmed_at === null ? null : String(room.confirmed_at).slice(0, 10),
     })),
+    // Two shapes reach here: the vector parser emits {reason}, the raster importer
+    // emits {code, flags}. A refused claim is the reviewer's most important line, so
+    // both are flattened to one readable string instead of `[object Object]`.
     warnings: Array.isArray(rawWarnings)
-      ? rawWarnings.map((warning) => String((warning as { reason?: unknown }).reason ?? 'unknown'))
+      ? (rawWarnings as unknown[]).map((warning) => {
+          const entry = warning as { reason?: unknown; code?: unknown; flags?: unknown };
+          if (typeof entry.reason === 'string') return entry.reason;
+          const flags = Array.isArray(entry.flags) ? entry.flags.map(String).join(', ') : 'refused';
+          return typeof entry.code === 'string' ? `${entry.code}: ${flags}` : flags;
+        })
       : [],
   };
 }

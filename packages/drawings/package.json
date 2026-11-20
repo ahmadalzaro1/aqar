@@ -15,7 +15,8 @@
   "dependencies": {
     "@aqar/contracts": "workspace:*",
     "@aqar/core": "workspace:*",
-    "@aqar/db": "workspace:*"
+    "@aqar/db": "workspace:*",
+    "postgres": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -156,19 +156,24 @@ export type ScaleWarning = 'too_large_for_a_space' | 'too_small_for_a_space' | '
  * drawing passed as a floor plan. We warn instead of silently converting, because
  * the conversion would be arithmetically perfect and semantically wrong.
  */
-export function scaleWarnings(ring: Ring, unit: DrawingUnit): readonly ScaleWarning[] {
+export function scaleWarningsForMetres(
+  areaRaw: number,
+  widthM: number,
+  heightM: number,
+): readonly ScaleWarning[] {
   const warnings: ScaleWarning[] = [];
-  const size = bounds(ring);
-  const factor = METRES_PER_UNIT[unit];
-  const widthM = size.width * factor;
-  const heightM = size.height * factor;
-  // Unrounded on purpose: a room read in the wrong unit rounds to 0.000 m², and a
-  // rounded zero would be reported as `degenerate` instead of "your scale is off".
-  const areaRaw = ringArea(ring) * factor * factor;
   if (areaRaw <= 0 || widthM <= 0 || heightM <= 0) return ['degenerate'];
   if (areaRaw > 5000 || widthM > 200 || heightM > 200) warnings.push('too_large_for_a_space');
   if (areaRaw < 2 || widthM < 0.6 || heightM < 0.6) warnings.push('too_small_for_a_space');
   return warnings;
+}
+
+export function scaleWarnings(ring: Ring, unit: DrawingUnit): readonly ScaleWarning[] {
+  const size = bounds(ring);
+  const factor = METRES_PER_UNIT[unit];
+  // Unrounded on purpose: a room read in the wrong unit rounds to 0.000 m², and a
+  // rounded zero would be reported as `degenerate` instead of "your scale is off".
+  return scaleWarningsForMetres(ringArea(ring) * factor * factor, size.width * factor, size.height * factor);
 }
 
 export type ReconciliationVerdict = 'no_statement' | 'within' | 'outside';

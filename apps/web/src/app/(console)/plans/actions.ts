@@ -5,7 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { ingestPlan } from '@aqar/drawings';
+import { importRasterPlan, ingestPlan } from '@aqar/drawings';
 import { getSessionUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
 
@@ -19,7 +19,12 @@ import { sql } from '@/lib/db';
  *     approves, and only then does anything reach the ledger.
  */
 
-const ALLOWED = new Set(['.dxf', '.dwg', '.pdf']);
+// Two input classes, one door. A vector drawing arrives as itself; a raster plan
+// arrives as the JSON a segmentation model produced, which is self-describing
+// (polygons in pixels plus metres-per-pixel), so it needs no extra form field.
+const VECTOR = new Set(['.dxf', '.dwg', '.pdf']);
+const RASTER = new Set(['.json']);
+const ALLOWED = new Set([...VECTOR, ...RASTER]);
 const MAX_BYTES = 25 * 1024 * 1024;
 
 function uploadDir(): string {
@@ -51,13 +56,16 @@ export async function uploadPlanAction(formData: FormData): Promise<void> {
   await writeFile(path, bytes);
 
   try {
-    const result = await ingestPlan({
-      filePath: path,
-      property: propertyId,
-      level,
-      statedSqm: statedRaw === '' ? null : Number(statedRaw),
-      ...(calibrateRaw === '' ? {} : { calibrate: calibrateRaw }),
-    });
+    const statedSqm = statedRaw === '' ? null : Number(statedRaw);
+    const result = RASTER.has(extension)
+      ? await importRasterPlan({ filePath: path, property: propertyId, level, statedSqm })
+      : await ingestPlan({
+          filePath: path,
+          property: propertyId,
+          level,
+          statedSqm,
+          ...(calibrateRaw === '' ? {} : { calibrate: calibrateRaw }),
+        });
     revalidatePath('/plans');
     redirect(`/plans/${result.floorPlanId}`);
   } catch (error) {

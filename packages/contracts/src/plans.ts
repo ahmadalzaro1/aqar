@@ -66,3 +66,40 @@ export const planExtractRequestSchema = z.object({
   calibrate: z.string().regex(/^-?[\d.]+,-?[\d.]+,-?[\d.]+,-?[\d.]+,?[\d.]+$/).optional(),
 });
 export type PlanExtractRequest = z.infer<typeof planExtractRequestSchema>;
+
+/* ------------------------------------------------------------------ raster ---- */
+
+export const rasterSourceSchema = z.enum(['cubicas5k', 'mmdetection', 'manual_tracing']);
+export type RasterSource = z.infer<typeof rasterSourceSchema>;
+
+/**
+ * One claim from a segmentation model: a polygon, a class, a confidence.
+ *
+ * `confidence` is `gt(0)` rather than `min(0)` on purpose — a room the model is
+ * certain of nothing about is not a room, and the database refuses a raster row
+ * without a confidence anyway (`plan_rooms_confidence_ck`).
+ */
+export const rasterRoomSchema = z.object({
+  code: z.string().min(1),
+  label: z.string().min(1).nullable().optional(),
+  room_kind: z.string().min(1),
+  confidence: z.number().gt(0).lte(1),
+  polygon: z.array(z.tuple([z.number(), z.number()])).min(3),
+  /** Optional: the model's own confidence for the class, when it reports two numbers. */
+  class_confidence: z.number().gt(0).lte(1).optional(),
+});
+export type RasterRoomDocument = z.infer<typeof rasterRoomSchema>;
+
+/**
+ * The contract a raster pipeline must satisfy. Any model can fill it — CubiCasa5k
+ * fine-tunes, MMDetection instance segmentation, or a person tracing a scan — and
+ * the importer validates it before a single row is written.
+ */
+export const rasterImportSchema = z.object({
+  source: rasterSourceSchema,
+  model_id: z.string().min(1),
+  image: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+  metres_per_pixel: z.number().positive(),
+  rooms: z.array(rasterRoomSchema).min(1),
+});
+export type RasterImport = z.infer<typeof rasterImportSchema>;

@@ -154,16 +154,82 @@ level returned the **same plan id** — the upsert updates, it does not duplicat
   Duplicate detection belongs in the upload path as a warning, not in the schema
   as a refusal. `plan:ingest` now upserts on `(property_id, level)`.
 
+## The raster lane: a model's claim, measured and refused
+
+"Geometry that came from a file is arithmetic; geometry that came from pixels is
+testimony." The raster lane implements the second half by refusing to be clever.
+
+The model is somebody else's process. Aqar accepts its **output**, not its code:
+
+```json
+{
+  "source": "mmdetection",
+  "model_id": "cascade-rcnn-cubicas5k-fixture",
+  "image": { "width": 4000, "height": 2000 },
+  "metres_per_pixel": 0.01,
+  "rooms": [
+    { "code": "R-101", "label": "Flat 101", "room_kind": "unit", "confidence": 0.93,
+      "polygon": [[0,0],[600,0],[600,1000],[0,1000]] }
+  ]
+}
+```
+
+`packages/contracts/src/plans.ts` validates it (`rasterImportSchema`),
+`packages/core/src/plans/raster.ts` measures it, `packages/drawings/src/raster.ts`
+writes it. Any pipeline can fill the contract — a CubiCasa5k fine-tune, MMDetection
+instance segmentation, or a person tracing a scan.
+
+What the measurement decides, in order:
+
+| Claim | Verdict |
+|---|---|
+| area, from shoelace × `metres_per_pixel`² | stored in m² |
+| `confidence < 0.5` | **refused** — recorded in the extraction, absent from `plan_rooms` |
+| self-intersecting ring | **refused** — a bow-tie's signed area is not a room |
+| ring outside the stated image | **refused** — the polygon and the image disagree |
+| area ≥ 5 000 m² or side ≥ 200 m | `too_large_for_a_space` — a scale problem, not a room |
+| area < 2 m² or side < 0.6 m | `too_small_for_a_space` |
+| `metres_per_pixel ≤ 0` / non-finite | `RangeError` — a programmer error, not data |
+
+Refusals are not exceptions: they are rows in `plan_extractions.warnings`, and the
+review page prints them — `R-105: low_confidence, R-106: outside_image` — because
+"the model saw six things, you are looking at four" is the single most useful
+sentence on that screen.
+
+**Measured live** (fixture, real database, through the console form): 6 claims →
+4 rooms, `60 / 45 / 18` lettable = **123 m²**, `within 0.00%`, corridor 45.375 m²
+stored but excluded, the 0.37-confidence balcony and the ring that left the image
+both refused and named on screen. Confirming `R-103` wrote `confirmed_by`, and the
+proposal created **one** pending `plans.materialize` row. `units.area_sqm` untouched.
+
+### Superseding a level
+
+`floor_plans_property_level_uq` means the second drawing for a level replaces the
+first, which is the right behaviour for a revised issue — except when the old
+drawing's rooms already carry a person's confirmation or a unit materialised from
+them. `packages/drawings/src/plan-write.ts` refuses that case
+(`plan_is_confirmed`): replacing a plan must never delete an act. A byte-identical
+re-parse is not a supersede, so confirmations survive it.
+
+### The bug that only real use finds
+
+`postgres.js` returns `jsonb` as a **string** on this connection, so the review
+page's `Array.isArray(warnings)` check silently reported "no warnings" for every
+plan — the reviewer's most important line, invisible for both lanes. Found by
+uploading a real document and noticing the absence. Parsed defensively now.
+
 ## Not built (honest gaps)
 
-1. **Raster lane** — no CubiCasa/MMDetection inference wired; the schema and the
-   `confidence` contract exist and refuse a guess without one.
-2. **Console UI** — no upload screen, no plan review screen, no proposal →
-   `units.area_sqm` flow yet.
-3. **DXF block references and nested inserts** — geometry inside an `INSERT` is not
+1. **Raster inference itself** — the contract, the measurement and the refusals are
+   built and exercised; no model ships in this repo. Wiring CubiCasa5k/MMDetection
+   means a weight download (~250 MB) and a Python env, and nothing in the lane
+   currently needs them: any pipeline that emits the JSON above is accepted.
+2. **DXF block references and nested inserts** — geometry inside an `INSERT` is not
    expanded yet, so a drawing whose rooms live in blocks reads as empty.
-4. **Boolean wall unions** — `ezdxf-shapely` is installed but wall centrelines are
+3. **Boolean wall unions** — `ezdxf-shapely` is installed but wall centrelines are
    not yet merged into room rings; rooms must already be drawn closed or hatched.
+4. **OCR for a scanned drawing** — labels come from DXF `TEXT`/`MTEXT` and PDF text
+   spans. A raster with no text layer has to bring its labels in the JSON.
 5. **Twitter/X sweep blocked** — the X session returned HTTP 429 (search quota) on
    four attempts at 00:42–00:58; research above is from HN, GitHub and product
    pages instead. Retry after cooldown.

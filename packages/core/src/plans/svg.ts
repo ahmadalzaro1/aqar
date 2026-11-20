@@ -185,7 +185,9 @@ export function parseSvgPlan(svg: string, unit: DrawingUnit): SvgParseResult {
     const code = attrs['id'] ?? attrs['data-code'] ?? `${element}-${shapes.length + skipped.length + 1}`;
     const label = attrs['data-label'] ?? attrs['aria-label'] ?? null;
 
-    let ring: Ring | null = null;
+    // Every branch below either assigns a ring or `continue`s, so an initial value
+    // would be dead — and a dead default is how a null sneaks into `ring.length`.
+    let ring: Ring;
 
     if (element === 'rect') {
       const x = Number(attrs['x'] ?? '0');

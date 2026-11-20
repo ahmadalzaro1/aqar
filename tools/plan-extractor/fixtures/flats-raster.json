@@ -1,0 +1,20 @@
+{
+  "source": "mmdetection",
+  "model_id": "cascade-rcnn-cubicas5k-fixture",
+  "image": { "width": 4000, "height": 2000 },
+  "metres_per_pixel": 0.01,
+  "rooms": [
+    { "code": "R-101", "label": "Flat 101", "room_kind": "unit", "confidence": 0.93,
+      "polygon": [[0, 0], [600, 0], [600, 1000], [0, 1000]] },
+    { "code": "R-102", "label": "Flat 102", "room_kind": "unit", "confidence": 0.88,
+      "polygon": [[1000, 0], [1450, 0], [1450, 1000], [1000, 1000]] },
+    { "code": "R-103", "label": "شقة 103", "room_kind": "unit", "confidence": 0.81,
+      "polygon": [[2000, 0], [2600, 0], [2600, 300], [2000, 300]] },
+    { "code": "R-104", "label": "Corridor", "room_kind": "corridor", "confidence": 0.9,
+      "polygon": [[0, 1100], [1650, 1100], [1650, 1375], [0, 1375]] },
+    { "code": "R-105", "label": "Balcony", "room_kind": "balcony", "confidence": 0.37,
+      "polygon": [[3000, 0], [3200, 0], [3200, 300], [3000, 300]] },
+    { "code": "R-106", "label": "Overflow", "room_kind": "unit", "confidence": 0.7,
+      "polygon": [[3900, 0], [4300, 0], [4300, 800], [3900, 800]] }
+  ]
+}

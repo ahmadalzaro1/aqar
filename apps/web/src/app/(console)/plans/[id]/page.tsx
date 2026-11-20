@@ -98,7 +98,9 @@ export default async function PlanReviewPage({
                   <td className="tnum">{room.areaSqm.toFixed(2)}</td>
                   <td style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
                     {room.source}
-                    {room.confidence === null ? '' : ` · ${room.confidence.toFixed(2)}`}
+                                        {room.confidence === null
+                      ? ''
+                      : ` · ${t(m, 'plan.confidence')} ${room.confidence.toFixed(2)}`}
                   </td>
                   <td style={{ fontSize: 'var(--text-xs)' }}>
                     {room.confirmedAt ?? <span style={{ color: 'var(--muted-foreground)' }}>—</span>}

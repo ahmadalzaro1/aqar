@@ -14,6 +14,7 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { createSql } from '@aqar/db';
+import { clearSupersededRooms, guardSupersede } from './plan-write.js';
 import { reconcileAreas } from '@aqar/core';
 import { reconcilableShapes, runPlanExtractor } from './extractor.js';
 
@@ -101,6 +102,11 @@ export async function ingestPlan(options: IngestOptions): Promise<IngestResult> 
       const plan = inserted[0];
       if (plan === undefined) throw new Error('floor_plans insert returned no row');
 
+      // A second, different drawing for the same level replaces the first — unless
+      // somebody already confirmed a room or a unit was materialised from it.
+      const { replaced } = await guardSupersede(tx, plan.id, sha256);
+      if (replaced) await clearSupersededRooms(tx, plan.id);
+
       await tx`
         insert into plan_extractions (organization_id, floor_plan_id, engine, engine_version, params, stats, warnings)
         values (${property.organization_id}::uuid, ${plan.id}::uuid, ${extraction.engine},
@@ -166,7 +172,7 @@ if (process.argv[1]?.endsWith('ingest.ts') === true || process.argv[1]?.endsWith
     ...(argument('calibrate') === undefined ? {} : { calibrate: argument('calibrate') as string }),
   })
     .then((result) => {
-      console.log(JSON.stringify(result, null, 2));
+      console.info(JSON.stringify(result, null, 2));
       process.exit(0);
     })
     .catch((error: unknown) => {
