@@ -104,6 +104,20 @@ Measured on the committed fixtures (`make_fixtures.py` generates both):
 Bridge: `apps/worker/src/plans/extractor.ts` → `planExtractionSchema`
 (`packages/contracts`). Tests: `apps/worker/src/__tests__/plan-extractor.test.ts`.
 
+## Ingesting a drawing today
+
+```bash
+cd apps/worker
+pnpm plan:ingest --file ../../tools/plan-extractor/fixtures/flats.dxf \
+  --property "Al-Weibdeh Heritage Building" --level ground --stated 123
+```
+
+Writes `floor_plans` + `plan_rooms` (never `units.area_sqm`). Measured against the
+live database on 2026-11-21: 5 rooms stored, lettable `60 + 45 + 18 = 123 m²`,
+reconciled `within` against a stated 123 m², corridor 24.75 m² and the 1.75 m²
+bedroom hatch stored but **excluded from the lettable sum** — a corridor is not
+rentable, and a bedroom hatch is already inside its flat.
+
 ## Not built (honest gaps)
 
 1. **Raster lane** — no CubiCasa/MMDetection inference wired; the schema and the
