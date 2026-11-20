@@ -5,9 +5,11 @@
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createSql } from '@aqar/db';
 import { createProcessorDeps, processTriageJob } from './processor.js';
 import type { TriageJobResult } from '@aqar/contracts';
 import { createTriageQueue, createTriageWorker, TRIAGE_JOB_NAME } from './queue.js';
+import { startProactiveRuntime, type ProactiveRuntime } from './proactive.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -57,6 +59,28 @@ async function main(): Promise<void> {
   await worker.waitUntilReady();
   console.info(`[worker] listening on ${TRIAGE_JOB_NAME} (concurrency 2)`);
 
+  // The proactive engine needs an organization to scope to. Resolved once at
+  // boot and never from a job payload, so a scheduler cannot be pointed at
+  // another tenant.
+  const sql = createSql(undefined, 6);
+  const slug = process.env['AQAR_ORG_SLUG'] ?? 'aqar-demo';
+  const orgs = await sql<{ id: string }[]>`select id from organizations where slug = ${slug}`;
+  const org = orgs[0];
+  if (org === undefined) {
+    throw new Error(`AQAR_ORG_SLUG '${slug}' does not match any organization`);
+  }
+
+  let proactive: ProactiveRuntime | null = await startProactiveRuntime({
+    sql,
+    orgId: org.id,
+    log: (line) => {
+      console.info(line);
+    },
+    // Dev: prove the wiring immediately instead of waiting a quarter hour.
+    runOnBoot: process.env['AQAR_PROACTIVE_RUN_ON_BOOT'] !== 'false',
+  });
+  console.info(`[worker] proactive schedules up for org ${slug}`);
+
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (shuttingDown) return;
@@ -65,6 +89,11 @@ async function main(): Promise<void> {
     try {
       await worker.close();
       await queue.close();
+      if (proactive !== null) {
+        await proactive.close();
+        await sql.end({ timeout: 5 });
+        proactive = null;
+      }
       console.info('[worker] closed cleanly');
     } catch (err) {
       console.error(`[worker] shutdown error: ${err instanceof Error ? err.message : String(err)}`);

@@ -22,6 +22,25 @@ export type { SlaDueDates } from './sla.js';
 
 export { evaluatePolicy } from './policy.js';
 
+export {
+  HUMAN_DAILY_CAP,
+  ORG_DAILY_CAP,
+  TIER_POLICIES,
+  canReopen,
+  decideDispatch,
+  escalationAction,
+  isQuietHour,
+  notificationDedupeKey,
+} from './interruption.js';
+export type {
+  DispatchDecision,
+  DispatchInput,
+  IntentStatus,
+  NotificationTier,
+  SuppressionReason,
+  TierPolicy,
+} from './interruption.js';
+
 export { vendorScore } from './vendor.js';
 
 export {
