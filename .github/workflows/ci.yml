@@ -57,7 +57,7 @@ jobs:
         image: axllent/mailpit:latest
         ports: ['1025:1025', '8025:8025']
     env:
-      DATABASE_URL: postgres://aqar:***@127.0.0.1:5433/aqar
+      DATABASE_URL: postgres://aqar:aqar@127.0.0.1:5433/aqar
       REDIS_URL: redis://127.0.0.1:6380
     steps:
       - uses: actions/checkout@v4
