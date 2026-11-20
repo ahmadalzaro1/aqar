@@ -28,10 +28,21 @@ Updated: 2026-11-20 (Asia/Amman)
    `coollabsio/minio:latest` dev mirror (D6); production needs verified S3.
 2. pnpm 11 build allowlist → `allowBuilds` in pnpm-workspace.yaml
    (esbuild + msgpackr-extract approved).
-3. Postgres host SCRAM auth failed repeatedly (root cause unresolved,
-   arm64-native image). DEV-ONLY workaround: `host all all 172.16.0.0/12
-   trust` in container pg_hba.conf; port bound to loopback. See SECURITY.md.
-   MUST be removed before any non-local exposure.
+3. (RESOLVED 2026-11-20) Postgres host auth. Two things were conflated. The
+   container image ships `pg_hba.conf` with `trust` for loopback *inside* the
+   container and `host all all all scram-sha-256` for everything else; a host
+   client arrives on the docker bridge address, so it has always been subject
+   to real SCRAM. The repeated "SCRAM failures" were a **wrong password**, not
+   an auth-method incompatibility: the same class of 3-character-vs-4-character
+   credential mismatch that broke CI (see the P1 note below).
+   Evidence: the volume recreate (PG 19) restored the default hba, the
+   `172.16.0.0/12 trust` band-aid is gone, `password_encryption =
+   scram-sha-256`, and a host `psql -h 127.0.0.1 -p 5433` with the correct
+   password authenticates. `DATABASE_URL` was corrected to match the
+   compose password.
+   STILL OPEN and separate: role `aqar` is `rolsuper` + `rolbypassrls`, so RLS
+   is inert for the application role even though the policies are correct.
+   That must be fixed before any non-local exposure (see SECURITY.md).
 4. `.env` had a stray non-comment line and stale LOCAL_BASE_URL=:8002
    (embeddings-only, chat 404) → fixed; chat model is lfm3-local :11434.
 5. CDP device-metrics emulation DOES drive the media queries (verified:
@@ -83,9 +94,39 @@ Updated: 2026-11-20 (Asia/Amman)
   TOTP enrolment UI, rate limiting, encryption-at-rest (P9/P10).
 - P3: policy.ts `nte_exceeded` comment wording ambiguous (doc-only fix).
 
+## Dependency refresh (2026-11-20) — every package, action and image at newest
+- Merged to `main` as four verified layers (rebase, linear): `0754bd5` actions
+  v7/v6/v7 + PostgreSQL 19 + Redis 8 + Node 26 CI; `ac7d02f` TypeScript 6.0.3
+  + ESLint 10 + vitest 5; `00e5c8f` Next 16.4.6 / React 19.3.1 / zod 4 /
+  postgres 4; `70cab79` nodemailer 10.
+- CI: run 44748254781, 44752788669, 44752992202 — all success on clean runners.
+- Local gates after the whole sweep: ALL_GATES_GREEN 14/14 (core-deps, lint,
+  typecheck, core-unit 309, core-property 52, core 361 total, ui 5, web 20,
+  agents 23 + 2 skipped, db-migrate, db 9 on PostgreSQL 19.0, db-seed,
+  worker 13 on Redis 8.10.3, channels 34 with real SMTP, evals recall 1.0000).
+- Runtime proof, not build-only: `next build --webpack` exits 0 with zero
+  warnings across 9 routes; a real login through the Next 16 server action
+  redirects to `/dashboard` and renders 8 rows in Arabic RTL.
+- **Hold 1 — TypeScript is 6.0.3, not 7.0.2.** `typescript-eslint@8.73` peers
+  `typescript >=4.8.4 <6.1.0` and `pnpm peers check` enforces it. This is the
+  only row `pnpm outdated -r` still reports.
+- **Hold 2 — Next 16 builds with webpack.** Turbopack cannot resolve the
+  workspace packages' NodeNext `.js` -> `.ts` specifiers and fails on
+  `sumFils`. `--webpack` is explicit in the scripts; the fix path (emit real
+  `.js` from `packages/*`, point `exports` at `dist`) is D13.
+- Also fixed in passing: `scripts/gate-sweep.sh` was grepping an accumulated
+  log, so gates that print no counts echoed the previous gate's numbers. It now
+  reads each gate's own output and exits non-zero on failure.
+
 ## Exact resume point
-1. P2 tail: B2 dotenv fail-fast in the db client/migrate; `ar-noise-complaint`
-   prompt hint. Then P3 UI depth (history/undo surface, playwright e2e,
-   a11y and perf jobs) and P6–P10.
-2. CI is green; keep it that way — any push re-runs the full sweep.
+1. Next up: retire the RLS hole (role `aqar` is superuser + `rolbypassrls`;
+   policies are correct but never evaluated for that role) — split an
+   application role from the migration/owner role and re-run the db suite.
+2. Then the P2 tail: B2 dotenv fail-fast in the db client/migrate;
+   `ar-noise-complaint` prompt hint.
+3. Then P3 UI depth (history/undo surface, playwright e2e, a11y and perf jobs)
+   and P6–P10.
+4. `main` is green at `70cab79`+; keep it that way — any push re-runs the full
+   sweep. The toolchain is current except TypeScript, which is held at 6.0.3 by
+   the linter's peer range (see the refresh section above).
 No fabricated results anywhere in this repo.
