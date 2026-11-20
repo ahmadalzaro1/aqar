@@ -12,3 +12,6 @@ playwright-report/
 test-results/
 .DS_Store
 infra/volumes/
+
+# generated eval output (recreated by pnpm --filter @aqar/evals evals)
+packages/evals/results/
