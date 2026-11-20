@@ -49,6 +49,7 @@ if [ "$FAST" -eq 0 ]; then
 fi
 run worker pnpm --filter @aqar/worker test
 run channels pnpm --filter @aqar/channels test
+run mcp pnpm --filter @aqar/mcp test
 run evals pnpm --filter @aqar/evals evals
 rm -rf "$DIR"
 if [ "$failures" -eq 0 ]; then

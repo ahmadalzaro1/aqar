@@ -278,6 +278,20 @@ export function createDrizzleTriageStore(db: Db): TriageStore {
                 ),
               );
           }
+
+          // A triaged ticket is no longer "new". Guarded on the current status so
+          // a human's later transition is never dragged backwards, and scoped to
+          // the org so the predicate and RLS agree.
+          await tx
+            .update(tickets)
+            .set({ status: 'triaged' })
+            .where(
+              and(
+                eq(tickets.id, ticket.id),
+                eq(tickets.organizationId, job.orgId),
+                eq(tickets.status, 'new'),
+              ),
+            );
         });
       } catch (err) {
         if (isUniqueViolation(err, AUDIT_IDEMPOTENCY_CONSTRAINT)) {
