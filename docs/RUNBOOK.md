@@ -64,6 +64,44 @@ Worker E2E asserts: emergency floor, dry_run denials, 0 dispatches/work
 orders, 2 bilingual safety messages, idempotent replay with identical
 traceId and no duplicate rows.
 
+## Proactive engine
+
+The cycle is `scan -> outbox -> relay -> dispatch -> expire`, registered as two
+repeatable jobs (`proactive-every-15m`, `proactive-morning-0630` Asia/Amman) by
+`upsertJobScheduler`, so restarting the worker re-declares rather than
+duplicates them.
+
+```bash
+# One cycle by hand, with real output (no Redis needed for the reads):
+cd apps/worker && AQAR_PROACTIVE_RUN_ON_BOOT=true pnpm exec tsx src/index.ts
+# Scheduled runs: leave AQAR_PROACTIVE_RUN_ON_BOOT unset so a restart storm
+# cannot stampede the org with cycles.
+
+# What did the policy do, and why:
+psql "$DATABASE_URL" -c "select trigger_key, tier, status, payload->>'count' as items,
+  left(title,40) as title from notification_intents order by tier, created_at desc"
+psql "$DATABASE_URL" -c "select coalesce(suppressed_reason,'SENT') as outcome, count(*)
+  from notification_sends group by 1 order by 2 desc"
+```
+
+`notification_sends` is the only trustworthy answer to "was the human actually
+interrupted?". `suppressed_reason` of `daily_budget` means the policy held it,
+not that the relay broke. Delivery today is `createLogSender` (a log line +
+ledger row); swapping in WhatsApp means implementing `ChannelSender.send` and
+nothing else.
+
+### Ghost jobs after a reseed
+
+`pnpm db-seed` (which `./scripts/gate-sweep.sh` runs) deletes and recreates
+tickets while a dev worker may still hold queued job ids. The processor then
+fails with `ticket <id> not found in organization <uuid>` — correct, deliberate
+behaviour: it refuses to classify a ticket that no longer exists instead of
+inventing one. Stop the worker before a reseed, or clear the queue:
+
+```bash
+cd apps/worker && node -e "const {Queue}=require('bullmq');new Queue('ticket.ingest',{connection:{host:'127.0.0.1',port:6380}}).obliterate({force:true})"
+```
+
 ## Screenshot method (exact widths)
 CDP Emulation.setDeviceMetricsOverride did not reliably drive media queries
 in this environment. Working recipe: log in, then inside the same-origin
