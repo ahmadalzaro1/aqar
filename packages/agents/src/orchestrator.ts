@@ -82,7 +82,7 @@ export async function runTriage(input: TriageInput, ctx: AgentContext): Promise<
 
   // 2. Model classification (cheap/local first). Failure ⇒ deterministic
   //    fallback + human handoff; the emergency floor still holds.
-  let modelClassification: Classification | null = null;
+  let modelClassification: Classification | null;
   let schemaFailedOnce = false;
   try {
     const cls = await classifierAgent.run({ text: parsed.text, locale: parsed.locale }, ctx);

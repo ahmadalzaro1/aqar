@@ -285,6 +285,7 @@ export function createDrizzleTriageStore(db: Db): TriageStore {
           if (prior === null) {
             throw new Error(
               `idempotency key ${job.idempotencyKey} already exists but its audit payload is unreadable; refusing to return a partial result`,
+              { cause: err },
             );
           }
           return { result: prior, deduped: true };

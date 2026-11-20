@@ -238,7 +238,7 @@ export async function runModelLane(
     };
 
     let predictedEmergency = pre.emergency;
-    let predictedCategory: TicketCategory | null = null;
+    let predictedCategory: TicketCategory | null;
     let modelEmergencyFlag: boolean | null = null;
     let modelCategory: TicketCategory | null = null;
     let modelUsed: string | null = null;
