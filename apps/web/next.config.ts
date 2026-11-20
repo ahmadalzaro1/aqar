@@ -5,6 +5,7 @@ const config: NextConfig = {
   serverExternalPackages: ['@node-rs/argon2', 'postgres'],
   eslint: { ignoreDuringBuilds: true }, // lint runs as its own CI gate, not inside next build
   typescript: { ignoreBuildErrors: false },
+  devIndicators: false, // keep committed screenshots free of the dev badge
   webpack: (cfg) => {
     // Workspace packages use NodeNext-style .js specifiers pointing at .ts sources.
     cfg.resolve.extensionAlias = {

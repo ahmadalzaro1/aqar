@@ -88,9 +88,16 @@ export function BankWizard({ locale, recent }: { locale: Locale; recent: readonl
             </div>
             <div style={{ display: 'grid', gap: 4, minInlineSize: 0 }}>
               <label htmlFor="bank-file">{t('bank.pickFile')}</label>
+              {/* The native file control always renders in the browser's own language,
+                  so it is visually replaced by a localized button + the chosen file name. */}
               <input id="bank-file" ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile}
-            style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }} />
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{fileName}</span>
+                style={{ position: 'absolute', inlineSize: 1, blockSize: 1, opacity: 0, overflow: 'hidden' }} />
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap', minInlineSize: 0 }}>
+                <Button onClick={() => fileRef.current?.click()}>{t('bank.pickFile')}</Button>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', overflowWrap: 'anywhere' }}>
+                  {fileName.length === 0 ? t('bank.noFile') : fileName}
+                </span>
+              </div>
             </div>
             <div style={{ display: 'grid', gap: 4, minInlineSize: 0 }}>
               <label htmlFor="bank-paste">{t('bank.pasteLabel')}</label>
@@ -140,7 +147,7 @@ export function BankWizard({ locale, recent }: { locale: Locale; recent: readonl
                       <tr key={row.rowNumber}>
                         <td className="tnum">{row.rowNumber}</td>
                         <td className="tnum">{row.dateISO}</td>
-                        <td>{row.payerName}</td>
+                        <td title={row.payerName}>{row.payerName}</td>
                         <td><MoneyText fils={row.amountFils} locale={locale} /></td>
                         <td>{row.duplicateKind === null
                           ? <Badge tone="ok">{t('bank.status.new')}</Badge>
@@ -201,7 +208,7 @@ export function BankWizard({ locale, recent }: { locale: Locale; recent: readonl
               <thead><tr><th>{t('bank.recent.col.file')}</th><th>{t('bank.recent.col.account')}</th><th>{t('bank.recent.col.lines')}</th><th>{t('bank.recent.col.at')}</th></tr></thead>
               <tbody>
                 {recent.map((record) => (
-                  <tr key={record.id}><td>{record.fileName}</td><td>{record.accountLabel}</td><td className="tnum">{record.lineCount}</td><td className="tnum">{record.importedAtISO.slice(0, 10)}</td></tr>
+                  <tr key={record.id}><td title={record.fileName}>{record.fileName}</td><td title={record.accountLabel}>{record.accountLabel}</td><td className="tnum">{record.lineCount}</td><td className="tnum">{record.importedAtISO.slice(0, 10)}</td></tr>
                 ))}
               </tbody>
             </table>

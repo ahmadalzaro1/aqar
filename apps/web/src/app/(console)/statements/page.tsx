@@ -91,21 +91,21 @@ export default async function StatementsPage({ searchParams }: {
         <h3 style={{ fontSize: 'var(--text-md)', marginBlockStart: 'var(--space-3)' }}>{s.rentSection}</h3>
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{s.rentHint}</p>
         {rent.length === 0 ? <EmptyState title={s.rentSection} hint={s.emptyRent} /> : (
-          <div className="table-scroll">
+          <div className="table-scroll table-narrow">
             <table className="money">
-              <thead><tr><th>{s.colUnit}</th><th>{s.tenant}</th><th>{s.colBilled}</th><th>{s.colCollected}</th></tr></thead>
+              <thead><tr><th>{s.colUnit}</th><th>{s.tenant}</th><th className="hide-narrow">{s.colBilled}</th><th>{s.colCollected}</th></tr></thead>
               <tbody>
                 {rent.map((r) => (
                   <tr key={r.leaseId}>
                     <td>{r.unitLabel}</td><td>{r.tenantName}</td>
-                    <td><MoneyText fils={r.billedFils} locale={locale} /></td>
+                    <td className="hide-narrow"><MoneyText fils={r.billedFils} locale={locale} /></td>
                     <td><MoneyText fils={r.collectedFils} locale={locale} /></td>
                   </tr>
                 ))}
               </tbody>
               <tfoot><tr>
                 <td colSpan={2}><strong>{s.totalRow}</strong></td>
-                <td><MoneyText fils={draft.billedRentFils} locale={locale} strong /></td>
+                <td className="hide-narrow"><MoneyText fils={draft.billedRentFils} locale={locale} strong /></td>
                 <td><MoneyText fils={draft.grossCollectedFils} locale={locale} strong /></td>
               </tr></tfoot>
             </table>
@@ -113,9 +113,8 @@ export default async function StatementsPage({ searchParams }: {
         )}
 
         <h3 style={{ fontSize: 'var(--text-md)', marginBlockStart: 'var(--space-3)' }}>{s.deductions}</h3>
-        <div className="table-scroll">
-          <table className="money">
-            <tbody>
+        <table className="money kv-table">
+          <tbody>
               <tr><td>{s.grossCollected}</td><td><MoneyText fils={draft.grossCollectedFils} locale={locale} /></td></tr>
               <tr><td>{s.billedRent} · {s.collectionRate} {formatPercentBps(draft.collectionRateBps, locale)}</td><td><MoneyText fils={draft.billedRentFils} locale={locale} /></td></tr>
               <tr>
@@ -126,7 +125,7 @@ export default async function StatementsPage({ searchParams }: {
                 <td>{s.expensesLine} ({s.expensesHint})</td>
                 <td>−<MoneyText fils={draft.expensesFils} locale={locale} /></td>
               </tr>
-              {expenses.length === 0 && <tr><td colSpan={2} style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{s.emptyExpenses}</td></tr>}
+              {expenses.length === 0 && <tr><td colSpan={2} style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', overflowWrap: 'break-word' }}>{s.emptyExpenses}</td></tr>}
               {expenses.map((e) => (
                 <tr key={e.workOrderId}><td style={{ fontSize: 'var(--text-xs)' }}>{e.label} · {e.completedISO}</td><td><MoneyText fils={e.costFils} locale={locale} /></td></tr>
               ))}
@@ -137,19 +136,18 @@ export default async function StatementsPage({ searchParams }: {
               </tr>
             </tbody>
           </table>
-        </div>
         {blockedText !== null && <p role="alert" style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>{blockedText}: {draft.blocked?.detail}</p>}
 
         <h3 style={{ fontSize: 'var(--text-md)', marginBlockStart: 'var(--space-3)' }}>{s.shareSection}</h3>
         {draft.ownerShares.length === 0 ? <EmptyState title={s.shareSection} hint={s.ownerNoShare} /> : (
-          <div className="table-scroll">
+          <div className="table-scroll table-narrow">
             <table className="money">
-              <thead><tr><th>{s.owner}</th><th>{s.shareOwnership}</th><th>{s.shareAmount}</th></tr></thead>
+              <thead><tr><th>{s.owner}</th><th className="hide-narrow">{s.shareOwnership}</th><th>{s.shareAmount}</th></tr></thead>
               <tbody>
                 {draft.ownerShares.map((sh) => (
                   <tr key={sh.ownerId} style={sh.ownerId === ownerId ? { background: 'var(--accent-soft)' } : undefined}>
                     <td>{ownerName(sh.ownerId)}</td>
-                    <td className="tnum">{formatPercentBps(sh.shareBps, locale)}</td>
+                    <td className="tnum hide-narrow">{formatPercentBps(sh.shareBps, locale)}</td>
                     <td><MoneyText fils={sh.amountFils} locale={locale} strong={sh.ownerId === ownerId} /></td>
                   </tr>
                 ))}
