@@ -48,6 +48,12 @@ export const planExtractionSchema = z.object({
   shapes: z.array(planShapeSchema),
   texts: z.array(planTextSchema),
   warnings: z.array(planWarningSchema),
+  /**
+   * Which reading the extractor used: closed rings as drawn, or the faces its wall
+   * network encloses. Defaulted rather than required so the PDF lane — which only
+   * ever has rings — did not have to change.
+   */
+  strategy: z.enum(['rings', 'walls']).default('rings'),
   stats: z.record(z.string(), z.number()),
 });
 export type PlanExtraction = z.infer<typeof planExtractionSchema>;

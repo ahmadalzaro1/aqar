@@ -202,5 +202,7 @@
   "plan.error.too_large": "That drawing is over 25 MB.",
   "plan.error.nothing_confirmed": "Confirm at least one unit before proposing units.",
   "plan.confidence": "Confidence",
-  "plan.refused": "claims refused"
+  "plan.refused": "claims refused",
+  "plan.strategy.rings": "drawn rings",
+  "plan.strategy.walls": "walls polygonized"
 }

@@ -12,6 +12,8 @@ uv pip install --python .venv/bin/python ezdxf ezdxf-shapely pymupdf shapely
 .venv/bin/python make_fixtures.py                       # regenerate the test drawings
 .venv/bin/python extract.py --file fixtures/flats.dxf --format dxf
 .venv/bin/python extract.py --file fixtures/flats.pdf --format pdf --calibrate 60,60,60,626.93,10
+.venv/bin/python extract.py --file fixtures/walls.dxf --format dxf      # walls only -> polygonized faces
+.venv/bin/python extract.py --file fixtures/walls-open.dxf --format dxf # encloses nothing -> refused
 ```
 
 The worker calls it through `apps/worker/src/plans/extractor.ts`, which validates

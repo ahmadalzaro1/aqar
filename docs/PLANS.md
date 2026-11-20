@@ -154,6 +154,44 @@ level returned the **same plan id** — the upsert updates, it does not duplicat
   Duplicate detection belongs in the upload path as a warning, not in the schema
   as a refusal. `plan:ingest` now upserts on `(property_id, level)`.
 
+## When the drawing has walls and no rooms
+
+Most consultant DXFs do not contain a closed polyline per room. They contain walls.
+The rectangle around a flat is a convenience somebody adds at the end of the job, and
+half the time nobody does — which is why the first version of this lane read such a
+drawing as *empty* and reported "no rooms" on a plan a human could obviously read.
+
+The rooms are the **faces** of the planar graph the wall lines form. `polygonize`
+computes exactly that, once the crossings are noded:
+
+```
+LINE segments -> unary_union (nodes every crossing) -> set_precision(0.5 mm)
+             -> polygonize -> faces -> refusals -> rooms
+```
+
+`set_precision(0.5 mm)` exists because "closed" walls drawn by a person snapping to a
+1 mm grid are routinely 0.2 mm apart; without snapping they enclose nothing.
+
+Three refusals keep the faces honest:
+
+| Case | What happens |
+|---|---|
+| a face with an internal boundary (a shaft inside a room) | **dropped**, `face_with_hole_refused` — reporting it net of the hole would be a number nobody can recompute from the ring we store |
+| a face under 0.5 m² | dropped as a sliver — door swings, dimension ticks and doubled lines all close into little faces that are not rooms |
+| a face that contains the centre of ≥ 2 others | dropped as the envelope — a plate with no partitions is one big rectangle, and calling it one room is arithmetic, not reading |
+| no face at all | `walls_open_network`, and **no rooms** — two walls meeting at a corner are not 24 m² of anything |
+
+Rings win when both exist: reading both at once reports every room twice.
+
+**Measured live.** `fixtures/walls.dxf` is the same 16.5 × 10 m plate as `flats.dxf`,
+drawn as seven `LINE`s instead of five closed polylines — same 60 / 45 / 18 m² flats
+plus a 6 × 7 m corridor, so both fixtures reconcile to the same stated 123 m² by two
+completely different routes. Seven segments → four faces → `60 / 45 / 18` lettable,
+corridor 42 m² stored and excluded, `within 0.00%`, through `plan:ingest` **and**
+through the console upload form. The review page now carries a provenance chip:
+**drawn rings** vs **walls polygonized** — the same number at two different levels of
+trust, and the reviewer should know which one they are looking at.
+
 ## The raster lane: a model's claim, measured and refused
 
 "Geometry that came from a file is arithmetic; geometry that came from pixels is
@@ -226,8 +264,12 @@ uploading a real document and noticing the absence. Parsed defensively now.
    currently needs them: any pipeline that emits the JSON above is accepted.
 2. **DXF block references and nested inserts** — geometry inside an `INSERT` is not
    expanded yet, so a drawing whose rooms live in blocks reads as empty.
-3. **Boolean wall unions** — `ezdxf-shapely` is installed but wall centrelines are
-   not yet merged into room rings; rooms must already be drawn closed or hatched.
+3. **Wall thickness and openings** — walls are polygonized as *centre lines*, so a
+   room's face runs to the middle of the wall on every side and the reported area is
+   the gross area to centreline, not the net internal area. Converting that needs a
+   wall thickness per layer and door/window openings subtracted, which the drawings
+   carry as attributes (`LINE` has no width) — and ARCs are still refused rather than
+   flattened, so a curved wall breaks the face.
 4. **OCR for a scanned drawing** — labels come from DXF `TEXT`/`MTEXT` and PDF text
    spans. A raster with no text layer has to bring its labels in the JSON.
 5. **Twitter/X sweep blocked** — the X session returned HTTP 429 (search quota) on

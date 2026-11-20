@@ -15,6 +15,8 @@ const python = fileURLToPath(new URL('../../../../tools/plan-extractor/.venv/bin
 const fixtures = fileURLToPath(new URL('../../../../tools/plan-extractor/fixtures/', import.meta.url));
 const dxf = `${fixtures}flats.dxf`;
 const pdf = `${fixtures}flats.pdf`;
+const walls = `${fixtures}walls.dxf`;
+const wallsOpen = `${fixtures}walls-open.dxf`;
 const available = existsSync(python) && existsSync(dxf) && existsSync(pdf);
 const maybe = available ? describe : describe.skip;
 
@@ -64,6 +66,32 @@ maybe('plan extractor bridge', () => {
     expect(scaled.scale_known).toBe(true);
     expect(scaled.shapes.map((shape) => shape.area_sqm).sort((a, b) => Number(b) - Number(a))).toEqual([60, 45, 18]);
     expect(scaled.shapes.map((shape) => shape.label).sort()).toEqual(['Flat 101', 'Flat 102', 'Flat 103']);
+  });
+
+  it('polygonizes walls into rooms when no ring was drawn', async () => {
+    const result = await runPlanExtractor({ format: 'dxf', filePath: walls });
+
+    // No closed polyline anywhere in this drawing: the rooms are the faces the wall
+    // network encloses, and noding is what makes the partitions close the plate.
+    expect(result.strategy).toBe('walls');
+    expect(result.shapes.map((shape) => shape.code)).toEqual(['WALL-1', 'WALL-2', 'WALL-3', 'WALL-4']);
+    expect(result.shapes.map((shape) => shape.area_sqm)).toEqual([60, 45, 18, 42]);
+
+    // Labels land on the face that contains them, and the hint decides the kind:
+    // a 42 m² corridor must never be proposed as a lettable unit.
+    const byArea = new Map(result.shapes.map((shape) => [shape.area_sqm, shape]));
+    expect(byArea.get(18)?.label).toBe('Flat 103');
+    expect(byArea.get(42)?.room_kind).toBe('corridor');
+    expect(result.warnings.some((warning) => warning.reason === 'walls_polygonized')).toBe(true);
+  });
+
+  it('refuses a wall network that encloses nothing', async () => {
+    const result = await runPlanExtractor({ format: 'dxf', filePath: wallsOpen });
+
+    // Two walls meeting at a corner. An extractor that reported "one room, 24 m²"
+    // here would be inventing the two walls it never saw.
+    expect(result.shapes).toEqual([]);
+    expect(result.warnings.some((warning) => warning.reason === 'walls_open_network')).toBe(true);
   });
 
   it('says DWG is unsupported instead of pretending to read it', async () => {

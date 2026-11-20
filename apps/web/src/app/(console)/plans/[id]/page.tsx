@@ -21,7 +21,7 @@ export default async function PlanReviewPage({
   const detail = await planDetail(user.orgId, id);
   if (detail === null) notFound();
 
-  const { plan, rooms, warnings } = detail;
+  const { plan, rooms, warnings, strategy } = detail;
   const lettable = rooms.filter((room) => room.kind === 'unit');
   const reconciliation = reconcileAreas(
     lettable.map((room) => ({ code: room.code, areaSqm: room.areaSqm })),
@@ -40,6 +40,9 @@ export default async function PlanReviewPage({
         <h1 style={{ fontSize: 'var(--text-xl)' }}>{plan.propertyName} · {plan.level}</h1>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
           <Badge tone="neutral">{plan.format} · {plan.drawingUnit}</Badge>
+          {/* Provenance, not decoration: rings were drawn, walls were closed by the
+              extractor's polygonizer. Same number, different level of trust. */}
+          <Badge tone="neutral">{t(m, `plan.strategy.${strategy}`)}</Badge>
           <Badge tone="neutral">{plan.status}</Badge>
           <Badge tone={verdictTone}>
             {t(m, `plan.verdict.${reconciliation.verdict}`)}

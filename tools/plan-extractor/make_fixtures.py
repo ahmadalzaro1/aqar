@@ -54,6 +54,57 @@ def make_dxf(path: Path) -> None:
     doc.saveas(path)
 
 
+def make_walls_dxf(path: Path) -> None:
+    """A drawing with no room rings at all — walls only.
+
+    This is the shape most consultant DXFs arrive in: the walls are drawn, the rooms
+    are implied. Same 16.5 x 10 m plate as `flats.dxf`, same 60 / 45 / 18 m² flats plus
+    a 6 x 7 m corridor, so both fixtures reconcile to the same stated 123 m² by two
+    completely different routes — rings versus faces.
+    """
+    doc = ezdxf.new("R2018")
+    doc.header["$INSUNITS"] = 4  # millimetres
+    msp = doc.modelspace()
+    doc.layers.add("WALLS")
+
+    def wall(x1: float, y1: float, x2: float, y2: float) -> None:
+        msp.add_line((x1, y1), (x2, y2), dxfattribs={"layer": "WALLS"})
+
+    # Outer plate, as four walls rather than a closed polyline.
+    wall(0, 0, 16500, 0)
+    wall(16500, 0, 16500, 10000)
+    wall(16500, 10000, 0, 10000)
+    wall(0, 10000, 0, 0)
+    # Partitions: 6.0 m, then 4.5 m, then the 3.0 m line that cuts the corridor off
+    # the third flat. Their ends land *on* the outer walls, not on their endpoints,
+    # so the network only closes after noding — which is the point.
+    wall(6000, 0, 6000, 10000)
+    wall(10500, 0, 10500, 10000)
+    wall(10500, 3000, 16500, 3000)
+
+    for x, y, label in (
+        (3000, 5000, "Flat 101"),
+        (8250, 5000, "Flat 102"),
+        (13500, 1500, "Flat 103"),
+        (13500, 6500, "Corridor"),
+    ):
+        text = msp.add_mtext(label, dxfattribs={"layer": "WALLS"})
+        text.dxf.insert = (x, y)
+
+    doc.saveas(path)
+
+
+def make_open_walls_dxf(path: Path) -> None:
+    """Two walls that enclose nothing: the honest answer is a refusal, not a room."""
+    doc = ezdxf.new("R2018")
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    doc.layers.add("WALLS")
+    msp.add_line((0, 0), (6000, 0), dxfattribs={"layer": "WALLS"})
+    msp.add_line((6000, 0), (6000, 4000), dxfattribs={"layer": "WALLS"})
+    doc.saveas(path)
+
+
 def make_pdf(path: Path) -> None:
     """A 1:50 plan: 1 mm on paper = 50 mm on the ground = 2.8346 pt on paper."""
     doc = pymupdf.open()
@@ -80,4 +131,7 @@ def make_pdf(path: Path) -> None:
 if __name__ == "__main__":
     make_dxf(FIXTURES / "flats.dxf")
     make_pdf(FIXTURES / "flats.pdf")
-    print("wrote", FIXTURES / "flats.dxf", FIXTURES / "flats.pdf")
+    make_walls_dxf(FIXTURES / "walls.dxf")
+    make_open_walls_dxf(FIXTURES / "walls-open.dxf")
+    print("wrote", FIXTURES / "flats.dxf", FIXTURES / "flats.pdf",
+          FIXTURES / "walls.dxf", FIXTURES / "walls-open.dxf")

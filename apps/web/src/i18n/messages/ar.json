@@ -202,5 +202,7 @@
   "plan.error.too_large": "حجم المخطط يتجاوز 25 ميغابايت.",
   "plan.error.nothing_confirmed": "أكّد وحدة واحدة على الأقل قبل اقتراح الوحدات.",
   "plan.confidence": "درجة الثقة",
-  "plan.refused": "ادعاءات مرفوضة"
+  "plan.refused": "ادعاءات مرفوضة",
+  "plan.strategy.rings": "مضلعات مرسومة",
+  "plan.strategy.walls": "جدران مُغلقة آليًا"
 }

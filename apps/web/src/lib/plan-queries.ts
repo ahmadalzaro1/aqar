@@ -33,6 +33,12 @@ export interface PlanDetail {
   readonly plan: PlanRow;
   readonly rooms: readonly RoomRow[];
   readonly warnings: readonly string[];
+  /**
+   * How the rooms were read: `rings` (drawn closed) or `walls` (the faces the wall
+   * network encloses). A reviewer looking at 60 m² of flat should know whether
+   * somebody drew that rectangle or whether the extractor closed it.
+   */
+  readonly strategy: string;
 }
 
 interface RawPlan {
@@ -94,8 +100,8 @@ export async function planDetail(orgId: string, planId: string): Promise<PlanDet
       from plan_rooms where floor_plan_id = ${planId}::uuid
      order by case when room_kind = 'unit' then 0 else 1 end, area_sqm desc`;
 
-  const warnings = await sql<{ warnings: unknown }[]>`
-    select warnings from plan_extractions where floor_plan_id = ${planId}::uuid
+  const warnings = await sql<{ warnings: unknown; params: unknown }[]>`
+    select warnings, params from plan_extractions where floor_plan_id = ${planId}::uuid
      order by created_at desc limit 1`;
 
   // postgres.js hands jsonb back as a *string* on this connection, so an
@@ -112,8 +118,21 @@ export async function planDetail(orgId: string, planId: string): Promise<PlanDet
           }
         })()
       : stored;
+  const storedParams = warnings[0]?.params;
+  const params =
+    typeof storedParams === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(storedParams) as Record<string, unknown>;
+          } catch {
+            return {};
+          }
+        })()
+      : ((storedParams as Record<string, unknown> | undefined) ?? {});
+  const strategy = typeof params['strategy'] === 'string' ? params['strategy'] : 'rings';
   return {
     plan: toPlan(plan),
+    strategy,
     rooms: rooms.map((room) => ({
       code: String(room.code),
       label: room.label === null ? null : String(room.label),

@@ -111,7 +111,11 @@ export async function ingestPlan(options: IngestOptions): Promise<IngestResult> 
         insert into plan_extractions (organization_id, floor_plan_id, engine, engine_version, params, stats, warnings)
         values (${property.organization_id}::uuid, ${plan.id}::uuid, ${extraction.engine},
                 ${extraction.engine_version},
-                ${JSON.stringify({ unit: extraction.unit, calibrate: options.calibrate ?? null })}::jsonb,
+                ${JSON.stringify({
+                  unit: extraction.unit,
+                  calibrate: options.calibrate ?? null,
+                  strategy: extraction.strategy,
+                })}::jsonb,
                 ${JSON.stringify(extraction.stats)}::jsonb,
                 ${JSON.stringify(extraction.warnings)}::jsonb)`;
 

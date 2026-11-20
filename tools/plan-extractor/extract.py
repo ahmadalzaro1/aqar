@@ -222,6 +222,97 @@ def _bbox_overlap_ratio(a: list[list[float]], b: list[list[float]]) -> float:
     return inter / smaller if smaller > 0 else 0.0
 
 
+def polygonize_walls(
+    segments: list[tuple[tuple[float, float], tuple[float, float]]],
+    mm_per_unit: float,
+    warnings: list[dict[str, Any]],
+) -> list[list[tuple[float, float]]]:
+    """Turn a network of wall centre lines into rooms.
+
+    Most Amman drawings do not contain room polylines at all: they contain walls.
+    A closed rectangle per room is a modelling convenience somebody adds at the end,
+    and half the consultants never do. The walls, however, always enclose the space,
+    so the rooms are the *faces* of the planar graph the walls form — which is what
+    `polygonize` computes after the crossings have been noded.
+
+    Three refusals keep the result honest:
+
+      * a face with a hole is dropped rather than reported net of it. A shaft inside a
+        room makes the face's exterior larger than the room, and cutting the hole
+        silently would mean an area nobody can recompute from the ring we store.
+      * slivers under 0.5 m² are dropped: door swings, dimension ticks and doubled
+        lines all close into little faces that are not rooms.
+      * an envelope face is dropped when it contains at least two other faces — a
+        wall network with no internal partitions produces one big rectangle, and
+        calling the whole flat one room would be arithmetic, not reading.
+    """
+    import shapely
+    from shapely.geometry import LineString
+    from shapely.ops import polygonize, unary_union
+
+    usable = [segment for segment in segments if segment[0] != segment[1]]
+    if not usable:
+        return []
+
+    # Half a millimetre, expressed in drawing units: two lines drawn "closed" by a
+    # person who snapped to a 1 mm grid are frequently 0.2 mm apart.
+    grid = 0.5 / mm_per_unit
+    merged = shapely.set_precision(unary_union([LineString(segment) for segment in usable]), grid)
+
+    faces = [face for face in polygonize(merged) if face.area > 0]
+    if not faces:
+        warnings.append({
+            "reason": "walls_open_network",
+            "detail": "the wall lines do not enclose a single face; the drawing may use "
+                      "blocks/INSERTs, or the walls are drawn on an unloaded xref",
+            "segments": len(usable),
+        })
+        return []
+
+    min_mm2 = 500_000.0  # 0.5 m²
+    kept: list[tuple[Any, float]] = []
+    dropped_slivers = 0
+    dropped_holes = 0
+    dropped_envelope = 0
+    for face in faces:
+        if face.interiors:
+            dropped_holes += 1
+            warnings.append({
+                "reason": "face_with_hole_refused",
+                "detail": "a face with an internal boundary is a room around a shaft; "
+                          "reported net of the hole would not be recomputable from its ring",
+                "area_sqm": round(face.area * mm_per_unit * mm_per_unit / 1_000_000.0, 3),
+            })
+            continue
+        if face.area * mm_per_unit * mm_per_unit < min_mm2:
+            dropped_slivers += 1
+            continue
+        kept.append((face, face.area))
+
+    # An envelope is a face whose interior holds the centre of at least two others.
+    envelopes = [
+        face for face, _ in kept
+        if sum(1 for other, _ in kept if other is not face and face.contains(other.centroid)) >= 2
+    ]
+    rings: list[list[tuple[float, float]]] = []
+    for face, _ in kept:
+        if any(face.equals(envelope) for envelope in envelopes):
+            dropped_envelope += 1
+            continue
+        rings.append([(float(x), float(y)) for x, y in list(face.exterior.coords)[:-1]])
+
+    warnings.append({
+        "reason": "walls_polygonized",
+        "segments": len(usable),
+        "faces": len(faces),
+        "rooms": len(rings),
+        "dropped_slivers": dropped_slivers,
+        "dropped_holes": dropped_holes,
+        "dropped_envelope": dropped_envelope,
+    })
+    return rings
+
+
 def read_dxf(path: str, declared_unit: str | None) -> dict[str, Any]:
     import ezdxf
     from ezdxf.document import Drawing
@@ -252,6 +343,7 @@ def read_dxf(path: str, declared_unit: str | None) -> dict[str, Any]:
     msp = doc.modelspace()
     shapes: list[dict[str, Any]] = []
     texts: list[dict[str, Any]] = []
+    segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
 
     for entity in msp:
         kind = entity.dxftype()
@@ -262,6 +354,12 @@ def read_dxf(path: str, declared_unit: str | None) -> dict[str, Any]:
                 shape = finish_shape(f"{kind}-{len(shapes) + 1}", points, unit, mm_per_unit, layer, "unit", warnings)
                 if shape:
                     shapes.append(shape)
+            elif kind == "LINE":
+                segments.append(((float(entity.dxf.start.x), float(entity.dxf.start.y)),
+                                 (float(entity.dxf.end.x), float(entity.dxf.end.y))))
+            elif kind == "LWPOLYLINE" and not entity.closed:
+                points = [(float(p[0]), float(p[1])) for p in entity.get_points("xy")]
+                segments.extend((a, b) for a, b in zip(points, points[1:]))
             elif kind == "POLYLINE" and entity.is_2d_polyline and entity.is_closed:
                 points = [(float(v.dxf.location.x), float(v.dxf.location.y)) for v in entity.vertices]
                 shape = finish_shape(f"{kind}-{len(shapes) + 1}", points, unit, mm_per_unit, layer, "unit", warnings)
@@ -288,6 +386,17 @@ def read_dxf(path: str, declared_unit: str | None) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001 - one bad entity must not lose the drawing
             warnings.append({"reason": "entity_failed", "entity": kind, "detail": str(exc)})
 
+    # Rooms drawn as closed rings win; walls are the fallback, and only when nothing
+    # closed exists. Reading both at once would report every room twice — once as its
+    # ring and once as the face its walls enclose.
+    strategy = "rings"
+    if not shapes and segments:
+        strategy = "walls"
+        for index, ring in enumerate(polygonize_walls(segments, mm_per_unit, warnings), start=1):
+            shape = finish_shape(f"WALL-{index}", ring, unit, mm_per_unit, "walls:polygonized", "unit", warnings)
+            if shape:
+                shapes.append(shape)
+
     texts = [t for t in texts if t["text"]]
     assign_labels(shapes, texts, warnings)
     for shape in shapes:
@@ -300,10 +409,17 @@ def read_dxf(path: str, declared_unit: str | None) -> dict[str, Any]:
         "unit_source": unit_source,
         "mm_per_unit": mm_per_unit,
         "scale_known": True,
+        "strategy": strategy,
         "shapes": shapes,
         "texts": texts,
         "warnings": warnings,
-        "stats": {"shapes": len(shapes), "texts": len(texts), "entities": len(msp), "layers": len(doc.layers)},
+        "stats": {
+            "shapes": len(shapes),
+            "texts": len(texts),
+            "entities": len(msp),
+            "layers": len(doc.layers),
+            "wall_segments": len(segments),
+        },
     }
 
 
