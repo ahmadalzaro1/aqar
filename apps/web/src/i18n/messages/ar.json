@@ -93,5 +93,7 @@
   "ticketStatus.in_progress": "قيد التنفيذ",
   "ticketStatus.completed": "مكتمل",
   "ticketStatus.closed": "مغلق",
-  "ticketStatus.cancelled": "ملغى"
+  "ticketStatus.cancelled": "ملغى",
+  "nav.bank": "استيراد البنك",
+  "nav.statements": "كشوف الملاك"
 }

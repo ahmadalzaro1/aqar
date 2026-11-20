@@ -42,9 +42,10 @@ screen, Playwright e2e, a11y CI job, perf budgets, NL query. See
 domain invariants, decisions, runbook and security model.
 
 ## Screenshots
-`docs/screenshots/` — dashboard, ledger and emergency ticket detail in
-Arabic (RTL) and English (LTR) at 1440 / 1024 / 768 / 390 px, captured at
-true layout widths and verified overflow-free.
+`docs/screenshots/` — dashboard, ledger, emergency ticket detail, the
+bank-import wizard and the owner statement, in Arabic (RTL) and English
+(LTR) at 1440 / 1024 / 768 / 390 px, captured at true layout widths and
+verified overflow-free.
 
 ![AR dashboard 1440](docs/screenshots/dashboard-ar-1440.png)
 ![EN ticket detail 390](docs/screenshots/ticket-gas-en-390.png)

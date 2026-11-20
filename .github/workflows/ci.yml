@@ -31,6 +31,8 @@ jobs:
         run: pnpm --filter @aqar/core exec vitest run property
       - name: UI unit tests
         run: pnpm --filter @aqar/ui test
+      - name: Web offline unit tests (bank parser/matcher, statement waterfall)
+        run: pnpm --filter @aqar/web test
       - name: Agents offline tests (live-model lane stays gated)
         run: pnpm --filter @aqar/agents test
 

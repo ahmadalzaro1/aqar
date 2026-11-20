@@ -93,5 +93,7 @@
   "ticketStatus.in_progress": "In progress",
   "ticketStatus.completed": "Completed",
   "ticketStatus.closed": "Closed",
-  "ticketStatus.cancelled": "Cancelled"
+  "ticketStatus.cancelled": "Cancelled",
+  "nav.bank": "Bank import",
+  "nav.statements": "Owner statements"
 }

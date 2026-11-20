@@ -7,6 +7,7 @@ import type { Locale } from '@aqar/contracts';
 import {
   LayoutDashboard, Building2, Inbox, FileText, BookOpen, Wrench,
   Truck, Users, FolderLock, BarChart3, Settings, Search, Languages, Moon, LogOut,
+  Landmark, ReceiptText,
 } from 'lucide-react';
 import { setLocale, setTheme, logoutAction } from '@/lib/actions';
 import type { SessionUser } from '@/lib/auth';
@@ -17,6 +18,8 @@ const NAV = [
   { href: '/leasing', key: 'nav.leasing', Icon: Inbox },
   { href: '/leases', key: 'nav.leases', Icon: FileText },
   { href: '/ledger', key: 'nav.ledger', Icon: BookOpen },
+  { href: '/bank', key: 'nav.bank', Icon: Landmark },
+  { href: '/statements', key: 'nav.statements', Icon: ReceiptText },
   { href: '/tickets', key: 'nav.tickets', Icon: Wrench },
   { href: '/vendors', key: 'nav.vendors', Icon: Truck },
   { href: '/owners', key: 'nav.owners', Icon: Users },

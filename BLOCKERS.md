@@ -34,15 +34,22 @@ Updated: 2026-11-20 (Asia/Amman)
    captured via same-origin iframe at exact px width (method in RUNBOOK).
 
 ## Open items (honest, prioritized)
-- P1 (IN PROGRESS): M6 bank-import wizard + M7 owner-statement screens —
-  two parallel builders dispatched (deleg_a6eaa2ec), strict route-folder
-  ownership; parent integrates, adds nav links, shoots 4 widths × AR/EN.
-- P1 (IN PROGRESS): repo pushed to https://github.com/ahmadalzaro1/aqar.
-  First CI run was refused: account billing/spending-limit block on PRIVATE
-  repo minutes. Repo made PUBLIC (the project's stated open-source intent;
-  no secrets — only public .env.example fixtures) and the run re-triggered;
-  result pending. If public runs are also blocked, this needs Ahmad's
-  GitHub billing fix — an agent cannot touch billing.
+- P1 (CLOSED 2026-11-20): M6 bank-import wizard (`/bank`) and M7 owner
+  statement (`/statements`) shipped and proven end to end. Bank: 5 offline
+  tests + live write path (payments 85 -> 86, allocations 84 -> 85, audit
+  +2, charge settled to 0 fils, replay returns `already_imported` with zero
+  new writes) plus a real UI run (paste -> analyze -> confirm -> "Import
+  committed", payments 86 -> 87). Statement: 10 offline tests + UI issue ->
+  `owner_statements` row (gross 1,160,000 / fee 92,800 @800 bps / expenses 0
+  / net 1,067,200) + 3 draft distributions summing exactly to net + audit
+  `owner_statement.issue`; the button flips to a disabled "Issued". Every
+  amount comes from `packages/core`; expenses use real completed-work costs
+  only, and the seed's fabricated 9%-of-rent expense figure is never shown.
+- P1 (CLOSED 2026-11-20): CI is GREEN on GitHub — run 44709859409 (48 s).
+  Root cause of the earlier integration failure was a corrupted 3-character
+  password in the workflow's `DATABASE_URL` versus the 4-character
+  `POSTGRES_PASSWORD` on the service container, not billing. The private-run
+  refusal is still unexplained on the billing side; the repo stays public.
 - P2: `packages/db/src/client.ts` still has a placeholder default URL and no
   dotenv load (B2); every script/test passes DATABASE_URL explicitly, and
   db vitest now derives aqar_test from the real env. Fix: fail-fast on the
@@ -56,10 +63,8 @@ Updated: 2026-11-20 (Asia/Amman)
 - P3: policy.ts `nte_exceeded` comment wording ambiguous (doc-only fix).
 
 ## Exact resume point
-1. Integrate deleg_a6eaa2ec builders (M6 /bank, M7 /statements): verify
-   their acceptance output yourself, add Shell nav links, re-shoot the
-   screenshot set incl. the two new pages at 4 widths × AR/EN.
-2. Read the CI run result (gh run list); fix runner-only fallout if red.
-3. B2 fail-fast in db client/migrate; ar-noise-complaint prompt hint;
-   then P3 UI depth and P6–P10.
+1. P2 tail: B2 dotenv fail-fast in the db client/migrate; `ar-noise-complaint`
+   prompt hint. Then P3 UI depth (history/undo surface, playwright e2e,
+   a11y and perf jobs) and P6–P10.
+2. CI is green; keep it that way — any push re-runs the full sweep.
 No fabricated results anywhere in this repo.
