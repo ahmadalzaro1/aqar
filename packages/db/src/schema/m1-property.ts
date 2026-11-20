@@ -7,6 +7,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -15,6 +16,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { auditTimestamps, areaSqm, isoDate, pkId } from './common.js';
 import { meterKindEnum, unitStatusEnum } from './enums.js';
+import { assetKindEnum, spaceKindEnum } from './taxonomy.js';
 import { organizations } from './organizations.js';
 
 /** How shared building services (generator, water tank, cleaning) are split across units. */
@@ -42,6 +44,14 @@ export const properties = pgTable(
     city: text('city').notNull(),
     lat: doublePrecision('lat'),
     lng: doublePrecision('lng'),
+    /** What the registered asset IS. `parcel` is land; see schema/taxonomy.ts. */
+    assetKind: assetKindEnum('asset_kind').notNull().default('building'),
+    /** Municipal zoning, stored as text with a CHECK in migration 0008. */
+    zoning: text('zoning'),
+    /** Land area of the asset, not of a unit on it. */
+    landAreaSqm: numeric('land_area_sqm'),
+    deedNumber: text('deed_number'),
+    deedDate: isoDate('deed_date'),
     sharedServicesConfig: jsonb('shared_services_config')
       .$type<SharedServicesConfig>()
       .notNull()
@@ -109,6 +119,8 @@ export const units = pgTable(
     buildingId: uuid('building_id')
       .notNull()
       .references(() => buildings.id, { onDelete: 'cascade' }),
+    /** What kind of lettable space this is; drives which detail table applies. */
+    spaceKind: spaceKindEnum('space_kind').notNull().default('flat'),
     unitNumber: text('unit_number').notNull(),
     floor: text('floor'),
     bedrooms: integer('bedrooms').notNull().default(1),

@@ -16,3 +16,4 @@ export * from './m6-vendor-ops.js';
 export * from './m7-owners.js';
 export * from './m8-compliance.js';
 export * from './m9-views.js';
+export * from './taxonomy.js';

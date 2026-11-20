@@ -4,3 +4,6 @@
 export * from './ledger/index.js';
 export * from './terms/index.js';
 export * from './ops/index.js';
+export * from './channels/index.js';
+
+export * from './taxonomy/index.js';
