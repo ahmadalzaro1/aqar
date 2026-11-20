@@ -117,9 +117,9 @@ async function main(): Promise<void> {
   }
   const { db, client } = createDb(databaseUrl, 3);
 
-  let queue: ReturnType<typeof createTriageQueue> | null = null;
-  let worker: ReturnType<typeof createTriageWorker> | null = null;
-  let events: QueueEvents | null = null;
+  let queue: ReturnType<typeof createTriageQueue> | null;
+  let worker: ReturnType<typeof createTriageWorker> | null;
+  let events: QueueEvents | null;
 
   try {
     banner('1/6 environment');

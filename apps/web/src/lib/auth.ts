@@ -30,12 +30,9 @@ export async function login(
     FROM users WHERE email = ${email} LIMIT 1`;
   const user = rows[0];
   if (user === undefined || user['is_active'] === false) return { ok: false, error: 'invalid' };
-  let passwordOk = false;
-  try {
-    passwordOk = await verify(String(user['password_hash']), password);
-  } catch {
-    passwordOk = false;
-  }
+  // A throwing verify() is a failed login, not a 500 — but never an implicit
+  // `true`, so the rejection handler is explicit about the value it yields.
+  const passwordOk = await verify(String(user['password_hash']), password).catch((): false => false);
   if (!passwordOk) return { ok: false, error: 'invalid' };
   const secret = user['totp_secret'];
   if (typeof secret === 'string' && secret.length > 0 && MONEY_ROLES.has(String(user['role']))) {
