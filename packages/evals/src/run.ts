@@ -504,9 +504,10 @@ export function renderMarkdown(report: LaneReport): string {
   }
 
   const missedGaps = report.knownCoverageGaps.filter((g) => !g.flaggedToday);
+  // Always render the section: "no known gaps" is itself a reportable state.
+  lines.push('### Known coverage gaps (not in the gate)');
+  lines.push('');
   if (missedGaps.length > 0) {
-    lines.push('### Known coverage gaps (not in the gate)');
-    lines.push('');
     lines.push('| Locale | Text | Why it is missed |');
     lines.push('| --- | --- | --- |');
     for (const g of missedGaps) {
@@ -517,8 +518,12 @@ export function renderMarkdown(report: LaneReport): string {
       'These are real hazard phrasings the deterministic catalogue does not match. ' +
         'Fixing them is a `packages/core` change (reported upward), so they are excluded from the recall gate rather than weakening it.',
     );
-    lines.push('');
+  } else {
+    lines.push(
+      'None known. Previously documented gaps were closed in `packages/core` and promoted into the golden set, where they now count toward the recall gate.',
+    );
   }
+  lines.push('');
 
   const fpRate = m.falsePositiveRate;
   lines.push(

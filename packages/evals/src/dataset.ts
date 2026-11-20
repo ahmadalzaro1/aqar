@@ -33,6 +33,52 @@ export interface GoldenCase {
 }
 
 export const GOLDEN_CASES: readonly GoldenCase[] = [
+  // ── Promoted from KNOWN_COVERAGE_GAPS (2026-11-20): core patterns added ────
+  {
+    id: 'en-bathtub-overflow',
+    text: 'The bathtub is overflowing into the hallway.',
+    locale: 'en',
+    expectEmergency: true,
+    expectCategory: 'water',
+    kind: 'hazard',
+    note: 'Active overflow onto living space — flooding signal via "overflowing".',
+  },
+  {
+    id: 'en-water-everywhere',
+    text: 'There is water everywhere in the basement.',
+    locale: 'en',
+    expectEmergency: true,
+    expectCategory: 'water',
+    kind: 'hazard',
+    note: 'Free-text water damage without leak/flood wording — flooding via "water everywhere".',
+  },
+  {
+    id: 'en-ceiling-sagging',
+    text: 'The ceiling is sagging in the bedroom.',
+    locale: 'en',
+    expectEmergency: true,
+    expectCategory: 'structural',
+    kind: 'hazard',
+    note: 'Sagging = imminent collapse — structural signal via "sagging".',
+  },
+  {
+    id: 'ar-chemical-fumes',
+    text: 'فيه ريحة كيماويات قوية بالشقة',
+    locale: 'ar',
+    expectEmergency: true,
+    expectCategory: 'gas',
+    kind: 'hazard',
+    note: 'Chemical fume exposure routed to gas_smell: identical immediate safety response (ventilate, no flames, evacuate). Dedicated signal is a future contract addition.',
+  },
+  {
+    id: 'ar-elevator-between-floors',
+    text: 'المصعد واقف بين الطوابق وفيه ناس',
+    locale: 'ar',
+    expectEmergency: true,
+    expectCategory: 'elevator',
+    kind: 'hazard',
+    note: 'Entrapment described as stopped between floors with people inside — matches "بين الطوابق".',
+  },
   // ── Hazard coverage: 12 signals × Arabic ─────────────────────────────────
   {
     id: 'ar-gas-leak',
@@ -533,33 +579,10 @@ export interface KnownCoverageGap {
   readonly description: string;
 }
 
-export const KNOWN_COVERAGE_GAPS: readonly KnownCoverageGap[] = [
-  {
-    text: 'The bathtub is overflowing into the hallway.',
-    locale: 'en',
-    description: 'No flooding pattern covers "overflowing"; "flood"/"water leak"/"burst pipe" are the only English flooding triggers.',
-  },
-  {
-    text: 'There is water everywhere in the basement.',
-    locale: 'en',
-    description: 'Free-text water damage without "leak"/"flood" wording is invisible to the catalogue.',
-  },
-  {
-    text: 'The ceiling is sagging in the bedroom.',
-    locale: 'en',
-    description: 'Structural patterns are crack/collapse/wall-falling only; "sagging" (imminent collapse) misses.',
-  },
-  {
-    text: 'فيه ريحة كيماويات قوية بالشقة',
-    locale: 'ar',
-    description: 'Chemical fume exposure has no signal at all; only gas/smoke smells are catalogued.',
-  },
-  {
-    text: 'المصعد واقف بين الطوابق وفيه ناس',
-    locale: 'ar',
-    description: 'Entrapment described as "stuck between floors with people inside" instead of the fixed "محتجز بالمصعد" phrasing misses.',
-  },
-];
+// All five previously-known gaps were closed in core (2026-11-20) and promoted
+// into GOLDEN_CASES above. Kept as an empty, typed export: the harness and its
+// promotion test still reference it, and future misses land here first.
+export const KNOWN_COVERAGE_GAPS: readonly KnownCoverageGap[] = [];
 
 /** All signal ids the dataset is required to exercise. */
 export const REQUIRED_SIGNALS = [
