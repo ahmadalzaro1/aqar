@@ -80,19 +80,21 @@ export function BankWizard({ locale, recent }: { locale: Locale; recent: readonl
 
       {step === 'input' && (
         <Card>
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <div style={{ display: 'grid', gap: 4 }}>
+          <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'minmax(0, 1fr)' }}>
+            <div style={{ display: 'grid', gap: 4, minInlineSize: 0 }}>
               <label htmlFor="bank-account">{t('bank.accountLabel')}</label>
-              <input id="bank-account" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder={t('bank.accountPlaceholder')} />
+              <input id="bank-account" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder={t('bank.accountPlaceholder')}
+            style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }} />
             </div>
-            <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ display: 'grid', gap: 4, minInlineSize: 0 }}>
               <label htmlFor="bank-file">{t('bank.pickFile')}</label>
-              <input id="bank-file" ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} />
+              <input id="bank-file" ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile}
+            style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }} />
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{fileName}</span>
             </div>
-            <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ display: 'grid', gap: 4, minInlineSize: 0 }}>
               <label htmlFor="bank-paste">{t('bank.pasteLabel')}</label>
-              <textarea id="bank-paste" rows={8} value={rawText} onChange={(e) => setRawText(e.target.value)} placeholder={'date,payer,amount,reference\n2026-11-01,Ahmad,125.500,rent'} style={{ fontFamily: 'monospace', fontSize: 'var(--text-sm)' }} />
+              <textarea id="bank-paste" rows={8} value={rawText} onChange={(e) => setRawText(e.target.value)} placeholder={'date,payer,amount,reference\n2026-11-01,Ahmad,125.500,rent'} style={{ fontFamily: 'monospace', fontSize: 'var(--text-sm)', inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }} />
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{t('bank.pasteHint')}</span>
             </div>
             <div><Button variant="primary" onClick={analyze} disabled={busy || rawText.trim().length === 0}>{busy ? t('bank.analyzing') : t('bank.analyze')}</Button></div>
@@ -101,7 +103,7 @@ export function BankWizard({ locale, recent }: { locale: Locale; recent: readonl
       )}
 
       {step === 'preview' && analysis !== null && (
-        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+        <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'minmax(0, 1fr)' }}>
           {analysis.status === 'reupload' && analysis.existingImport !== null && (
             <Card>
               <h2 style={{ fontSize: 'var(--text-lg)' }}>{t('bank.reupload.title')}</h2>

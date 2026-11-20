@@ -81,9 +81,14 @@ export function Shell({ user, orgName, locale, messages, children }: {
         Skip to content
       </a>
       <aside className="no-print" style={{
-        inlineSize: railCollapsed ? 56 : 220, flexShrink: 0, background: 'var(--surface-2)',
+        // flexBasis is explicit: with `flex-basis: auto` the flex item's automatic
+        // minimum (its min-content width) wins over inline-size and the "56px rail"
+        // stayed 220px wide on phones, starving <main> to 170px.
+        flexBasis: railCollapsed ? 56 : 220, minInlineSize: 0, maxInlineSize: railCollapsed ? 56 : 220,
+        inlineSize: railCollapsed ? 56 : 220, flexGrow: 0, flexShrink: 0, background: 'var(--surface-2)',
         borderInlineEnd: '1px solid var(--border)', padding: 'var(--space-3)',
         display: 'flex', flexDirection: 'column', gap: 2, transition: 'inline-size 150ms ease',
+        overflowX: 'hidden',
       }}>
         <button onClick={() => setCollapsed((v) => !v)} style={{ ...iconBtn, marginBlockEnd: 'var(--space-3)' }}
           aria-label="Toggle sidebar">
@@ -135,7 +140,7 @@ export function Shell({ user, orgName, locale, messages, children }: {
             </form>
           </div>
         </header>
-        <main id="main" style={{ padding: 'var(--main-pad)', maxInlineSize: 1280, inlineSize: '100%', marginInline: 'auto', minInlineSize: 0 }}>
+        <main id="main" style={{ padding: 'var(--main-pad)', maxInlineSize: 1280, inlineSize: '100%', marginInline: 'auto', minInlineSize: 0, overflowX: 'clip' }}>
           {children}
         </main>
       </div>

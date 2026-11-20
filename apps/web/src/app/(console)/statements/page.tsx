@@ -63,19 +63,19 @@ export default async function StatementsPage({ searchParams }: {
         <p style={{ color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>{s.subtitle}</p>
       </div>
 
-      <form className="no-print" method="GET" action="/statements" style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'end' }}>
-        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)' }}>{s.property}
-          <select name="property" defaultValue={propertyId}>
+      <form className="no-print" method="GET" action="/statements" style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'end', minInlineSize: 0, maxInlineSize: '100%' }}>
+        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)', minInlineSize: 0, maxInlineSize: '100%' }}>{s.property}
+          <select name="property" defaultValue={propertyId} style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }}>
             {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)' }}>{s.owner}
-          <select name="owner" defaultValue={ownerId}>
+        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)', minInlineSize: 0, maxInlineSize: '100%' }}>{s.owner}
+          <select name="owner" defaultValue={ownerId} style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }}>
             {owners.map((o) => <option key={o.id} value={o.id}>{locale === 'ar' ? o.nameAr : o.nameEn}</option>)}
           </select>
         </label>
-        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)' }}>{s.period}
-          <input name="period" defaultValue={period} pattern="[0-9]{4}-(0[1-9]|1[0-2])" />
+        <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-sm)', minInlineSize: 0, maxInlineSize: '100%' }}>{s.period}
+          <input name="period" defaultValue={period} pattern="[0-9]{4}-(0[1-9]|1[0-2])" style={{ inlineSize: '100%', maxInlineSize: '100%', minInlineSize: 0 }} />
         </label>
         <Button type="submit">{s.refresh}</Button>
         <Link href={qs(shiftPeriod(period, -1))}><Button aria-label={s.prevPeriod}>←</Button></Link>
@@ -138,7 +138,7 @@ export default async function StatementsPage({ searchParams }: {
             </tbody>
           </table>
         </div>
-        {blockedText !== null && <p role="alert" style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)' }}>{blockedText}: {draft.blocked?.detail}</p>}
+        {blockedText !== null && <p role="alert" style={{ color: 'var(--danger)', fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>{blockedText}: {draft.blocked?.detail}</p>}
 
         <h3 style={{ fontSize: 'var(--text-md)', marginBlockStart: 'var(--space-3)' }}>{s.shareSection}</h3>
         {draft.ownerShares.length === 0 ? <EmptyState title={s.shareSection} hint={s.ownerNoShare} /> : (

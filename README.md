@@ -45,7 +45,8 @@ domain invariants, decisions, runbook and security model.
 `docs/screenshots/` — dashboard, ledger, emergency ticket detail, the
 bank-import wizard and the owner statement, in Arabic (RTL) and English
 (LTR) at 1440 / 1024 / 768 / 390 px, captured at true layout widths and
-verified overflow-free.
+verified overflow-free by measurement: aside 56 / main 334 px at 390 px wide,
+0 overflow offenders across 5 pages x 4 widths x 2 locales.
 
 ![AR dashboard 1440](docs/screenshots/dashboard-ar-1440.png)
 ![EN ticket detail 390](docs/screenshots/ticket-gas-en-390.png)

@@ -50,6 +50,18 @@ Updated: 2026-11-20 (Asia/Amman)
   password in the workflow's `DATABASE_URL` versus the 4-character
   `POSTGRES_PASSWORD` on the service container, not billing. The private-run
   refusal is still unexplained on the billing side; the repo stays public.
+- FIXED (2026-11-20): the Shell's "below 900px the sidebar is a 56px icon
+  rail" never actually applied. `inline-size` was set with `flex-shrink: 0`
+  and an implicit `flex-basis: auto`, so the flex item's automatic minimum
+  (its min-content width, 220px) won and the sidebar stayed 220px wide on a
+  390px phone, starving `<main>` to 170px. Fixed by giving the aside an
+  explicit `flexBasis`, `minInlineSize: 0` and `maxInlineSize`; bank/statement
+  controls also got `inlineSize: 100%` + `minmax(0, 1fr)` grids so no form
+  control contributes an intrinsic width.
+  Measured with real viewport emulation (not eyeballed, not a scrolling
+  iframe): 5 pages x 4 widths x 2 locales = 40 runs, 0 overflow offenders.
+  390px: aside 56 / main 334. 768px: 56 / 712. 1024px: 220 / 804.
+  1440px: 220 / 1220. Document scrollWidth == clientWidth in every run.
 - P2: `packages/db/src/client.ts` still has a placeholder default URL and no
   dotenv load (B2); every script/test passes DATABASE_URL explicitly, and
   db vitest now derives aqar_test from the real env. Fix: fail-fast on the
