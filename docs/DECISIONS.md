@@ -173,6 +173,23 @@ Meta's primary docs (verified 2026-11-20) make three things non-optional:
   templates; a recategorised template stays `APPROVED`, keeps sending, and bills
   at the marketing rate (4.3×). Only the `template_category_update` webhook
   reveals it, so it must be subscribed and campaigns paused on change.
+- **A digest is not a courtesy, it is the budget's exponent.** A cap of one
+  money message per day against 21 overdue charges means the 21st tenant is
+  never mentioned. Coalescing the same budget into "21 rents overdue, oldest 142
+  days" keeps the single interruption and carries every fact. Safety is exempt
+  and is reclassified out of the batch by the deterministic emergency flag.
+- **Cadence beats repetition.** A semantic dedupe key that never changes makes
+  a notification a one-off event; a weekly/daily bucket makes it a dunning
+  schedule. Without the bucket, "80 days late" was the last thing anyone would
+  ever hear about that charge.
+- **Suppression is a recorded outcome, not a silent skip.** Every non-send
+  writes a `notification_sends` row with `suppressed_reason`, one per intent per
+  reason per day. A policy that leaves no trace cannot be tuned, and a green
+  test asserting "nothing was sent" is indistinguishable from a broken relay.
+- **The decision clock and the ledger clock must be the same instant.** The
+  engine receives `now` and stamps sends with it; using `now()` inside SQL for
+  the ledger desynchronised the daily budget from the deliveries the moment the
+  two differed — the test that injected a future time is what exposed it.
 - **The phone number is not the identity.** For users with a WhatsApp username,
   `wa_id`/`from` may be omitted; `from_user_id` (BSUID) is the durable key.
   Media is also ephemeral: URL 5 minutes, webhook media ID 7 days, so downloads

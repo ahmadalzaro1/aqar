@@ -118,6 +118,70 @@ Updated: 2026-11-20 (Asia/Amman)
   log, so gates that print no counts echoed the previous gate's numbers. It now
   reads each gate's own output and exits non-zero on failure.
 
+## Proactive engine — 2026-11-21
+
+Built and proven against the live database (`aqar-demo`, 21 overdue charges,
+20 open tickets, 2 expiring leases, 1 of the tickets flagged emergency).
+
+**Real cycle output** (`[proactive] scan=43 published=43 intents=5 sent=3
+deferred=0 suppressed=2 expired=0 localHour=19`):
+
+| trigger | tier | outcome |
+|---|---|---|
+| `emergency_unacknowledged` | 0 | delivered — its own message, out of the digest |
+| `rent_overdue` (21 items) | 1 | delivered as one digest |
+| `ticket_sla_breach` (19 items) | 2 | delivered as one digest |
+| `lease_expiring` ×2 | 2 | suppressed `daily_budget`, left `open` for tomorrow |
+
+43 facts → 5 intents → 3 messages. The same run before digesting produced 43
+intents and 41 budget suppressions, i.e. the two most important facts were
+competing with 41 duplicates for one slot.
+
+**Gates:** `ALL_GATES_GREEN` (15 gates). Worker `26 passed`, core `339 + 52`,
+channels `34`, mcp `35`, web `24`, db `9`, agents `23 (+2 skipped)`, evals
+recall `1.0000`. `tsc` and `eslint --max-warnings 0` clean.
+
+**Migrations:** `0004_notifications` (three tables) and `0005_outbox_no_touch_trigger`
+(the correction; see below), both applied with down migrations present.
+
+Defects found *by running it*, all fixed:
+
+1. `sql.array()` does not exist in postgres.js v4 — the relay's publish step
+   threw and rolled back the whole transaction, so intents were created and then
+   discarded. Silent: every test asserted on the pre-transaction state.
+2. Migration 0004 attached the `updated_at` touch trigger to `outbox`, which has
+   no such column → `record "new" has no field "updated_at"` on every publish.
+   Fixed forward in `0005` because an applied migration is the record of what
+   ran.
+3. The ledger was stamped with SQL `now()` while the policy decided on an
+   injected `now` — the daily budget could never see its own sends once the two
+   differed. Both now use the same instant.
+4. An SLA breach on an **emergency** ticket was being folded into the T2 daily
+   digest, which is a LAW 2 violation in the notification layer: the safety
+   signal was aggregated. It is now reclassified to T0 `emergency_unacknowledged`
+   by the deterministic flag, before any text is generated.
+5. Two orphaned `apps/worker` processes from earlier runs were still consuming
+   the queue (my `pkill` pattern missed `cli.mjs src/index.ts`). Two workers on
+   one queue means double processing and lock contention — this is what the
+   channels teardown fix was papering over.
+
+**Not done (honest):**
+
+- **No real channel.** `ChannelSender` is implemented only as `createLogSender`;
+  nothing reaches WhatsApp, Telegram or email. Delivery is a log line plus a
+  `notification_sends` row. Templates (pre-approved, `utility` category) are a
+  prerequisite and are not written.
+- **No acknowledgement surface.** `notification_intents` has `acked`/`declined`
+  states and `canReopen`/cooldown in core, but nothing in the console sets them,
+  so every intent currently ends its life as `notified` or `expired`.
+- **No recipient model.** Caps are per-organization; `humanSentToday` counts the
+  org, because nothing maps a property or a ticket to a responsible user yet.
+- **Digest immutability is one-way.** A digest that has been delivered is frozen;
+  facts arriving later that day land in the next cadence bucket rather than a
+  follow-up. Acceptable, but it means a delivered digest can understate the day.
+- **Suppression evidence is per day.** There is no long-term history of what was
+  suppressed, so tuning the caps has no dataset yet.
+
 ## Agent layer (MCP) — 2026-11-20
 - `apps/mcp` (`@aqar/mcp`) registered with Hermes as `aqar`: **18/18 tools**,
   mode `propose`, actor `hermes`. See `docs/AGENTS.md`.

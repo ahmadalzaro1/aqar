@@ -73,3 +73,50 @@ token budget; over budget means human handoff, never silent truncation.
   eval suite `emergency-adversarial` (threshold 100%).
 - LAW 3: `audit_events` append-only trigger + reversal-only corrections +
   UI undo on every agent-originated mutation.
+
+## The proactive path
+
+An agent that acts unprompted is a different risk from one that answers: the
+failure mode is not being wrong, it is being *unignorable*. So the proactive
+engine is three separately-testable steps, never one function, and it can be
+re-run at any frequency without changing the outcome.
+
+```
+        fact committed                  published            delivered
+   ┌──────────────┐   ┌──────────┐   ┌───────────────┐   ┌────────────┐
+   │   scan       │──▶│  outbox  │──▶│    intents    │──▶│  dispatch  │
+   │ (same tx as  │   │ (promise)│   │ (dedupe key,  │   │ (policy +  │
+   │  the fact)   │   │          │   │  tier, state) │   │  budget)   │
+   └──────────────┘   └──────────┘   └───────────────┘   └────────────┘
+```
+
+| Step | Where | Contract |
+|---|---|---|
+| `scanTriggers` | `apps/worker/src/notifications.ts` | writes `outbox` rows in the same transaction as the fact; `ON CONFLICT DO NOTHING` on a **semantic** dedupe key |
+| `relayOutbox` | same | one unpublished row → one intent, in one transaction; digests coalesce |
+| `dispatchPending` | same | pure policy decides; the ledger records sends **and suppressions** |
+| `expireUnanswered` | same | terminal state, so the queue cannot grow forever |
+| cycle | `apps/worker/src/proactive.ts` | 15-minute repeatable + a 06:30 digest run, `upsertJobScheduler` (idempotent on restart) |
+
+**Tiers** (`packages/core/src/ops/interruption.ts`, pure, unit- and
+property-tested): T0 safety, T1 money/legal, T2 operational, T3 ambient. Only T0
+bypasses quiet hours. The policy returns a decision object, never a boolean, so
+`{action:'suppress', reason:'daily_budget'}` is a measurement instead of silence.
+
+**Digests.** Twenty-one overdue charges at one T1 message a day is not
+"quiet" — it is three weeks of silence for whoever is at the back of the queue.
+`rent_overdue` and `ticket_sla_breach` coalesce into one message per day, which
+keeps counting while it is undelivered. Safety is deliberately excluded: an
+emergency ticket's SLA breach is reclassified to `emergency_unacknowledged`
+(T0, its own acknowledgement) by the deterministic `emergency_flag`, never
+folded into a batch.
+
+**Cadence.** Dedupe keys carry a bucket — `:w3` (weeks late) for rent, `:d2`
+(days open) for tickets — so a fact that nobody acted on comes back on a
+schedule instead of going quiet after one notification.
+
+**Clock.** The engine takes `now` as an argument and stamps `notification_sends`
+with that same instant. Reading the wall clock in the decision and `now()` in
+the ledger silently desynchronises the budget from the sends: found by a test
+that injected a future time, which is the only reason the budget assertions
+could fail at all.
