@@ -92,3 +92,44 @@ clips horizontal bleed. Screenshots at exact widths are captured through a
 same-origin iframe (CDP device emulation proved unreliable for media
 queries) — recipe in RUNBOOK.
 
+## D12 — Version policy: newest that the ecosystem actually supports
+Everything moves to the newest release, with two deliberate exceptions:
+
+- **TypeScript is pinned to 6.0.3, not 7.0.2.** `typescript-eslint@8.73`
+  declares `typescript >=4.8.4 <6.1.0` and `pnpm peers check` enforces it.
+  A 7.x compiler under an 8.x linter is an unsupported pairing, so the
+  linter's ceiling wins: a green `pnpm lint` is worth more than a version
+  number. Revisit when typescript-eslint widens the peer range.
+- **Next 16 stays on the webpack builder** (`next dev/build --webpack`);
+  see D13.
+Turbopack is otherwise the default in Next 16 and is *not* disabled
+globally — the flags are explicit so a future migration is a visible diff.
+
+## D13 — Why Next 16 builds with webpack, not Turbopack
+The workspace packages (`@aqar/core`, `@aqar/contracts`, `@aqar/ui`) are
+NodeNext ESM: their internal imports use `.js` specifiers that exist on disk
+only as `.ts`. Turbopack resolves those as missing modules and reports the
+entry as having "no exports at all" (`sumFils was not found in module
+packages/core/src/index.ts`). The working workaround is `resolve.extensionAlias`,
+which only webpack implements. Next 16 still supports `--webpack` explicitly.
+The durable fix — emit real `.js` from `packages/*` with `tsc` and point
+`exports` at `dist` — is a build-system change with its own risks (dev
+watch chain, source maps, test resolution), so it is tracked as follow-up
+work rather than smuggled into a dependency bump.
+
+## D14 — PostgreSQL 18+ moves PGDATA, and the dev cluster is disposable
+The `pgvector/pgvector:pg19` image refuses to boot with the volume mounted at
+`/var/lib/postgresql/data`; data now lives under a major-version
+subdirectory, so compose mounts `pgdata:/var/lib/postgresql`. Consequences
+worth knowing:
+- Recreating the volume destroys `sessions` rows — every browser session dies
+  and you must log in again. Not a bug.
+- The integration suite now provisions `aqar_test` itself (vitest
+  `globalSetup`), because a fresh volume or a clean CI runner has no such
+  database. Anything not ending in `_test` is refused, since the suite drops
+  `public`/`app`.
+- `DATABASE_URL` in `.env` must match compose's `POSTGRES_PASSWORD`; a
+  mismatch surfaces as Postgres `28P01` (auth failed) and a 500 on every
+  console page, not as a migration error.
+
+

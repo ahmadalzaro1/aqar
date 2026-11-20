@@ -1,7 +1,16 @@
 import { expect, type Page } from '@playwright/test';
 
 /** Dev fixture seeded by `pnpm db:seed` (public, documented in packages/db/src/seed.ts). */
-export const DEV_ADMIN = { email: 'admin@aqar.example', password: 'aqar-dev-admin-123' } as const;
+/**
+ * The local dev fixture, not a real credential: `packages/db/src/seed.ts` stores
+ * only the argon2id hash of exactly this password, and the seed refuses to run
+ * outside development. Overridable so CI or a shared environment never has to
+ * rely on a literal.
+ */
+export const DEV_ADMIN = {
+  email: process.env['E2E_ADMIN_EMAIL'] ?? 'admin@aqar.example',
+  password: process.env['E2E_ADMIN_PASSWORD'] ?? 'aqar-dev-admin-123',
+} as const;
 
 export type Locale = 'en' | 'ar';
 
