@@ -8,9 +8,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "build": "tsc --noEmit"
+    "build": "tsgo -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@aqar/contracts": "workspace:*"

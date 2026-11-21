@@ -11,8 +11,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "typecheck": "turbo run typecheck",
-    "lint": "eslint .",
+    "typecheck": "node scripts/ci/typecheck-all.mjs",
+    "lint": "oxlint",
     "test": "turbo run test",
     "test:unit": "pnpm --filter @aqar/core exec vitest run --exclude '**/*.property.test.ts'",
     "test:property": "pnpm --filter @aqar/core exec vitest run property",
@@ -21,15 +21,20 @@
     "evals": "pnpm --filter @aqar/evals evals",
     "db:migrate": "pnpm --filter @aqar/db migrate",
     "db:seed": "pnpm --filter @aqar/db seed",
-    "check:core-deps": "node scripts/check-core-deps.mjs"
+    "check:core-deps": "node scripts/check-core-deps.mjs",
+    "checks": "node scripts/ci/checks.mjs",
+    "lint:parity": "node scripts/ci/lint-parity.mjs",
+    "test:select": "node scripts/ci/select-tests.mjs",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "test:selector": "node scripts/ci/select-tests.selftest.mjs",
+    "shard:verify": "node scripts/ci/shard.mjs --package packages/core --shards 4 --verify"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@node-rs/argon2": "^2.2.2",
-    "eslint": "^10.15.0",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "globals": "^17.14.0",
+    "oxlint": "1.94.0",
     "turbo": "^2.11.13",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.73.0"
+    "typescript": "^6.0.3"
   }
 }
