@@ -10,8 +10,12 @@
  *      different ceiling — the only way to get a different answer is to compile a
  *      different policy, and that produces a different `version`.
  *   2. **The policy names itself.** `version` is a content hash of the normalised
- *      limits; it is stamped on the audit record beside the deciding rules, so
- *      "which policy said yes" survives an edit to the numbers.
+ *      limits *and* of what the rules do — the rule catalogue plus a behaviour
+ *      fingerprint over a fixed battery of probes. It is stamped on the audit
+ *      record beside the deciding rules, so "which policy said yes" survives an
+ *      edit to the numbers **and** to the predicate. A limits-only hash was not
+ *      enough: change a comparison, add a forbid, and the old stamp would still
+ *      claim the decision came from a policy that no longer exists.
  *
  * Borrowed from Cedar: default deny, forbid overrides (a satisfied deny can
  * never be outvoted by allows — the verdict is computed, not accumulated), and
@@ -115,9 +119,99 @@ function cyrb53(text: string, seed = 0): string {
   return `${hex(h2)}${hex(h1)}`;
 }
 
-/** The version is derived, never hand-written — it cannot drift from the numbers. */
-export function policyVersion(limits: PolicyLimits): string {
-  return cyrb53(stableStringify(limits)).slice(0, 12);
+/**
+ * Every rule id the predicate can emit, in the order a reader should meet them.
+ *
+ * The catalogue exists because the version has to change when the *rules* change,
+ * not only when the numbers do. Families whose id is built from a field name
+ * (`args.leaseId`, `args.amountFils`, …) are declared once as `args.*`, and the
+ * completeness test refuses any observed id that neither matches a catalogue entry
+ * exactly nor falls inside a declared family — so a new rule cannot be added
+ * without registering it, and a registered rule cannot be left dead.
+ */
+export const RULE_CATALOGUE: readonly string[] = Object.freeze([
+  'action.known',
+  'role.approver',
+  'args.*',
+  'limit.auto_approve',
+  'limit.nte_ceiling',
+  'limit.dispatch_human',
+  'sod.requester_not_approver',
+  'concurrence.dual_control',
+  'concurrence.distinct_approvers',
+  'reversal.action_known',
+  'reversal.window',
+  'reversal.self_correction',
+]);
+
+/** Does an observed rule id belong to the declared catalogue? */
+export function cataloguedRule(id: string): boolean {
+  return RULE_CATALOGUE.some((entry) =>
+    entry.endsWith('.*') ? id.startsWith(entry.slice(0, -1)) : entry === id,
+  );
+}
+
+/**
+ * A fixed battery of probes, run against the compiled predicate, whose verdicts
+ * and rule ids are hashed into the version.
+ *
+ * Why behaviour and not just the catalogue: a rule can keep its id while its
+ * condition changes (`>` to `>=`, a ceiling read from the wrong field, a forbid
+ * that stops applying). The catalogue would not notice; the probe that sits on
+ * the threshold does. Deliberately built from arguments that need no database, so
+ * the fingerprint is a pure function of the policy.
+ */
+function probes(limits: PolicyLimits): readonly PolicyFacts[] {
+  const lease = '00000000-0000-4000-8000-000000000001';
+  const base = { leaseId: lease, receivedDate: '2026-01-01', reference: 'P', note: null };
+  const at = '2026-06-01T00:00:00.000Z';
+  const executedAt = '2026-05-01T00:00:00.000Z';
+  const threshold = limits.dualControlAboveFils;
+  return Object.freeze([
+    { kind: 'proposal', action: 'unheard_of', args: {}, role: 'accountant' },
+    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cliq' }, role: 'accountant' },
+    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cheque' }, role: 'accountant' },
+    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cheque', chequeStatus: 'deposited' }, role: 'accountant' },
+    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cash', allocations: [{ chargeId: 'c', amountFils: 200_000 }] }, role: 'accountant' },
+    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: limits.nteCeilingFils + 1, method: 'cash' }, role: 'accountant' },
+    // On the dual-control band, with and without the second key: this is the pair
+    // that catches a threshold comparison changing direction or inclusivity.
+    ...(threshold === null ? [] : [
+      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold + 1, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [] },
+      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold + 1, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [{ userId: 'u-2' }, { userId: 'u-3' }] },
+      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [] },
+    ]),
+    { kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'property_manager', actorId: 'u-1', requester: { kind: 'human', userId: 'u-1' } },
+    { kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'property_manager', actorId: 'u-1', requester: { kind: 'agent' } },
+    { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt, now: at },
+    { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt: '2025-01-01T00:00:00.000Z', now: at },
+    { kind: 'reversal', action: 'post_payment', role: 'viewer', actorId: 'u-1', executedAt, now: at },
+    { kind: 'reversal', action: 'unheard_of', role: 'accountant', actorId: 'u-1', executedAt, now: at },
+  ]);
+}
+
+/** hash(verdict, rule ids) over every probe — details are wording, not policy. */
+function behaviourFingerprint(limits: PolicyLimits, decide: (facts: PolicyFacts) => PolicyDecision): string {
+  const observed = probes(limits).map((facts) => {
+    const decision = decide(facts);
+    return `${decision.verdict}|${decision.rules.map((r) => r.rule).join(',')}`;
+  });
+  return cyrb53(observed.join('\n'));
+}
+
+/** The sentinel for a caller that has not measured behaviour (tests, tooling). */
+const BEHAVIOUR_UNMEASURED = 'unmeasured';
+
+/**
+ * The version is derived, never hand-written, and it covers everything that can
+ * change an answer: the numbers, the rule vocabulary, and what the rules do.
+ *
+ * `behaviour` defaults to a sentinel so a direct caller cannot accidentally claim
+ * the identity of a compiled policy — `compilePolicy` always passes the measured
+ * fingerprint.
+ */
+export function policyVersion(limits: PolicyLimits, behaviour: string = BEHAVIOUR_UNMEASURED): string {
+  return cyrb53(stableStringify({ limits, rules: RULE_CATALOGUE, behaviour })).slice(0, 12);
 }
 
 function combine(rules: readonly PolicyRule[]): PolicyDecision {
@@ -229,13 +323,17 @@ export function compilePolicy(limits: PolicyLimits = DEFAULT_POLICY_LIMITS): Com
   const frozen: PolicyLimits = Object.freeze({
     ...limits,
     approverRoles: Object.freeze([...limits.approverRoles]),
+    policyEditorRoles: Object.freeze([...limits.policyEditorRoles]),
   });
-  const version = policyVersion(frozen);
+  // Decide first, then fingerprint: the version names what the predicate *does*,
+  // so a logic change cannot hide behind an unchanged set of numbers.
+  const decide = (facts: PolicyFacts): PolicyDecision =>
+    facts.kind === 'reversal' ? decideReversal(facts, frozen) : decideProposal(facts, frozen);
+  const version = policyVersion(frozen, behaviourFingerprint(frozen, decide));
   return Object.freeze({
     version,
     limits: frozen,
-    decide: (facts: PolicyFacts): PolicyDecision =>
-      facts.kind === 'reversal' ? decideReversal(facts, frozen) : decideProposal(facts, frozen),
+    decide,
     record: (decision: PolicyDecision): PolicyRecord => ({
       version,
       verdict: decision.verdict,

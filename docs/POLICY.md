@@ -2,7 +2,9 @@
 
 > Status: **P1–P4 landed** (2026-11-21). Limits are per organization
 > (`policy_limits`), editable through `PUT /api/policy/limits`, and every
-> decision carries the version of the policy that made it. What exists, what
+> decision carries the version of the policy that made it — a hash of the limits,
+> the rule catalogue and the predicate's measured behaviour, so the stamp changes
+> when the rules do, not only when the numbers do. What exists, what
 > prior art says, and the smallest path that makes the claim true.
 
 ## 1. What the code does today (measured, not remembered)
@@ -250,6 +252,54 @@ Measured end to end on the live app:
 The demo of that last row is also its own bug report: the first attempt wrote the
 limits and then failed the audit (`occurred_at` has no default), leaving a change
 with no record. Fixed by writing both inside `sql.begin`.
+
+### The stamp named the numbers, not the policy
+
+`policyVersion` hashed the normalised **limits only**. So a rule could change —
+a comparison flipped from `>` to `>=`, a forbid that stopped applying, a new rule
+added — and the version stayed identical while the answers did not. A decision
+stamped `153259b64a4c` before the change and one stamped `153259b64a4c` after it
+came from two different predicates, and the audit trail could not tell them apart.
+That is the one place where the record was able to lie about *which* policy
+decided.
+
+The version now hashes three things: the limits, the **rule catalogue**, and a
+**behaviour fingerprint**.
+
+- `RULE_CATALOGUE` lists every rule id the predicate can emit. Field-derived ids
+  (`args.leaseId`, `args.amountFils`, …) are declared once as the family `args.*`.
+- `behaviourFingerprint` runs a fixed battery of probes — a cheque with no status,
+  an amount exactly *on* the dual-control threshold and one fils over it, a
+  dispatch filed and approved by the same human, a reversal past its window — and
+  hashes the verdict and the rule ids of each answer. Details (wording) are not
+  hashed: they are prose, not policy.
+- The catalogue catches a rule being added, removed or renamed; the fingerprint
+  catches a rule whose *condition* changed while its id stayed. Neither alone is
+  enough, which is why both are in the hash.
+
+Two invariants keep the catalogue honest, as tests rather than as care:
+
+| invariant | test | why it matters |
+|---|---|---|
+| every observed rule id is declared | the battery emits nothing `cataloguedRule()` rejects | a new rule cannot ship unregistered |
+| no entry never fires | every catalogue entry (or family) is observed at least once | a renamed rule leaves no dead declaration behind |
+| the predicate is part of the name | `compilePolicy(base).version !== policyVersion(base)` | a caller that measured nothing cannot claim a real policy's identity |
+
+Measured live after the change: the same 400 JOD limits that stamped
+`153259b64a4c` now stamp **`a2bec4c1fb17`**, and an executed payment records
+`policy.version a2bec4c1fb17` beside
+`rules: action.known, role.approver, args.leaseId, args.amountFils,
+args.receivedDate, args.method, args.allocations, limit.auto_approve,
+sod.requester_not_approver`.
+
+Historical stamps are left alone. A row that says `153259b64a4c` was decided by
+the limits-only policy of that name; re-deciding it under the current build
+produces `a2bec4c1fb17`, and that difference **is** the signal that the predicate
+changed — which is exactly what the stamp was for.
+
+What the fingerprint still cannot see: a behaviour change that no probe reaches.
+The probes are the specification of what matters, so adding a probe is how you
+extend the guarantee. Everything else is covered by the differential suite.
 
 ### The cheque that could never succeed
 
