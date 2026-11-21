@@ -31,6 +31,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       proposalId: id,
       organizationId: user.orgId,
       userId: user.id,
+      role: user.role,
       decision: parsed.data.decision,
     });
     const status = outcome.status === 'executed' ? 200 : outcome.status === 'rejected' || outcome.status === 'expired' ? 200 : 200;
@@ -38,7 +39,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   } catch (err) {
     const message = err instanceof Error ? err.message : 'decision failed';
     const notFound = /not found/.test(message);
+    // A deterministic policy refusal is not a server fault: the caller is not
+    // allowed to do this, and the message says which rule stopped it.
+    const denied = /^policy denied/.test(message);
     const conflict = /already |do not match|expired/i.test(message);
-    return NextResponse.json({ error: message }, { status: notFound ? 404 : conflict ? 409 : 500 });
+    const status = notFound ? 404 : denied ? 403 : conflict ? 409 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

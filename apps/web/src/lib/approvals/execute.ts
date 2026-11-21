@@ -6,13 +6,23 @@
  *      args, so a row edited after approval cannot be applied for other terms;
  *   2. mints an HMAC approval token for exactly those claims and verifies it
  *      against the row it just read — the signature is exercised, not decorative;
- *   3. runs the registered handler and records who decided, when, and what
- *      happened, plus an append-only audit event.
+ *   3. spends the token exactly once — a `proposal_token_uses` row whose primary
+ *      key is the proposal, so a second redemption conflicts at the database, not
+ *      in a status check that anyone with write access could reset;
+ *   4. runs the registered handler, records who decided and what happened, writes
+ *      the audit event, and then — after the transaction commits — re-reads the
+ *      row the handler wrote and records whether the effect is actually there.
+ *
+ * Step 4 is the honest part. A signature proves someone authorised these bytes;
+ * it proves nothing about whether the write landed. `confirmed` in the result is
+ * a fresh SELECT against the system of record, and it can be false.
  *
  * The model cannot reach this module: it lives in the console, it needs a session
  * user, and it needs the approval secret from the server environment.
  */
+import { createHash } from 'node:crypto';
 import { argsHash, mintApprovalToken, verifyApprovalToken } from '@aqar/approvals';
+import { DEFAULT_POLICY_LIMITS, evaluateProposal } from '@aqar/core';
 import type { TransactionSql } from 'postgres';
 import { sql } from '@/lib/db';
 
@@ -23,14 +33,33 @@ export type Decision = 'approve' | 'reject';
 export type DecisionOutcome =
   | { readonly status: 'rejected'; readonly proposalId: string }
   | { readonly status: 'expired'; readonly proposalId: string }
-  | { readonly status: 'executed'; readonly proposalId: string; readonly result: Record<string, unknown> }
+  | {
+      readonly status: 'executed';
+      readonly proposalId: string;
+      readonly result: Record<string, unknown>;
+      /** True only when a post-commit SELECT found the row the handler wrote. */
+      readonly confirmed: boolean;
+    }
   | { readonly status: 'failed'; readonly proposalId: string; readonly reason: string };
 
 export interface DecisionInput {
   readonly proposalId: string;
   readonly organizationId: string;
   readonly userId: string;
+  readonly role: string;
   readonly decision: Decision;
+}
+
+/** What the handler claims it wrote, so the caller can go and look. */
+interface VerifySpec {
+  readonly table: 'payments' | 'work_orders';
+  readonly id: string;
+  readonly expect: Readonly<Record<string, unknown>>;
+}
+
+interface HandlerOutcome {
+  readonly result: Record<string, unknown>;
+  readonly verify: VerifySpec;
 }
 
 interface ProposalRow {
@@ -49,7 +78,7 @@ type Handler = (
   tx: TransactionSql,
   args: Record<string, unknown>,
   ctx: { organizationId: string; userId: string; now: Date },
-) => Promise<Record<string, unknown>>;
+) => Promise<HandlerOutcome>;
 
 function need<T>(args: Record<string, unknown>, key: string, check: (v: unknown) => v is T, what: string): T {
   const value = args[key];
@@ -114,7 +143,14 @@ const handlers: Record<string, Handler> = {
       if (allocated > amountFils) throw new Error('allocations exceed the payment amount');
     }
 
-    return { paymentId, amountFils, allocatedFils: allocated, method, receivedDate };
+    return {
+      result: { paymentId, amountFils, allocatedFils: allocated, method, receivedDate },
+      verify: {
+        table: 'payments',
+        id: paymentId,
+        expect: { amount_fils: amountFils, method, received_date: receivedDate, payer_id: lease.tenant_id },
+      },
+    };
   },
 
   async dispatch_vendor(tx, args, ctx) {
@@ -143,11 +179,27 @@ const handlers: Record<string, Handler> = {
     `;
     const workOrderId = inserted[0]?.id;
     if (workOrderId === undefined) throw new Error('work order insert returned no row');
-    return { workOrderId, ticketId, vendorId, nteFils, status: 'dispatched' };
+    return {
+      result: { workOrderId, ticketId, vendorId, nteFils, status: 'dispatched' },
+      verify: { table: 'work_orders', id: workOrderId, expect: { ticket_id: ticketId, vendor_id: vendorId, status: 'dispatched' } },
+    };
   },
 };
 
 export const registeredActions = Object.freeze(Object.keys(handlers));
+
+type TxOutcome =
+  | { readonly kind: 'rejected'; readonly proposalId: string }
+  | { readonly kind: 'expired'; readonly proposalId: string }
+  | { readonly kind: 'failed'; readonly proposalId: string; readonly reason: string }
+  | {
+      readonly kind: 'executed';
+      readonly proposalId: string;
+      readonly result: Record<string, unknown>;
+      readonly verify: VerifySpec;
+      readonly claims: unknown;
+      readonly policyRules: number;
+    };
 
 export async function decideProposal(input: DecisionInput): Promise<DecisionOutcome> {
   const secret = process.env['AQAR_APPROVAL_SECRET'];
@@ -155,7 +207,7 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     throw new Error('AQAR_APPROVAL_SECRET is not set (min 32 chars) — refusing to approve anything unsigned');
   }
 
-  return sql.begin(async (tx) => {
+  const outcome = await sql.begin(async (tx): Promise<TxOutcome> => {
     const rows = await tx<ProposalRow[]>`
       select id, tool_name, action, args, args_hash, summary, status, expires_at, model_id
         from action_proposals
@@ -175,13 +227,13 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
          where id = ${row.id}
       `;
       await audit(tx, row, input, 'proposal.rejected', null);
-      return { status: 'rejected', proposalId: row.id } as DecisionOutcome;
+      return { kind: 'rejected', proposalId: row.id } as TxOutcome;
     }
 
     if (row.expires_at.getTime() <= now.getTime()) {
       await tx`update action_proposals set status = 'expired' where id = ${row.id}`;
       await audit(tx, row, input, 'proposal.expired', null);
-      return { status: 'expired', proposalId: row.id } as DecisionOutcome;
+      return { kind: 'expired', proposalId: row.id } as TxOutcome;
     }
 
     // The stored hash is the thing the token signs. If the args were edited after
@@ -189,6 +241,14 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     const recomputed = argsHash({ action: row.action, ...row.args });
     if (recomputed !== row.args_hash) {
       throw new Error('proposal arguments do not match the hash that was filed — refusing to execute');
+    }
+
+    // Policy is a predicate over the call's own fields, not a model's opinion and
+    // not a role check bolted onto the route. A refusal here names its rules.
+    const policy = evaluateProposal({ action: row.action, args: row.args, role: input.role, limits: DEFAULT_POLICY_LIMITS });
+    if (policy.verdict === 'deny') {
+      const reasons = policy.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ');
+      throw new Error(`policy denied this proposal: ${reasons}`);
     }
 
     const { token, claims } = mintApprovalToken(secret, {
@@ -216,23 +276,42 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
          where id = ${row.id}
       `;
       await audit(tx, row, input, 'proposal.failed', { error: reason, claims });
-      return { status: 'failed', proposalId: row.id, reason } as DecisionOutcome;
+      return { kind: 'failed', proposalId: row.id, reason } as TxOutcome;
+    }
+
+    // Spend the token. The primary key on proposal_id is the real single-use
+    // guarantee: a second redemption cannot insert, so it cannot proceed, even if
+    // the proposal row were reset to pending by hand.
+    const redemptions = await tx<{ proposal_id: string }[]>`
+      insert into proposal_token_uses (proposal_id, organization_id, token_hash, claims, consumed_at, consumed_by_user_id)
+      values (
+        ${row.id}, ${input.organizationId}, ${createHash('sha256').update(token).digest('hex')},
+        ${tx.json(claims)}, ${now}, ${input.userId}
+      )
+      on conflict (proposal_id) do nothing
+      returning proposal_id
+    `;
+    if (redemptions.length === 0) {
+      throw new Error('this approval token has already been redeemed — refusing to execute again');
     }
 
     try {
-      const result = await handler(tx, row.args, {
-        organizationId: input.organizationId,
-        userId: input.userId,
-        now,
-      });
+      const outcome = await handler(tx, row.args, { organizationId: input.organizationId, userId: input.userId, now });
       await tx`
         update action_proposals
            set status = 'executed', decided_by_user_id = ${input.userId}, decided_at = ${now},
-               executed_at = ${now}, result = ${tx.json(result)}
+               executed_at = ${now}, result = ${tx.json({ ...outcome.result, confirmed: null })}
          where id = ${row.id}
       `;
-      await audit(tx, row, input, 'proposal.executed', { ...result, claims });
-      return { status: 'executed', proposalId: row.id, result } as DecisionOutcome;
+      await audit(tx, row, input, 'proposal.executed', { ...outcome.result, claims, policy: policy.verdict });
+      return {
+        kind: 'executed',
+        proposalId: row.id,
+        result: outcome.result,
+        verify: outcome.verify,
+        claims,
+        policyRules: policy.rules.length,
+      } as TxOutcome;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       await tx`
@@ -242,9 +321,93 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
          where id = ${row.id}
       `;
       await audit(tx, row, input, 'proposal.failed', { error: reason, claims });
-      return { status: 'failed', proposalId: row.id, reason } as DecisionOutcome;
+      return { kind: 'failed', proposalId: row.id, reason } as TxOutcome;
     }
   });
+
+  if (outcome.kind === 'rejected') return { status: 'rejected', proposalId: outcome.proposalId };
+  if (outcome.kind === 'expired') return { status: 'expired', proposalId: outcome.proposalId };
+  if (outcome.kind === 'failed') return { status: 'failed', proposalId: outcome.proposalId, reason: outcome.reason };
+
+  // The write is committed. Now go and look at it: a committed insert is not the
+  // same claim as "the row is there, with the values we said" — a trigger, a
+  // cascading delete or a wrong column would all pass the first test and fail this.
+  const readBack = await confirmWrite(outcome.verify, input.organizationId);
+  const result: Record<string, unknown> = {
+    ...outcome.result,
+    confirmed: readBack.confirmed,
+    readBack: readBack.observed,
+    ...(readBack.confirmed ? {} : { readBackMisses: readBack.misses }),
+  };
+
+  await sql`
+    update action_proposals set result = ${sql.json(result)} where id = ${outcome.proposalId}
+  `;
+  await sql`
+    insert into audit_events (
+      organization_id, actor, action, entity_type, entity_id, before, after,
+      occurred_at, model_id, tool_calls, idempotency_key
+    ) values (
+      ${input.organizationId},
+      ${sql.json({ kind: 'human', userId: input.userId })},
+      ${readBack.confirmed ? 'proposal.confirmed' : 'proposal.unconfirmed'},
+      'action_proposal',
+      ${outcome.proposalId},
+      ${sql.json({ status: 'executed', claimed: outcome.result })},
+      ${sql.json({ confirmed: readBack.confirmed, observed: readBack.observed, misses: readBack.misses })},
+      ${new Date()},
+      null,
+      ${sql.json([{ tool: 'approval-readback', table: outcome.verify.table, rows: readBack.observed }])},
+      ${`proposal:${outcome.proposalId}:confirm`}
+    )
+  `;
+
+  return { status: 'executed', proposalId: outcome.proposalId, result, confirmed: readBack.confirmed };
+}
+
+interface ReadBackReport {
+  readonly confirmed: boolean;
+  readonly observed: Record<string, unknown>;
+  readonly misses: readonly string[];
+}
+
+/**
+ * Read the effect back out of the system of record. Deliberately not a dynamic
+ * query: the table is a closed union and each branch is a literal, so nothing in
+ * a proposal can decide what gets read.
+ */
+async function confirmWrite(spec: VerifySpec, organizationId: string): Promise<ReadBackReport> {
+  const rows: Record<string, unknown>[] =
+    spec.table === 'payments'
+      ? await sql<Record<string, unknown>[]>`
+          select id, organization_id, payer_id, amount_fils, received_date, method
+            from payments where id = ${spec.id} and organization_id = ${organizationId}
+        `
+      : await sql<Record<string, unknown>[]>`
+          select id, organization_id, ticket_id, vendor_id, status
+            from work_orders where id = ${spec.id} and organization_id = ${organizationId}
+        `;
+
+  const row = rows[0];
+  if (row === undefined) return { confirmed: false, observed: {}, misses: ['the row is not in the table after commit'] };
+
+  const observed: Record<string, unknown> = {};
+  const misses: string[] = [];
+  for (const [key, expected] of Object.entries(spec.expect)) {
+    const actual = row[key];
+    observed[key] = actual instanceof Date ? actual.toISOString().slice(0, 10) : actual;
+    if (!sameValue(expected, actual)) {
+      misses.push(`${key}: expected ${String(expected)}, found ${String(actual)}`);
+    }
+  }
+  return { confirmed: misses.length === 0, observed, misses };
+}
+
+/** Postgres hands back dates as Date and numerics as number or string; compare loosely but exactly. */
+function sameValue(expected: unknown, actual: unknown): boolean {
+  if (actual instanceof Date) return String(expected) === actual.toISOString().slice(0, 10);
+  if (expected === null || expected === undefined) return actual === null || actual === undefined;
+  return String(expected) === String(actual);
 }
 
 async function audit(

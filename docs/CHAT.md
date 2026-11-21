@@ -140,9 +140,36 @@ not arrears relief. `portfolio_summary` now reports all three quantities —
 6,807.999 after the 250.000 approval because nothing was applied to a charge yet;
 the tool now makes that visible instead of leaving a silent discrepancy.
 
-Still open in S3: the inbox page (`/proposals`), a consumption record so a minted
-token is provably single-use beyond the row's status, and an explicit reversal
-handle for executed payments.
+### S3.1 — receipt, spend, and read-back (2026-11-21)
+
+Measured with the same server and a minted session:
+
+| what | result |
+|---|---|
+| approve a well-formed `post_payment` (250.000 JOD, cliq) | **200**, `confirmed: true`, `readBack {amount_fils: 250000, method: cliq, received_date: 2026-11-20, payer_id: …}` |
+| the same proposal after `update … set status='pending'` by hand | **409** `this approval token has already been redeemed` — the `proposal_token_uses` primary key, not the row's status |
+| `post_payment` with no `amountFils` at all | **403** `policy denied … args.amountFils (amountFils must be a positive integer fils)` |
+| `dispatch_vendor` with a 900.000-fils NTE | **403** `policy denied … limit.nte_ceiling (900000 fils exceeds the 500000 fils dispatch ceiling)`; the row stays `pending`, because a refusal must not consume it |
+
+Three claims are now true that were not:
+
+1. **The token is spent, not merely invalidated.** `proposal_token_uses` has
+   `proposal_id` as its primary key and the executor inserts with
+   `on conflict do nothing` and refuses when nothing comes back. Single use is a
+   database constraint, so it survives anyone resetting a status by hand.
+2. **Authorisation now runs against a predicate, not a role string.** `@aqar/core`
+   owns `evaluateProposal` — action-known, role-is-approver, argument shape,
+   allocation ≤ receipt, NTE ≤ ceiling, and an auto-approve threshold that ships
+   at **0**. Pure, property-tested (`limits.test.ts`, 14 tests), and it names the
+   rules that stopped a call, which is what the audit record needs.
+3. **The write is confirmed, not assumed.** After the transaction commits the
+   executor re-selects the row it claims it wrote and stores `confirmed` plus the
+   observed values on the proposal. `confirmed: false` is a reachable outcome —
+   the row may be gone or different — and it is recorded as
+   `proposal.unconfirmed` in the audit log rather than raising.
+
+Still open in S3: reversal of an executed payment (LAW 3 is authorised and
+attributed, not yet reversible), and bulk approval for the 30-plus-deep queue.
 
 
 ## Non-negotiables

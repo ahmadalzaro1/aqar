@@ -8,3 +8,4 @@ export * from './channels/index.js';
 
 export * from './taxonomy/index.js';
 export * from './plans/index.js';
+export * from './policy/index.js';
