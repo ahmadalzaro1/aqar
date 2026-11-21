@@ -24,6 +24,8 @@ export interface PendingProposal {
   /** Distinct approvers recorded so far, and how many the policy wants. */
   readonly signatures: number;
   readonly requiredSignatures: number;
+  /** Their names, in the order they signed. */
+  readonly signers: readonly string[];
 }
 
 export interface DecidedProposal {

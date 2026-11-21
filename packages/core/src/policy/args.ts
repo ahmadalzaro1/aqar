@@ -60,6 +60,57 @@ export function validateActionArgs(action: string, args: Record<string, unknown>
     if (typeof args['receivedDate'] !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(args['receivedDate'])) {
       problems.push('"receivedDate" must be a YYYY-MM-DD date');
     }
+
+    // Allocations are an optional list of {chargeId, amountFils}. Checking them
+    // here means a payment cannot be filed that would over-apply money to charges
+    // — the handler refuses it, but only after a human has already signed.
+    const allocations = args['allocations'];
+    if (allocations !== undefined && allocations !== null) {
+      if (!Array.isArray(allocations)) {
+        problems.push('"allocations" must be an array of {chargeId, amountFils}');
+      } else {
+        let total = 0;
+        allocations.forEach((entry, index) => {
+          if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+            problems.push(`allocations[${index}] must be an object`);
+            return;
+          }
+          const row = entry as Record<string, unknown>;
+          if (typeof row['chargeId'] !== 'string' || row['chargeId'].length === 0) {
+            problems.push(`allocations[${index}].chargeId must be a non-empty string`);
+          }
+          const part = row['amountFils'];
+          if (typeof part !== 'number' || !Number.isInteger(part) || part <= 0) {
+            problems.push(`allocations[${index}].amountFils must be a positive integer number of fils`);
+            return;
+          }
+          total += part;
+        });
+        if (typeof amount === 'number' && Number.isInteger(amount) && total > amount) {
+          problems.push(`allocations total ${total} fils exceeds the payment amount ${amount} fils`);
+        }
+      }
+    }
+  }
+
+  if (action === 'dispatch_vendor') {
+    const ticketId = args['ticketId'];
+    if (typeof ticketId !== 'string' || ticketId.length === 0) {
+      problems.push('"ticketId" must be a non-empty string');
+    }
+    const vendorId = args['vendorId'];
+    if (typeof vendorId !== 'string' || vendorId.length === 0) {
+      problems.push('"vendorId" must be a non-empty string');
+    }
+    // `amountFils` is the not-to-exceed figure and is optional, but a present one
+    // must be a real amount: a work order with a fractional NTE is a typo the
+    // vendor will invoice against.
+    const nte = args['amountFils'];
+    if (nte !== undefined && nte !== null) {
+      if (typeof nte !== 'number' || !Number.isInteger(nte) || nte <= 0) {
+        problems.push(`"amountFils" must be a positive integer number of fils when present (got ${JSON.stringify(nte)})`);
+      }
+    }
   }
 
   return problems;

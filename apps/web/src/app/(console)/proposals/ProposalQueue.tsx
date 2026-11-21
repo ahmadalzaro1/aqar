@@ -200,6 +200,12 @@ export function ProposalQueue({
 
             <p style={{ fontWeight: 600, marginBlock: 'var(--space-2)' }} dir="auto">{proposal.summary}</p>
 
+            {proposal.signers.length > 0 && (
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--text-sm)' }} dir="auto">
+                {s.signedBy}: {proposal.signers.join('، ')}
+              </p>
+            )}
+
             {proposal.args.length > 0 && (
               <dl style={{
                 display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) minmax(0, 1fr)',

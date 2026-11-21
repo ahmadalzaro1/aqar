@@ -40,6 +40,7 @@ export interface Strings {
   readonly system: string;
   readonly reversal: string;
   readonly signaturesOf: (have: number, need: number) => string;
+  readonly signedBy: string;
   readonly reverse: string;
   readonly reversing: string;
   readonly reverseConfirm: string;
@@ -92,6 +93,7 @@ const en: Strings = {
   system: 'System',
   reversal: 'Reversal',
   signaturesOf: (have, need) => `${have} of ${need} signatures`,
+  signedBy: 'Signed by',
   reverse: 'Reverse',
   reversing: 'Reversing…',
   reverseConfirm: 'Reverse this action',
@@ -157,6 +159,7 @@ const ar: Strings = {
   system: 'النظام',
   reversal: 'التراجع',
   signaturesOf: (have, need) => `التوقيعات ${have} من ${need}`,
+  signedBy: 'وقّع',
   reverse: 'تراجع',
   reversing: 'جارٍ التراجع…',
   reverseConfirm: 'تراجع عن هذا الإجراء',

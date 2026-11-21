@@ -14,6 +14,18 @@ import type { DecidedProposal, PendingProposal } from './types';
 // enforces it; this only decides whether to draw the buttons, but it reads the
 // same list rather than a copy that can drift.
 
+/**
+ * `string_agg` yields null when nobody has signed, which is not the same as one
+ * empty name — hence the explicit null/empty check.
+ */
+function splitNames(value: unknown, separator: string): readonly string[] {
+  if (typeof value !== 'string' || value.length === 0) return [];
+  return value
+    .split(separator)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+}
+
 function asDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   if (typeof value === 'string' || typeof value === 'number') {
@@ -35,7 +47,13 @@ export default async function ProposalsPage() {
   // another org's queue even if a policy regresses.
   const pendingRows = await sql`
     SELECT id, action, tool_name, summary, args, model_id, created_at, expires_at,
-           (SELECT count(*)::int FROM proposal_approvals a WHERE a.proposal_id = action_proposals.id) AS signatures
+           (SELECT count(*)::int FROM proposal_approvals a WHERE a.proposal_id = action_proposals.id) AS signatures,
+           (SELECT string_agg(u2.name_ar, '، ' ORDER BY a2.approved_at)
+              FROM proposal_approvals a2 JOIN users u2 ON u2.id = a2.approver_id
+             WHERE a2.proposal_id = action_proposals.id) AS signers_ar,
+           (SELECT string_agg(u2.name_en, ', ' ORDER BY a2.approved_at)
+              FROM proposal_approvals a2 JOIN users u2 ON u2.id = a2.approver_id
+             WHERE a2.proposal_id = action_proposals.id) AS signers_en
     FROM action_proposals
     WHERE organization_id = ${user.orgId} AND status = 'pending'
     ORDER BY expires_at ASC`;
@@ -72,6 +90,9 @@ export default async function ProposalsPage() {
       // second key must not look identical to one nobody has touched.
       signatures: Number(r['signatures'] ?? 0),
       requiredSignatures: policy.limits.requiredApprovers,
+      // Who, not just how many: a count of two tells an operator a second key
+      // exists, not whose it is.
+      signers: splitNames(r[locale === 'ar' ? 'signers_ar' : 'signers_en'], locale === 'ar' ? '، ' : ', '),
     };
   });
 
