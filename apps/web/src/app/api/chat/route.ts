@@ -11,7 +11,7 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createProvider, providersFromEnv, type ChatMessage, type ChatResponse, type ModelTool } from '@aqar/agents';
+import { providersFromEnv, type ChatMessage, type ChatResponse, type ModelTool } from '@aqar/agents';
 import { registry, type ToolContext } from '@aqar/tools';
 import type { Sql } from '@aqar/db';
 import { getSessionUser } from '@/lib/auth';

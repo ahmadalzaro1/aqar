@@ -1,6 +1,6 @@
 # The chat surface — one panel, every provider, human-gated execution
 
-Status: **building** — S0 landed, S1 porting, S2 landed, S3 not started. Owner: agent-ops.
+Status: **building** — S0 landed, S1 landed, S2 landed, S3 backend landed (inbox UI in progress). Owner: agent-ops.
 Supersedes nothing; extends D15 ("MCP first, in-app chat second") — MCP is done,
 this is the second half.
 
@@ -96,13 +96,54 @@ that does not leak delimiters, or configure `CLOUD_BASE_URL` so the turn fails
 over instead of dead-ending.
 
 ### S3 — approvals
-HMAC approval tokens minted server-side, single-use, bound to the proposal and to
-the canonical input; approvals inbox in the panel; executor applies with a
-re-read of current DB state; every decision writes `audit_events` and keeps a
-reversal handle.
 
-Acceptance: approve a `propose_payment` → proposal `executed`, audit row present,
-reversal restores the prior state; replaying the same token is refused.
+**Backend landed.** The three pieces, and the failure each one closes:
+
+| Piece | Where | What it buys |
+| --- | --- | --- |
+| Signed claims | `@aqar/approvals` (`token.ts`, `hash.ts`) | "status = approved" says nothing about *what* was approved. The token binds proposal + tool + canonical args hash + expiry + approver into one HMAC; verification returns a distinct reason (`bad_signature`, `expired`, `args_mismatch`, `proposal_mismatch`, `tool_mismatch`). |
+| Executor | `apps/web/src/lib/approvals/execute.ts` | The only path from a row to an effect. Re-reads the row `for update`, re-derives the args hash (a row edited after filing is refused), mints and verifies its own token, then runs one registered handler. |
+| Decision endpoint | `POST /api/proposals/[id]/decision` | Session-gated, role-gated (`owner_admin`, `accountant`, `property_manager`), `{decision: "approve" \| "reject"}`. |
+
+Handlers are explicit, and so is the absence of one:
+
+- `post_payment` — inserts `payments` for the lease's **primary tenant** (tenants are
+  never columns on `leases`; a lease may have several) and optional
+  `payment_allocations`, refusing allocations that exceed the receipt.
+- `dispatch_vendor` — inserts a `work_orders` row in `dispatched` with the proposal's
+  NTE and the approver as `created_by_user_id`.
+- anything else — `status = failed`, reason `no executor is registered for action "…"`.
+  Nothing is invented, and the row stays visible.
+
+Every decision writes an `audit_events` row with `actor = {kind: "human", userId}`,
+plus `decided_by_user_id`, `decided_at` and `result` on the proposal.
+
+Measured against the live database (minted session, real POSTs):
+
+| Case | Result |
+| --- | --- |
+| approve `post_payment` | 200 in **0.16 s** → payment `4e67c591` 250000 fils `cliq` 2026-11-20, payer `7687f6b4`; proposal `executed`; audit `proposal.executed / human` |
+| approve the same proposal again | **409** `proposal is already executed` |
+| approve `send_tenant_message` | 200 `status: failed`, `no executor is registered for action "send_tenant_message"` |
+| no session cookie | **401** |
+| `{"decision":"maybe"}` | **400** |
+
+Hash migration was verified, not assumed: `argsHash` moved from
+`apps/mcp/src/ids.ts` to `@aqar/approvals` and re-exported, then **6/6 pending rows
+recomputed to their stored `args_hash`**.
+
+One consequence is worth stating plainly, because it is the difference between
+correct accounting and a confusing answer: an approved payment is **cash received**,
+not arrears relief. `portfolio_summary` now reports all three quantities —
+`receivedJod` 39,020.000, `collectedJod` 38,385.000 (applied to charges),
+`unallocatedJod` **635.000** — and tells the model to say so. Arrears stay at
+6,807.999 after the 250.000 approval because nothing was applied to a charge yet;
+the tool now makes that visible instead of leaving a silent discrepancy.
+
+Still open in S3: the inbox page (`/proposals`), a consumption record so a minted
+token is provably single-use beyond the row's status, and an explicit reversal
+handle for executed payments.
+
 
 ## Non-negotiables
 
