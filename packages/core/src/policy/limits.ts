@@ -25,12 +25,29 @@ export interface PolicyLimits {
    * money is "someone looked at it".
    */
   readonly autoApproveUnderFils: number;
+  /**
+   * How long after execution an undo is still a correction rather than a
+   * re-opening of a closed period. Beyond it the reversal is refused by rule and
+   * the operator is pointed at a journal entry instead.
+   */
+  readonly reversalWindowHours: number;
+  /**
+   * Amount above which a second, *distinct* signature is required, in fils.
+   * `null` means no dual control is configured — stated explicitly rather than
+   * implied by a number nobody remembers setting.
+   */
+  readonly dualControlAboveFils: number | null;
+  /** Distinct approvers required once the dual-control threshold is crossed. */
+  readonly requiredApprovers: number;
 }
 
 export const DEFAULT_POLICY_LIMITS: PolicyLimits = Object.freeze({
   approverRoles: Object.freeze(['owner_admin', 'accountant', 'property_manager']),
   nteCeilingFils: 500_000,
   autoApproveUnderFils: 0,
+  reversalWindowHours: 720,
+  dualControlAboveFils: null,
+  requiredApprovers: 2,
 });
 
 export interface PolicyRule {

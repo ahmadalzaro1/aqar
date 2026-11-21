@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
-import { DEFAULT_POLICY_LIMITS } from '@aqar/core';
+import { PolicyDeniedError } from '@aqar/core';
 import { reverseProposal } from '@/lib/approvals/reverse';
 
 export const runtime = 'nodejs';
@@ -18,10 +18,6 @@ const bodySchema = z.object({ reason: z.string().min(10, 'a reversal needs a rea
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = await getSessionUser();
   if (user === null) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
-  if (!DEFAULT_POLICY_LIMITS.approverRoles.includes(user.role)) {
-    return NextResponse.json({ error: `role ${user.role} cannot reverse consequential actions` }, { status: 403 });
-  }
-
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'body must be {"reason":"<at least 10 characters>"}' }, { status: 400 });
 
@@ -36,11 +32,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     });
     return NextResponse.json(outcome, { status: outcome.status === 'reversed' ? 200 : 409 });
   } catch (err) {
+    // The service decides; the route only maps. A policy refusal carries its own
+    // evidence, so nothing here matches on message text to find the status.
+    if (err instanceof PolicyDeniedError) {
+      return NextResponse.json(
+        { error: err.message, policy: { version: err.version, decisive: err.decision.decisive } },
+        { status: 403 },
+      );
+    }
     const message = err instanceof Error ? err.message : 'reversal failed';
     const notFound = /not found/.test(message);
-    const denied = /cannot reverse/.test(message);
     const conflict = /already |only an executed|needs a reason/i.test(message);
-    const status = notFound ? 404 : denied ? 403 : conflict ? 409 : 500;
+    const status = notFound ? 404 : conflict ? 409 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

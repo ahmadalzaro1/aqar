@@ -22,7 +22,7 @@
  */
 import { createHash } from 'node:crypto';
 import { argsHash, mintApprovalToken, verifyApprovalToken } from '@aqar/approvals';
-import { DEFAULT_POLICY_LIMITS, evaluateProposal } from '@aqar/core';
+import { compilePolicy, type PolicyRecord } from '@aqar/core';
 import type { TransactionSql } from 'postgres';
 import { sql } from '@/lib/db';
 
@@ -188,6 +188,12 @@ const handlers: Record<string, Handler> = {
 
 export const registeredActions = Object.freeze(Object.keys(handlers));
 
+/**
+ * Compiled once, at module load. The limits are closed over, so no caller can
+ * hand the executor a wider ceiling; the decision carries the policy version.
+ */
+const POLICY = compilePolicy();
+
 type TxOutcome =
   | { readonly kind: 'rejected'; readonly proposalId: string }
   | { readonly kind: 'expired'; readonly proposalId: string }
@@ -199,6 +205,7 @@ type TxOutcome =
       readonly verify: VerifySpec;
       readonly claims: unknown;
       readonly policyRules: number;
+      readonly policy: PolicyRecord;
     };
 
 export async function decideProposal(input: DecisionInput): Promise<DecisionOutcome> {
@@ -245,11 +252,12 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
 
     // Policy is a predicate over the call's own fields, not a model's opinion and
     // not a role check bolted onto the route. A refusal here names its rules.
-    const policy = evaluateProposal({ action: row.action, args: row.args, role: input.role, limits: DEFAULT_POLICY_LIMITS });
-    if (policy.verdict === 'deny') {
-      const reasons = policy.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ');
+    const decision = POLICY.decide({ kind: 'proposal', action: row.action, args: row.args, role: input.role });
+    if (decision.verdict === 'deny') {
+      const reasons = decision.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ');
       throw new Error(`policy denied this proposal: ${reasons}`);
     }
+    const policyRecord = POLICY.record(decision);
 
     const { token, claims } = mintApprovalToken(secret, {
       proposalId: row.id,
@@ -303,14 +311,15 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
                executed_at = ${now}, result = ${tx.json({ ...outcome.result, confirmed: null })}
          where id = ${row.id}
       `;
-      await audit(tx, row, input, 'proposal.executed', { ...outcome.result, claims, policy: policy.verdict });
+      await audit(tx, row, input, 'proposal.executed', { ...outcome.result, claims, policy: policyRecord });
       return {
         kind: 'executed',
         proposalId: row.id,
         result: outcome.result,
         verify: outcome.verify,
         claims,
-        policyRules: policy.rules.length,
+        policyRules: decision.rules.length,
+        policy: policyRecord,
       } as TxOutcome;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -337,6 +346,9 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     ...outcome.result,
     confirmed: readBack.confirmed,
     readBack: readBack.observed,
+    // The decision that let this happen, with the policy that made it — so a
+    // later edit to the limits cannot rewrite what this row means.
+    policy: outcome.policy,
     ...(readBack.confirmed ? {} : { readBackMisses: readBack.misses }),
   };
 
@@ -354,7 +366,7 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
       'action_proposal',
       ${outcome.proposalId},
       ${sql.json({ status: 'executed', claimed: outcome.result })},
-      ${sql.json({ confirmed: readBack.confirmed, observed: readBack.observed, misses: readBack.misses })},
+      ${sql.json({ confirmed: readBack.confirmed, observed: readBack.observed, misses: readBack.misses, policy: outcome.policy })},
       ${new Date()},
       null,
       ${sql.json([{ tool: 'approval-readback', table: outcome.verify.table, rows: readBack.observed }])},

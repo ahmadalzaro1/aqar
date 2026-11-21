@@ -17,12 +17,18 @@
  * Console-only, like the executor: needs a session user and a server-side
  * connection. The model cannot reach it.
  */
-import { DEFAULT_POLICY_LIMITS } from '@aqar/core';
+import { compilePolicy, PolicyDeniedError, type PolicyRecord } from '@aqar/core';
 import type { TransactionSql } from 'postgres';
 import { sql } from '@/lib/db';
 
+/**
+ * Compiled once, at module load: the limits are closed over, so no caller can
+ * pass a different ceiling and no route can re-implement the role check.
+ */
+const POLICY = compilePolicy();
+
 export type ReversalOutcome =
-  | { readonly status: 'reversed'; readonly proposalId: string; readonly effect: Record<string, unknown>; readonly confirmed: boolean }
+  | { readonly status: 'reversed'; readonly proposalId: string; readonly effect: Record<string, unknown>; readonly confirmed: boolean; readonly policy: PolicyRecord }
   | { readonly status: 'refused'; readonly proposalId: string; readonly reason: string };
 
 export interface ReversalInput {
@@ -39,6 +45,7 @@ interface ProposalRow {
   readonly args: Record<string, unknown>;
   readonly status: string;
   readonly result: Record<string, unknown> | null;
+  readonly executed_at: Date | null;
 }
 
 interface ReversalContext {
@@ -117,10 +124,6 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
   if (input.reason.trim().length < 10) {
     throw new Error('a reversal needs a reason of at least 10 characters — it becomes part of the audit trail');
   }
-  if (!DEFAULT_POLICY_LIMITS.approverRoles.includes(input.role)) {
-    throw new Error(`role ${input.role} cannot reverse consequential actions`);
-  }
-
   // Set inside the transaction, called after it commits. A holder object rather
   // than a `let`: TypeScript narrows a `let` assigned only inside a closure to
   // `null` at the use site, and the check would silently pass.
@@ -128,7 +131,7 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
 
   const outcome = await sql.begin(async (tx): Promise<ReversalOutcome> => {
     const rows = await tx<ProposalRow[]>`
-      select id, action, args, status, result
+      select id, action, args, status, result, executed_at
         from action_proposals
        where id = ${input.proposalId} and organization_id = ${input.organizationId}
        for update
@@ -137,6 +140,26 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
     if (row === undefined) throw new Error('proposal not found in this organization');
     if (row.status === 'reversed') throw new Error('this proposal has already been reversed');
     if (row.status !== 'executed') throw new Error(`only an executed proposal can be reversed; this one is ${row.status}`);
+
+    if (row.executed_at === null) {
+      return { status: 'refused', proposalId: row.id, reason: 'this proposal has no execution timestamp, so its reversal window cannot be judged' };
+    }
+
+    // The policy is compiled: the limits are closed over, so this gate cannot be
+    // widened by a caller and there is no role list to re-implement in a route.
+    // It runs after the state checks because "there is nothing to undo" is the
+    // answer that stops an operator fastest, and before anything is written.
+    const now = new Date();
+    const decision = POLICY.decide({
+      kind: 'reversal',
+      action: row.action,
+      role: input.role,
+      actorId: input.userId,
+      executedAt: row.executed_at.toISOString(),
+      now: now.toISOString(),
+    });
+    if (decision.verdict === 'deny') throw new PolicyDeniedError('the reversal', decision, POLICY.version);
+    const record = POLICY.record(decision);
 
     // Rule 1: a reversal of an unconfirmed write would be an invention.
     if (row.result?.['confirmed'] !== true) {
@@ -152,7 +175,7 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
       organizationId: input.organizationId,
       userId: input.userId,
       reason: input.reason.trim(),
-      now: new Date(),
+      now,
     };
 
     const { effect, readback } = await reverser(tx, row, ctx);
@@ -172,7 +195,7 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
     await tx`
       update action_proposals
          set status = 'reversed',
-             result = ${tx.json({ ...row.result, reversal: { ...effect, reason: ctx.reason, reversedAt: ctx.now.toISOString(), reversedByUserId: input.userId } })}
+             result = ${tx.json({ ...row.result, reversal: { ...effect, reason: ctx.reason, reversedAt: ctx.now.toISOString(), reversedByUserId: input.userId, policy: record } })}
        where id = ${row.id}
     `;
 
@@ -187,7 +210,7 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
         'action_proposal',
         ${row.id},
         ${tx.json({ status: 'executed', result: row.result })},
-        ${tx.json({ ...effect, reason: ctx.reason })},
+        ${tx.json({ ...effect, reason: ctx.reason, policy: record })},
         ${ctx.now},
         null,
         ${tx.json([{ tool: 'reversal', action: row.action }])},
@@ -196,7 +219,7 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
       )
     `;
 
-    return { status: 'reversed', proposalId: row.id, effect, confirmed: false };
+    return { status: 'reversed', proposalId: row.id, effect, confirmed: false, policy: record };
   });
 
   if (outcome.status !== 'reversed') return outcome;

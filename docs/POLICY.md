@@ -1,7 +1,8 @@
 # Policy: one compiled predicate, two keys
 
-> Status: **design note**, 2026-11-21. What exists, what prior art says, and the
-> smallest path that makes the existing claim true. Not yet implemented.
+> Status: **P1 and P2 landed** (2026-11-21, `compile.ts` + both call sites).
+> P3 (dual control) and P4 (per-org limits) remain design. What exists, what
+> prior art says, and the smallest path that makes the claim true.
 
 ## 1. What the code does today (measured, not remembered)
 
@@ -148,12 +149,43 @@ refuses when the count is short — so the count and the spend cannot skew.
 `action_proposals.decided_by_user_id` stays as a denormalised "last key" for the
 console; the receipt is the table.
 
+## 3.4 What landed, and what it changed
+
+`compilePolicy(limits)` in `packages/core/src/policy/compile.ts` returns
+`{ version, limits, decide, record }`. The role-list checks are gone from
+`reverse.ts` and the reversal route; `execute.ts` and `reverse.ts` both decide
+through the compiled predicate.
+
+Behaviour changes, stated plainly:
+
+- **A reversal older than 720 hours is refused by rule** (`reversal.window`) and
+  the refusal tells the operator to use a journal entry. This is a new
+  restriction, not a refactor — it is a *limit*, so it moves with the policy and
+  its version rather than hiding in code.
+- **Dual control is configurable and currently off** (`dualControlAboveFils:
+  null`). The rule reports "no dual-control threshold configured" instead of
+  pretending the control exists. Turning it on is P3.
+- **Separation of duties is implemented but only fires when the requester is
+  known** and is a human; agent-filed proposals have no human to separate from.
+  Threading `requested_by` into the executor is P3 work.
+
+Measured on the running app, not asserted:
+
+| check | result |
+|---|---|
+| `@aqar/core` policy suite | 34 tests pass, including **120 differential cases** where the compiled predicate must agree with `evaluateProposal` |
+| determinism / totality / forbid-overrides | asserted in `compile.test.ts` |
+| coordinator attempts a reversal | `403 policy denied the reversal: role.approver (maintenance_coordinator is not an approver, so it cannot undo one)` + `policy.version`, row unchanged (`executed`, `reversals=0`) |
+| approve a fresh payment | `result.policy = {version, verdict: approve_required, rules: [9 ids]}`; `proposal.executed` **and** `proposal.confirmed` audits carry the same stamp |
+| reverse it | `policy.rules = [reversal.action_known, role.approver, reversal.window, reversal.self_correction]`, stored on `result.reversal.policy` |
+| browser click-through | status block persists after refresh, row flips to `تم التراجع` |
+
 ## 4. Order of work
 
 | # | move | why it is this rank |
 |---|---|---|
-| P1 | Delete both `.includes()` checks; route reversal through the compiled predicate | Removes the LAW 3 asymmetry and gives refusals named rules. Cheapest, and it is a deletion |
-| P2 | Stamp `policyVersion` + decisive rule ids onto the audit event and `result` | Without it a policy edit rewrites history. Nearly free once P1 exists |
+| P1 ✅ | Delete both `.includes()` checks; route reversal through the compiled predicate | Removes the LAW 3 asymmetry and gives refusals named rules. Cheapest, and it is a deletion |
+| P2 ✅ | Stamp `policyVersion` + rule ids onto the audit event and `result` | Without it a policy edit rewrites history. Nearly free once P1 exists |
 | P3 | `proposal_approvals` + `concurrence`/`sod` rules + executor count check | The actual two-key. Needs a migration and a console affordance ("approved by 1 of 2") |
 | P4 | Per-org `policy_limits` row instead of the frozen constant | Only when a second org exists. Versioning (P2) makes this safe to defer |
 
