@@ -11,7 +11,7 @@ export function scriptedProvider(responses: (string | Error)[], model = 'fake-lo
       i += 1;
       if (next instanceof Error) throw next;
       const res: ChatResponse = {
-        content: next ?? '', model,
+        content: next ?? '', toolCalls: [], finishReason: 'stop', model,
         usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
         latencyMs: 5, estimatedCostUsd: 0,
       };
