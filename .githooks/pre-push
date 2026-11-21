@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Pre-push: the same gate CI runs, so a red pipeline is discovered here first.
+#
+# This is deliberately the identical command as the CI `checks` job — not a
+# near-equivalent. A hook that checks less than CI only moves the surprise.
+# --tracked-only: the push publishes tracked content. An untracked scratch file
+# in the working tree is not part of it and must not block the push.
+set -euo pipefail
+exec node scripts/ci/checks.mjs --tracked-only

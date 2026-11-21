@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+/**
+ * Folded check runner.
+ *
+ * Runs every fast check to completion — never stops at the first failure — then
+ * prints one table and exits non-zero if anything failed. The point is that a PR
+ * shows all of its problems in a single 15-second job instead of the author
+ * discovering them one run at a time.
+ *
+ * Usage: node scripts/ci/checks.mjs [--budget <seconds>]
+ */
+import { spawnSync } from 'node:child_process';
+
+const args = process.argv.slice(2);
+const budgetIx = args.indexOf('--budget');
+const budget = budgetIx === -1 ? null : Number(args[budgetIx + 1]);
+// --tracked-only: judge what is being pushed, not untracked scratch in the tree
+const trackedOnly = args.includes('--tracked-only');
+
+const lintArgv = ['pnpm', 'exec', 'oxlint'];
+if (trackedOnly) {
+  const { execFileSync } = await import('node:child_process');
+  const files = execFileSync('git', ['ls-files', '*.ts', '*.tsx', '*.mts', '*.cts', '*.mjs'], { encoding: 'utf8' })
+    .split('\n')
+    .filter((f) => f && !f.startsWith('node_modules/'));
+  lintArgv.push(...files);
+}
+
+const CHECKS = [
+  { name: 'boundaries', argv: ['node', 'scripts/check-core-deps.mjs'], budget: 5 },
+  { name: 'lint', argv: lintArgv, budget: 1 },
+  { name: 'typecheck', argv: ['pnpm', 'typecheck'], budget: 5 },
+];
+
+const started = Date.now();
+const results = [];
+
+for (const check of CHECKS) {
+  const t0 = Date.now();
+  // inherit stdio so a failure's own message stays readable in the log
+  const run = spawnSync(check.argv[0], check.argv.slice(1), { stdio: 'inherit', shell: process.platform === 'win32' });
+  const seconds = (Date.now() - t0) / 1000;
+  const ok = run.status === 0;
+  const overBudget = seconds > check.budget;
+  results.push({ ...check, seconds, ok, overBudget, status: run.status ?? 'signal' });
+}
+
+const total = (Date.now() - started) / 1000;
+const pad = (s, n) => String(s).padEnd(n);
+
+console.log('\n─── checks ───────────────────────────────────────────────');
+console.log(`${pad('check', 14)}${pad('result', 10)}${pad('time', 10)}budget`);
+for (const r of results) {
+  const verdict = r.ok ? 'pass' : 'FAIL';
+  const time = `${r.seconds.toFixed(1)}s`;
+  const b = `${r.budget}s${r.overBudget ? '  ⚠ over' : ''}`;
+  console.log(`${pad(r.name, 14)}${pad(verdict, 10)}${pad(time, 10)}${b}`);
+}
+console.log(`\ntotal ${total.toFixed(1)}s`);
+
+const failed = results.filter((r) => !r.ok);
+const slow = results.filter((r) => r.overBudget);
+
+if (failed.length > 0) {
+  console.log(`\nFAILED: ${failed.map((r) => r.name).join(', ')}`);
+  process.exit(1);
+}
+// A check that runs over budget is still a failure: the budget is the contract
+// that keeps the whole lane under a minute, and a silent drift breaks it.
+if (slow.length > 0) {
+  console.log(`\nOVER BUDGET: ${slow.map((r) => `${r.name} ${r.seconds.toFixed(1)}s > ${r.budget}s`).join(', ')}`);
+  process.exit(1);
+}
+if (budget !== null && total > budget) {
+  console.log(`\nOVER JOB BUDGET: ${total.toFixed(1)}s > ${budget}s`);
+  process.exit(1);
+}
+console.log('\nall checks passed');

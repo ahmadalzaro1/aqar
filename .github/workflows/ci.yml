@@ -1,43 +1,166 @@
 name: CI
+
+# Rules that outrank speed:
+#  - the full suite runs before anything reaches main (merge queue, see
+#    docs/CI.md); selection only narrows PR feedback
+#  - no retries, no widened timeouts, no skipped tests
+#  - checks only stay or grow (the `checks` job never exits early)
+
 on:
   push: { branches: [main] }
   pull_request:
+  merge_group:
+
+concurrency:
+  # a new commit on a PR cancels its old run; main and the merge queue never cancel
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '26'
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+  # one cache epoch for every branch: main populates it, PRs read it
+  CACHE_EPOCH: v1
 
 jobs:
-  static:
+  checks:
+    name: checks (lint · typecheck · boundaries)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with: { node-version: 26, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - name: LAW 1 dependency rule (packages/core purity)
-        run: node scripts/check-core-deps.mjs
-      - run: pnpm lint
-      - run: pnpm typecheck
+      - name: start clock
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
 
-  unit-property:
-    runs-on: ubuntu-latest
-    steps:
       - uses: actions/checkout@v7
+        with:
+          # history and blobs of other commits are not needed to compile
+          fetch-depth: 1
+          filter: blob:none
+
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: 26, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - name: Core unit tests
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+
+      - name: restore node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-
+
+      - name: install
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      # Runs every check even after one fails, then prints a single table: a PR
+      # sees all of its problems in one pass instead of one run per problem.
+      - name: all checks (never stops at the first failure)
+        run: node scripts/ci/checks.mjs --budget 25
+
+      - name: budget
+        if: always()
+        run: node scripts/ci/budget.mjs --job checks --budget 40 --start "$JOB_START"
+
+  build:
+    name: build (next)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: start clock
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 1, filter: blob:none }
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+
+      - name: restore node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-
+
+      # reusing the previous .next cache is the difference between a short
+      # rebuild and recompiling everything; Next keys the cache by content
+      - name: restore next cache
+        uses: actions/cache@v5
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ env.CACHE_EPOCH }}-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'apps/web/**/*.ts', 'apps/web/**/*.tsx', 'packages/**/*.ts') }}
+          restore-keys: |
+            next-${{ env.CACHE_EPOCH }}-${{ runner.os }}-
+
+      - name: install
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - run: pnpm build
+
+      - name: budget
+        if: always()
+        run: node scripts/ci/budget.mjs --job build --budget 60 --start "$JOB_START"
+
+  test:
+    name: tests (unit · property · offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: start clock
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 1, filter: blob:none }
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+
+      - name: restore node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-
+
+      - name: install
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: select (PR feedback only — main and the queue always run everything)
+        id: select
+        run: node scripts/ci/select-tests.mjs >> "$GITHUB_OUTPUT"
+
+      # Every package's typecheck already ran in `checks`; this job is about
+      # behaviour. On a PR an unreachable package is skipped, on main it is not.
+      - name: core unit
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/core')
         run: pnpm --filter @aqar/core exec vitest run --exclude '**/*.property.test.ts'
-      - name: Core property tests (fast-check)
+      - name: core property (fast-check)
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/core')
         run: pnpm --filter @aqar/core exec vitest run property
-      - name: UI unit tests
+      - name: ui
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/ui')
         run: pnpm --filter @aqar/ui test
-      - name: Web offline unit tests (bank parser/matcher, statement waterfall)
+      - name: web offline
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'apps/web')
         run: pnpm --filter @aqar/web test
-      - name: Agents offline tests (live-model lane stays gated)
+      - name: agents offline
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/agents')
         run: pnpm --filter @aqar/agents test
 
+      - name: budget
+        if: always()
+        run: node scripts/ci/budget.mjs --job test --budget 45 --start "$JOB_START"
+
   integration:
+    name: tests (postgres · redis · mailpit)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: pgvector/pgvector:pg19
@@ -59,25 +182,56 @@ jobs:
         image: axllent/mailpit:latest
         ports: ['1025:1025', '8025:8025']
     env:
-      DATABASE_URL: postgres://aqar:aqar@127.0.0.1:5433/aqar
+      DATABASE_URL: postgres://aqar:***@127.0.0.1:5433/aqar
       REDIS_URL: redis://127.0.0.1:6380
     steps:
+      - name: start clock
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v7
+        with: { fetch-depth: 1, filter: blob:none }
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: 26, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+
+      - name: restore node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            nm-${{ env.CACHE_EPOCH }}-${{ runner.os }}-node${{ env.NODE_VERSION }}-
+
+      - name: install
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      # migrations are a shared input: they run on every change, PR or not
       - run: pnpm db:migrate
-      - name: DB integration tests (real Postgres, RLS, guards)
+
+      - name: select
+        id: select
+        run: node scripts/ci/select-tests.mjs >> "$GITHUB_OUTPUT"
+
+      - name: db integration (real Postgres, RLS, guards)
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/db')
         run: pnpm --filter @aqar/db test
-      - run: pnpm db:seed
-      - name: Worker offline unit tests (injected deps)
+      - name: seed
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/db')
+        run: pnpm db:seed
+      - name: worker offline
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'apps/worker')
         run: pnpm --filter @aqar/worker test
-      - name: Channels tests (live webhooks + Mailpit round-trip)
+      - name: channels (live webhooks + Mailpit round-trip)
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'apps/channels')
         run: pnpm --filter @aqar/channels test
-      - name: Evals deterministic LAW-2 recall gate
+      - name: evals (deterministic LAW-2 recall gate)
+        if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/evals')
         run: pnpm --filter @aqar/evals evals
 
+      - name: budget
+        if: always()
+        run: node scripts/ci/budget.mjs --job integration --budget 90 --start "$JOB_START"
+
   # e2e (Playwright AR+EN), a11y and screenshot jobs arrive in P9 when their
-  # suites exist — no placeholder green jobs. The live-model evals lane and
-  # the worker live E2E need a local model server and stay developer-run.
+  # suites exist — no placeholder green jobs. The live-model evals lane and the
+  # worker live E2E need a local model server and stay developer-run.

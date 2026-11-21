@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Pre-commit: what a reviewer would bounce in the first ten seconds.
+#
+# Only staged files are touched, so this stays under a second no matter how big
+# the repo gets. The repo's hard rules (no `any`, no ts-ignore, no disabling a
+# check) are enforced here rather than asked for in a document, because agents
+# and humans both skip documents.
+set -uo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+ts_files=$(printf '%s\n' "$staged" | grep -E '\.(ts|tsx|mts|cts)$' || true)
+fail=0
+
+# 1. banned escapes in newly added lines only — existing code is not re-litigated
+added=$(git diff --cached -U0 -- '*.ts' '*.tsx' | grep -E '^\+' | grep -vE '^\+\+\+' || true)
+if printf '%s\n' "$added" | grep -qE ':\s*any\b|<any>|as any\b'; then
+  echo "pre-commit: 'any' in a new line. Model the type; do not erase it."
+  printf '%s\n' "$added" | grep -nE ':\s*any\b|<any>|as any\b' | head -5
+  fail=1
+fi
+if printf '%s\n' "$added" | grep -qE '@ts-ignore|@ts-expect-error|eslint-disable|oxlint-disable'; then
+  echo "pre-commit: a check was silenced in a new line. Fix the cause instead."
+  printf '%s\n' "$added" | grep -nE '@ts-ignore|@ts-expect-error|eslint-disable|oxlint-disable' | head -5
+  fail=1
+fi
+
+# 2. lint the staged TypeScript itself
+if [ -n "$ts_files" ]; then
+  if ! printf '%s\n' "$ts_files" | xargs pnpm exec oxlint --deny-warnings; then
+    echo "pre-commit: lint failed on staged files"
+    fail=1
+  fi
+fi
+
+exit $fail
