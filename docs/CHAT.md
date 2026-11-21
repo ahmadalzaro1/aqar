@@ -168,8 +168,31 @@ Three claims are now true that were not:
    the row may be gone or different — and it is recorded as
    `proposal.unconfirmed` in the audit log rather than raising.
 
-Still open in S3: reversal of an executed payment (LAW 3 is authorised and
-attributed, not yet reversible), and bulk approval for the 30-plus-deep queue.
+4. **An executed action can be undone, and the undo is audited too.** A reversal
+   is a *void*, never a delete: the payment row keeps its amount and date and
+   gains `voided_at` / `void_reason`, so the ledger still answers "what happened"
+   while no longer counting it. `proposal_reversals.proposal_id` is a primary
+   key, so a reversal is single-use for the same reason an approval is. The
+   operator's reason (≥10 characters, enforced in SQL *and* zod) is stored on the
+   receipt and on the proposal. Only a `confirmed` execution is reversible —
+   reversing one the read-back never saw would manufacture an effect.
+
+   Measured end-to-end on 2026-11-21 (real HTTP against the dev server, real
+   Postgres, then a browser click-through):
+
+   | case | result |
+   |---|---|
+   | approve a `post_payment` | `200`, `status=executed`, `confirmed=true` |
+   | reverse it | `200`, `status=reversed`, `reversal.confirmed=true`, `payments.voided_at` set with the operator's reason |
+   | audit trail | `proposal.executed` → `proposal.confirmed` → `proposal.reversed` (`reversal_of` = the confirmed event) |
+   | reverse it again | `409 this proposal has already been reversed` |
+   | reason under 10 characters | `400 body must be {"reason":"<at least 10 characters>"}` |
+   | role `maintenance_coordinator` | `403 role maintenance_coordinator cannot reverse consequential actions` |
+   | executed but never confirmed | `409 refused: the execution was never confirmed by read-back, so there is no effect to reverse` |
+   | no session | `401` |
+
+Still open in S3: bulk approval for the 30-plus-deep queue, and channel traffic
+proposing actions end to end.
 
 
 ## Non-negotiables

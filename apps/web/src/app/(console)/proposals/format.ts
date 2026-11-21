@@ -114,6 +114,9 @@ export function stamp(date: Date | null, locale: Locale): string {
 export function statusTone(status: string): Tone {
   switch (status) {
     case 'executed': return 'ok';
+    // Reversed is not a failure: the action ran and was then undone on the
+    // record. Amber keeps it visibly different from both.
+    case 'reversed': return 'warn';
     case 'failed': return 'danger';
     case 'approved': return 'accent';
     case 'expired': return 'warn';

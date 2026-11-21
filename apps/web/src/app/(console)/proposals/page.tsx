@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getLocale } from '@/i18n/server';
 import { sql } from '@/lib/db';
 import { ProposalQueue } from './ProposalQueue';
+import { ReversalButton } from './ReversalButton';
 import { stringsFor } from './copy';
 import { argEntries, stamp, statusTone } from './format';
 import type { DecidedProposal, PendingProposal } from './types';
@@ -38,11 +39,12 @@ export default async function ProposalsPage() {
 
   const decidedRows = await sql`
     SELECT p.id, p.action, p.summary, p.status, p.decided_at, p.result,
-           u.name_en, u.name_ar
+           u.name_en, u.name_ar, r.reversed_at, r.reason AS reversal_reason
     FROM action_proposals p
     LEFT JOIN users u ON u.id = p.decided_by_user_id
+    LEFT JOIN proposal_reversals r ON r.proposal_id = p.id
     WHERE p.organization_id = ${user.orgId}
-      AND p.status IN ('approved', 'rejected', 'expired', 'executed', 'failed')
+      AND p.status IN ('approved', 'rejected', 'expired', 'executed', 'failed', 'reversed')
     ORDER BY p.decided_at DESC NULLS LAST
     LIMIT 10`;
 
@@ -69,9 +71,17 @@ export default async function ProposalsPage() {
   const decided: DecidedProposal[] = decidedRows.map((r) => {
     const decidedAt = asDate(r['decided_at']);
     const result = r['result'];
-    const error = typeof result === 'object' && result !== null && !Array.isArray(result)
-      ? (result as Record<string, unknown>)['error']
+    const resultObject = typeof result === 'object' && result !== null && !Array.isArray(result)
+      ? (result as Record<string, unknown>)
       : undefined;
+    const error = resultObject?.['error'];
+    // Reversibility is a claim about the database, not about the button: an
+    // execution the read-back never confirmed has no effect to undo, and a row
+    // that already has a reversal receipt cannot produce a second one.
+    const reversible = String(r['status']) === 'executed'
+      && resultObject?.['confirmed'] === true
+      && r['reversed_at'] === null;
+    const reversalReason = typeof r['reversal_reason'] === 'string' ? r['reversal_reason'] : '';
     const nameEn = r['name_en'];
     const nameAr = r['name_ar'];
     const name = locale === 'ar'
@@ -86,6 +96,8 @@ export default async function ProposalsPage() {
       decidedIso: decidedAt === null ? '' : decidedAt.toISOString(),
       decidedBy: name,
       note: typeof error === 'string' ? error : '',
+      reversible,
+      reversalReason,
     };
   });
 
@@ -124,6 +136,7 @@ export default async function ProposalsPage() {
                   <th>{s.action}</th>
                   <th>{s.decidedAt}</th>
                   <th>{s.decidedBy}</th>
+                  <th>{s.reversal}</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,10 +150,22 @@ export default async function ProposalsPage() {
                           {s.reason}: {row.note}
                         </div>
                       )}
+                      {row.reversalReason !== '' && (
+                        <div style={{ color: 'var(--muted)', fontSize: 'var(--text-xs)' }} dir="auto">
+                          {s.reversedBecause} {row.reversalReason}
+                        </div>
+                      )}
                     </td>
                     <td>{s.actions[row.action] ?? row.action}</td>
                     <td className="tnum" title={row.decidedIso}>{row.decidedAt}</td>
                     <td>{row.decidedBy ?? s.system}</td>
+                    <td>
+                      <ReversalButton
+                        proposalId={row.id}
+                        locale={locale}
+                        reversible={row.reversible && canDecide}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

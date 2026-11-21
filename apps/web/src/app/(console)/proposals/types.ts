@@ -33,4 +33,11 @@ export interface DecidedProposal {
   readonly decidedBy: string | null;
   /** `result.error` when the executor recorded one, otherwise empty. */
   readonly note: string;
+  /**
+   * `executed` and `result.confirmed === true`, and no reversal row yet.
+   * The server re-checks all three; this only decides whether to draw a button.
+   */
+  readonly reversible: boolean;
+  /** The operator's stored reason when this row was reversed, otherwise empty. */
+  readonly reversalReason: string;
 }

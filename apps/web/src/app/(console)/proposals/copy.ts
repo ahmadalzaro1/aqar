@@ -38,6 +38,20 @@ export interface Strings {
   readonly justDecided: string;
   readonly cannotDecide: string;
   readonly system: string;
+  readonly reversal: string;
+  readonly reverse: string;
+  readonly reversing: string;
+  readonly reverseConfirm: string;
+  readonly cancel: string;
+  readonly reversalReason: string;
+  readonly reversalReasonShort: string;
+  readonly reversalPlaceholder: string;
+  readonly reversedLabel: string;
+  readonly reversalRefusedLabel: string;
+  readonly reversalRefused: string;
+  readonly reversalUnconfirmed: string;
+  readonly reversed: string;
+  readonly reversedBecause: string;
   readonly actions: Record<string, string>;
   readonly statuses: Record<string, string>;
 }
@@ -75,6 +89,20 @@ const en: Strings = {
   justDecided: 'Decided in this session',
   cannotDecide: 'Your role cannot approve. Only an owner admin, accountant or property manager can decide.',
   system: 'System',
+  reversal: 'Reversal',
+  reverse: 'Reverse',
+  reversing: 'Reversing…',
+  reverseConfirm: 'Reverse this action',
+  cancel: 'Cancel',
+  reversalReason: 'Why is this being reversed? (shown in the audit trail)',
+  reversalReasonShort: 'at least 10 characters',
+  reversalPlaceholder: 'Posted against the wrong receipt; tenant paid cash at the office.',
+  reversedLabel: 'Reversed',
+  reversalRefusedLabel: 'Not reversed',
+  reversalRefused: 'the server refused the reversal',
+  reversalUnconfirmed: 'the reversal committed, but the read-back did not see it',
+  reversed: 'the action was undone and the row no longer counts',
+  reversedBecause: 'Reversed:',
   actions: {
     post_payment: 'Post payment',
     dispatch_vendor: 'Dispatch vendor',
@@ -88,6 +116,7 @@ const en: Strings = {
     expired: 'Expired',
     executed: 'Executed',
     failed: 'Failed',
+    reversed: 'Reversed',
   },
 };
 
@@ -124,6 +153,20 @@ const ar: Strings = {
   justDecided: 'قرارات هذه الجلسة',
   cannotDecide: 'دورك لا يسمح بالموافقة. الأدوار المصرّح لها: مدير المالك، المحاسب، مدير العقارات.',
   system: 'النظام',
+  reversal: 'التراجع',
+  reverse: 'تراجع',
+  reversing: 'جارٍ التراجع…',
+  reverseConfirm: 'تراجع عن هذا الإجراء',
+  cancel: 'إلغاء',
+  reversalReason: 'سبب التراجع؟ (يُحفظ في سجل التدقيق)',
+  reversalReasonShort: '١٠ أحرف على الأقل',
+  reversalPlaceholder: 'سُجّلت على الإيصال الخطأ؛ المستأجر دفع نقداً في المكتب.',
+  reversedLabel: 'تم التراجع',
+  reversalRefusedLabel: 'لم يتم التراجع',
+  reversalRefused: 'رفض الخادم عملية التراجع',
+  reversalUnconfirmed: 'نُفّذ التراجع، لكن القراءة المرتجعة لم تؤكده',
+  reversed: 'أُلغي الإجراء ولم يعد الصف محتسباً',
+  reversedBecause: 'سبب التراجع:',
   actions: {
     post_payment: 'تسجيل دفعة',
     dispatch_vendor: 'إرسال مورّد',
@@ -137,6 +180,7 @@ const ar: Strings = {
     expired: 'منتهي',
     executed: 'منفّذ',
     failed: 'فشل',
+    reversed: 'تم التراجع',
   },
 };
 
