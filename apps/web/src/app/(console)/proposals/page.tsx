@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { Badge, Card, EmptyState } from '@aqar/ui';
-import { compilePolicy } from '@aqar/core';
+import { loadPolicy } from '@/lib/approvals/policy.js';
 import { getSessionUser } from '@/lib/auth';
 import { getLocale } from '@/i18n/server';
 import { sql } from '@/lib/db';
@@ -10,10 +10,9 @@ import { stringsFor } from './copy';
 import { argEntries, stamp, statusTone } from './format';
 import type { DecidedProposal, PendingProposal } from './types';
 
-// One source for who may decide: the compiled policy. The server enforces it;
-// this only decides whether to draw the buttons, but it reads the same list
-// rather than a copy that can drift.
-const POLICY = compilePolicy();
+// One source for who may decide: this organization's compiled policy. The server
+// enforces it; this only decides whether to draw the buttons, but it reads the
+// same list rather than a copy that can drift.
 
 function asDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
@@ -29,6 +28,7 @@ export default async function ProposalsPage() {
   if (user === null) redirect('/login');
   const locale = await getLocale();
   const s = stringsFor(locale);
+  const policy = await loadPolicy(user.orgId);
 
   // Both queries are scoped by organization_id: the proposal handlers and the
   // approval executor are what make these rows consequential, so never read
@@ -71,7 +71,7 @@ export default async function ProposalsPage() {
       // Dual control is visible where the operator acts: a proposal waiting for a
       // second key must not look identical to one nobody has touched.
       signatures: Number(r['signatures'] ?? 0),
-      requiredSignatures: POLICY.limits.requiredApprovers,
+      requiredSignatures: policy.limits.requiredApprovers,
     };
   });
 
@@ -108,7 +108,7 @@ export default async function ProposalsPage() {
     };
   });
 
-  const canDecide = POLICY.limits.approverRoles.includes(user.role);
+  const canDecide = policy.limits.approverRoles.includes(user.role);
 
   return (
     // The chat dock floats over the bottom-left corner of every console page; the

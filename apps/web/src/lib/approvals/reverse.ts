@@ -17,15 +17,17 @@
  * Console-only, like the executor: needs a session user and a server-side
  * connection. The model cannot reach it.
  */
-import { compilePolicy, PolicyDeniedError, type PolicyRecord } from '@aqar/core';
+import { PolicyDeniedError, type PolicyRecord } from '@aqar/core';
 import type { TransactionSql } from 'postgres';
 import { sql } from '@/lib/db';
+import { loadPolicy } from './policy.js';
 
 /**
  * Compiled once, at module load: the limits are closed over, so no caller can
  * pass a different ceiling and no route can re-implement the role check.
  */
-const POLICY = compilePolicy();
+// Per-org: a reversal is judged by the limits of the organization that owns the
+// proposal, and the refusal names that policy's version.
 
 export type ReversalOutcome =
   | { readonly status: 'reversed'; readonly proposalId: string; readonly effect: Record<string, unknown>; readonly confirmed: boolean; readonly policy: PolicyRecord }
@@ -150,7 +152,8 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
     // It runs after the state checks because "there is nothing to undo" is the
     // answer that stops an operator fastest, and before anything is written.
     const now = new Date();
-    const decision = POLICY.decide({
+    const policy = await loadPolicy(input.organizationId);
+    const decision = policy.decide({
       kind: 'reversal',
       action: row.action,
       role: input.role,
@@ -158,8 +161,8 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
       executedAt: row.executed_at.toISOString(),
       now: now.toISOString(),
     });
-    if (decision.verdict === 'deny') throw new PolicyDeniedError('the reversal', decision, POLICY.version);
-    const record = POLICY.record(decision);
+    if (decision.verdict === 'deny') throw new PolicyDeniedError('the reversal', decision, policy.version);
+    const record = policy.record(decision);
 
     // Rule 1: a reversal of an unconfirmed write would be an invention.
     if (row.result?.['confirmed'] !== true) {

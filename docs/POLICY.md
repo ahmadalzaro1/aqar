@@ -1,7 +1,8 @@
 # Policy: one compiled predicate, two keys
 
-> Status: **P1, P2 and P3 landed** (2026-11-21: `compile.ts`, both call sites,
-> `proposal_approvals` + concurrence). P4 (per-org limits) remains design. What exists, what
+> Status: **P1–P4 landed** (2026-11-21). Limits are per organization
+> (`policy_limits`), editable through `PUT /api/policy/limits`, and every
+> decision carries the version of the policy that made it. What exists, what
 > prior art says, and the smallest path that makes the claim true.
 
 ## 1. What the code does today (measured, not remembered)
@@ -206,10 +207,61 @@ the reversal route, the decision route and the console page (whose comment
 admitted it mirrored the route's). All five now read the compiled policy, so
 there is one list and one version.
 
-Still open: **the executor does not yet pass `requested_by` into the decision**,
-so `sod.requester_not_approver` only fires for callers that supply a requester.
-And there is no automated test for the primary-key invariant — it was proved
-against the live database, not in the suite.
+The executor now carries `requested_by` into the decision, so
+`sod.requester_not_approver` fires for anything a human filed: admin filed
+`SOD-…` and admin approved it → `403 … sod.requester_not_approver (the person
+who filed this proposal cannot be the person who approves it)`, row untouched,
+no payment. Agent-filed proposals have no human to separate from, and the rule
+shows as `allow` in `rules` so the record says it ran.
+
+The primary-key invariant is now a test, not a demonstration:
+`packages/db/src/__tests__/db.integration.test.ts` asserts a second signature
+from the same person is refused by Postgres
+(`duplicate key value violates unique constraint`), that the count stays 1, that
+a distinct second approver makes it 2, that signatures are deleted with the
+proposal, and that a signature for a missing proposal violates the foreign key.
+
+### P4 — limits are per organization, and the version proves it
+
+`policy_limits (organization_id pk, limits jsonb, updated_at, updated_by_user_id)`.
+No row means `DEFAULT_POLICY_LIMITS` — the numbers are not duplicated in SQL where
+they would drift, and the version stays stable for an untouched org.
+
+`loadPolicy(organizationId)` in `apps/web/src/lib/approvals/policy.ts` is the seam:
+one query, one **strict** parse, one compiled policy. An unreadable row **refuses
+to decide** rather than falling back to the default, because the fallback would
+silently widen policy for exactly the organization someone was editing.
+
+**Who may edit** comes from the policy itself (`policyEditorRoles: ['owner_admin']`),
+not a sixth role list on a route.
+
+Measured end to end on the live app:
+
+| step | result |
+|---|---|
+| `GET /api/policy/limits` | `{version: 153259b64a4c, limits: {…, dualControlAboveFils: 400000, …}}` |
+| `PUT` as accountant | `403 role accountant cannot edit policy limits (policy 153259b64a4c allows owner_admin)` |
+| `PUT` as admin, dual control → 300 JOD | `{version: 44d4070bc3da, previousVersion: 153259b64a4c}` |
+| a 350 JOD payment under that policy | `202 {awaiting_approval, signatures 1, required 2}` — *"exceeds the 300000 fils dual-control threshold"*, status `pending`, 0 payments |
+| `PUT` back to 400 JOD | version returns to **`153259b64a4c`** — a content hash, so identical limits are identical policy |
+| the same 350 JOD proposal, now | `200 executed` with one key, stamped `153259b64a4c` |
+| audit | `policy.limits_updated` with `before.version → after.version`, written **in the same transaction** as the limits |
+
+The demo of that last row is also its own bug report: the first attempt wrote the
+limits and then failed the audit (`occurred_at` has no default), leaving a change
+with no record. Fixed by writing both inside `sql.begin`.
+
+### The cheque that could never succeed
+
+`post_payment` with `method: 'cheque'` used to accept arguments the database
+refuses (`payments_cheque_status_ck` needs a status for a cheque and forbids one
+otherwise), so the operator discovered it *after* approving, as a 500.
+
+`validateActionArgs(action, args)` in `@aqar/core` is now the argument contract:
+pure, no I/O, called by the MCP proposer (refuses to file the draft) and by the
+executor (refuses a legacy row). Measured: cheque with no status →
+`a cheque payment needs "chequeStatus" to be one of received, deposited, cleared, bounced (got null)`;
+cheque with `deposited` → executed, and `payments.cheque_status` reads `deposited`.
 
 ## 4. Order of work
 
@@ -218,7 +270,7 @@ against the live database, not in the suite.
 | P1 ✅ | Delete both `.includes()` checks; route reversal through the compiled predicate | Removes the LAW 3 asymmetry and gives refusals named rules. Cheapest, and it is a deletion |
 | P2 ✅ | Stamp `policyVersion` + rule ids onto the audit event and `result` | Without it a policy edit rewrites history. Nearly free once P1 exists |
 | P3 ✅ | `proposal_approvals` + `concurrence` rules + executor count check + console badge | The actual two-key. Migration `0015`; the PK is the control |
-| P4 | Per-org `policy_limits` row instead of the frozen constant | Only when a second org exists. Versioning (P2) makes this safe to defer |
+| P4 ✅ | Per-org `policy_limits` row, a loader that fails closed, `PUT /api/policy/limits` | A limit change is a row, not a deploy — and the version keeps history honest |
 
 ## 5. Tests the design demands
 

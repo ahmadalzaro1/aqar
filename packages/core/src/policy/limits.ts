@@ -39,6 +39,11 @@ export interface PolicyLimits {
   readonly dualControlAboveFils: number | null;
   /** Distinct approvers required once the dual-control threshold is crossed. */
   readonly requiredApprovers: number;
+  /**
+   * Who may edit these limits. The policy declares its own editors, so there is
+   * no separate role list for the settings screen to drift away from.
+   */
+  readonly policyEditorRoles: readonly string[];
 }
 
 export const DEFAULT_POLICY_LIMITS: PolicyLimits = Object.freeze({
@@ -48,6 +53,7 @@ export const DEFAULT_POLICY_LIMITS: PolicyLimits = Object.freeze({
   reversalWindowHours: 720,
   dualControlAboveFils: 400_000,
   requiredApprovers: 2,
+  policyEditorRoles: ['owner_admin'],
 });
 
 export interface PolicyRule {

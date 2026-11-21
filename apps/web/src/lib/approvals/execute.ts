@@ -22,9 +22,15 @@
  */
 import { createHash } from 'node:crypto';
 import { argsHash, mintApprovalToken, verifyApprovalToken } from '@aqar/approvals';
-import { compilePolicy, type PolicyRecord } from '@aqar/core';
+import {
+  describeArgProblems,
+  validateActionArgs,
+  type PolicyRecord,
+  type Requester,
+} from '@aqar/core';
 import type { TransactionSql } from 'postgres';
 import { sql } from '@/lib/db';
+import { loadPolicy } from './policy.js';
 
 const TOKEN_TTL_MS = 5 * 60_000;
 
@@ -77,6 +83,7 @@ interface HandlerOutcome {
 
 interface ProposalRow {
   readonly id: string;
+  readonly organization_id: string;
   readonly tool_name: string;
   readonly action: string;
   readonly args: Record<string, unknown>;
@@ -85,6 +92,24 @@ interface ProposalRow {
   readonly status: string;
   readonly expires_at: Date;
   readonly model_id: string | null;
+  /** `{kind:'agent',…}` or `{userId, via:'console'}` — who filed it, and how. */
+  readonly requested_by: unknown;
+}
+
+/**
+ * Read the filer out of `requested_by`. Two shapes exist in the table: the agent
+ * tool writes `{kind:'agent', name, model}`, the console writes
+ * `{userId, via:'console'}`. An unrecognised shape yields `undefined` rather
+ * than a guess, and the separation-of-duties rule then simply does not fire —
+ * the decision record shows that it was not applied.
+ */
+function requesterOf(raw: unknown): Requester | undefined {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+  const obj = raw as Record<string, unknown>;
+  if (obj['kind'] === 'agent') return { kind: 'agent' };
+  const userId = obj['userId'];
+  if (typeof userId === 'string' && userId.length > 0) return { kind: 'human', userId };
+  return undefined;
 }
 
 type Handler = (
@@ -104,7 +129,6 @@ const isString = (v: unknown): v is string => typeof v === 'string' && v.length 
 const isFils = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
 const isIsoDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-const PAYMENT_METHODS = new Set(['cash', 'cliq', 'bank_transfer', 'cheque']);
 
 const handlers: Record<string, Handler> = {
   async post_payment(tx, args, ctx) {
@@ -112,7 +136,14 @@ const handlers: Record<string, Handler> = {
     const amountFils = need(args, 'amountFils', isFils, 'positive integer fils');
     const receivedDate = need(args, 'receivedDate', isIsoDate, 'ISO date');
     const method = need(args, 'method', isString, 'payment method');
-    if (!PAYMENT_METHODS.has(method)) throw new Error(`unknown payment method "${method}"`);
+    // A cheque is a different obligation from cash, and the database says so:
+    // `payments_cheque_status_ck` requires a status for a cheque and forbids one
+    // for anything else. The proposer checks the same contract, but a legacy row
+    // can still arrive here, so check again and name the field.
+    const problems = validateActionArgs('post_payment', args);
+    if (problems.length > 0) throw new Error(describeArgProblems(problems));
+    const rawChequeStatus = args['chequeStatus'];
+    const chequeStatus = typeof rawChequeStatus === 'string' ? rawChequeStatus : null;
 
     // The payer is the lease's primary tenant: tenants are never columns on
     // leases, a lease can have several, and only the primary one pays.
@@ -131,9 +162,9 @@ const handlers: Record<string, Handler> = {
     const note = typeof args['note'] === 'string' ? args['note'] : null;
 
     const inserted = await tx<{ id: string }[]>`
-      insert into payments (organization_id, payer_id, amount_fils, received_date, method, reference_text, notes)
+      insert into payments (organization_id, payer_id, amount_fils, received_date, method, cheque_status, reference_text, notes)
       values (${ctx.organizationId}, ${lease.tenant_id}, ${amountFils}, ${receivedDate},
-              ${method}::payment_method, ${reference}, ${note})
+              ${method}::payment_method, ${chequeStatus}::cheque_status, ${reference}, ${note})
       returning id
     `;
     const paymentId = inserted[0]?.id;
@@ -205,7 +236,8 @@ export const registeredActions = Object.freeze(Object.keys(handlers));
  * Compiled once, at module load. The limits are closed over, so no caller can
  * hand the executor a wider ceiling; the decision carries the policy version.
  */
-const POLICY = compilePolicy();
+// Loaded per organization, not per deployment: an org may override the limits in
+// `policy_limits`, and the compiled version is stamped on the decision.
 
 type TxOutcome =
   | {
@@ -237,7 +269,7 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
 
   const outcome = await sql.begin(async (tx): Promise<TxOutcome> => {
     const rows = await tx<ProposalRow[]>`
-      select id, tool_name, action, args, args_hash, summary, status, expires_at, model_id
+      select id, organization_id, tool_name, action, args, args_hash, summary, status, expires_at, model_id, requested_by
         from action_proposals
        where id = ${input.proposalId} and organization_id = ${input.organizationId}
        for update
@@ -286,19 +318,23 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
 
     // Policy is a predicate over the call's own fields, not a model's opinion and
     // not a role check bolted onto the route. A refusal here names its rules.
-    const decision = POLICY.decide({
+    const requester = requesterOf(row.requested_by);
+    const policy = await loadPolicy(row.organization_id);
+
+    const decision = policy.decide({
       kind: 'proposal',
       action: row.action,
       args: row.args,
       role: input.role,
       actorId: input.userId,
       approvals: signatures.map((s) => ({ userId: s.approver_id })),
+      ...(requester === undefined ? {} : { requester }),
     });
     if (decision.verdict === 'deny') {
       const reasons = decision.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ');
       throw new Error(`policy denied this proposal: ${reasons}`);
     }
-    const policyRecord = POLICY.record(decision);
+    const policyRecord = policy.record(decision);
 
     // Below the threshold the concurrence rule reports `allow` and never appears
     // in `decisive`, so this cannot fire for an ordinary proposal.
@@ -308,7 +344,7 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
         kind: 'awaiting_approval',
         proposalId: row.id,
         signatures: signatures.length,
-        required: POLICY.limits.requiredApprovers,
+        required: policy.limits.requiredApprovers,
         reason: shortOfSignatures.detail,
         policy: policyRecord,
       } as TxOutcome;

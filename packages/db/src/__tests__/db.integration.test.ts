@@ -274,3 +274,73 @@ describe('(8) cheque bounce reversal', () => {
     expect(status[0]?.s).toBe('bounced');
   });
 });
+
+describe('proposal_approvals — dual control, enforced by the key and not the handler', () => {
+  const insertProposal = async (orgId: string): Promise<string> => {
+    const rows = await sql<{ id: string }[]>`
+      insert into action_proposals (organization_id, tool_name, action, args, args_hash, summary, requested_by, expires_at)
+      values (${orgId}, 'propose_payment', 'post_payment', '{}'::jsonb, 'hash-' || ${randomUUID()}, 'dual-control fixture',
+              '{"kind":"agent","name":"test","model":"test"}'::jsonb, now() + interval '1 hour')
+      returning id`;
+    const id = rows[0]?.id;
+    if (id === undefined) throw new Error('proposal insert returned no row');
+    return id;
+  };
+
+  const insertUser = async (orgId: string, role: string): Promise<string> => {
+    const rows = await sql<{ id: string }[]>`
+      insert into users (organization_id, email, password_hash, role, name_en, name_ar)
+      values (${orgId}, ${role + '-' + randomUUID() + '@example.test'}, 'x', ${role}::user_role,
+              ${'Test ' + role}, ${'اختبار ' + role})
+      returning id`;
+    const id = rows[0]?.id;
+    if (id === undefined) throw new Error('user insert returned no row');
+    return id;
+  };
+
+  it('accepts one row per distinct approver and rejects a second signature from the same person', async () => {
+    const fx = await createFixture(sql, 'dual-key');
+    const proposalId = await insertProposal(fx.orgId);
+    const accountant = await insertUser(fx.orgId, 'accountant');
+    const manager = await insertUser(fx.orgId, 'property_manager');
+
+    await sql`insert into proposal_approvals (proposal_id, approver_id, role)
+              values (${proposalId}, ${accountant}, 'accountant')`;
+
+    // The invariant: a retry, a double click or a status reset cannot manufacture
+    // the second key. Postgres refuses it, so no handler has to remember to.
+    await expect(
+      sql`insert into proposal_approvals (proposal_id, approver_id, role)
+          values (${proposalId}, ${accountant}, 'accountant')`,
+    ).rejects.toThrow(/duplicate key value violates unique constraint/i);
+
+    const afterDuplicate = await sql<{ n: number }[]>`
+      select count(*)::int as n from proposal_approvals where proposal_id = ${proposalId}`;
+    expect(afterDuplicate[0]?.n).toBe(1);
+
+    await sql`insert into proposal_approvals (proposal_id, approver_id, role)
+              values (${proposalId}, ${manager}, 'property_manager')`;
+
+    const counted = await sql<{ n: number }[]>`
+      select count(*)::int as n from proposal_approvals where proposal_id = ${proposalId}`;
+    expect(counted[0]?.n).toBe(2);
+  });
+
+  it('deletes its signatures with the proposal and refuses a signature for a proposal that does not exist', async () => {
+    const fx = await createFixture(sql, 'dual-key-fk');
+    const proposalId = await insertProposal(fx.orgId);
+    const approver = await insertUser(fx.orgId, 'owner_admin');
+    await sql`insert into proposal_approvals (proposal_id, approver_id, role)
+              values (${proposalId}, ${approver}, 'owner_admin')`;
+
+    await sql`delete from action_proposals where id = ${proposalId}`;
+    const orphans = await sql<{ n: number }[]>`
+      select count(*)::int as n from proposal_approvals where proposal_id = ${proposalId}`;
+    expect(orphans[0]?.n).toBe(0);
+
+    await expect(
+      sql`insert into proposal_approvals (proposal_id, approver_id, role)
+          values (${randomUUID()}, ${approver}, 'owner_admin')`,
+    ).rejects.toThrow(/violates foreign key constraint/i);
+  });
+});

@@ -87,6 +87,7 @@ describe('policyVersion', () => {
       autoApproveUnderFils: base.autoApproveUnderFils,
       nteCeilingFils: base.nteCeilingFils,
       approverRoles: [...base.approverRoles],
+      policyEditorRoles: [...base.policyEditorRoles],
     };
     expect(policyVersion(reordered)).toBe(policyVersion(base));
   });

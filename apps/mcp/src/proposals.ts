@@ -9,6 +9,7 @@
  * `args_hash` plus the partial unique index means a retrying agent files one
  * pending proposal, not ten.
  */
+import { describeArgProblems, validateActionArgs } from '@aqar/core';
 import type { PolicyAction, PolicyDecision } from '@aqar/contracts';
 import type { TransactionSql } from 'postgres';
 import type { ToolContext } from './context.js';
@@ -54,6 +55,13 @@ export async function createProposal(
     ...(request.vendorId === undefined ? {} : { vendorId: request.vendorId }),
     ...(request.vendorOnAllowList === undefined ? {} : { vendorOnAllowList: request.vendorOnAllowList }),
   });
+
+  // Refuse to file a draft the executor could never run. The alternative is a
+  // queue row that looks approvable and fails after a human has signed it.
+  const problems = validateActionArgs(request.action, request.args);
+  if (problems.length > 0) {
+    throw new Error(`refusing to file ${request.action}: ${describeArgProblems(problems)}`);
+  }
 
   const hash = argsHash({ action: request.action, ...request.args });
   const expiresAt = new Date(ctx.now().getTime() + (request.expiresInHours ?? 168) * 3_600_000);
