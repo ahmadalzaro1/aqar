@@ -29,6 +29,7 @@ interface OrgTotalsRow {
   arrearsFils: string;
   collectedFils: string;
   chargedFils: string;
+  receivedFils: string;
 }
 
 const emptyArgs = z.object({});
@@ -38,7 +39,7 @@ export const portfolioSummary: ToolDef = {
   kind: 'read',
   title: 'Portfolio summary',
   description:
-    'Occupancy, arrears and open tickets per property, plus organization totals. Start here for "how are we doing" questions. MONEY ARRIVES AS TOTALS — quote them, never sum property rows yourself.',
+    'Occupancy, arrears and open tickets per property, plus organization totals. Start here for "how are we doing" questions. MONEY ARRIVES AS TOTALS — quote them, never sum property rows yourself. CASH RECEIVED IS NOT ARREARS RELIEF: totals.receivedJod is money in, totals.collectedJod is money applied to charges, and totals.unallocatedJod is the difference — if unallocated is above zero, say so rather than implying arrears fell.',
   schema: emptyArgs,
   async run(ctx, raw) {
     emptyArgs.parse(raw);
@@ -100,6 +101,10 @@ export const portfolioSummary: ToolDef = {
       alloc_totals as (
         select sum(pa.amount_fils)::bigint as allocated
           from payment_allocations pa where pa.organization_id = ${ctx.org.id}
+      ),
+      receipt_totals as (
+        select coalesce(sum(p.amount_fils), 0)::bigint as received
+          from payments p where p.organization_id = ${ctx.org.id}
       )
       select
         (select count(*)::text from units where organization_id = ${ctx.org.id}) as units,
@@ -110,8 +115,9 @@ export const portfolioSummary: ToolDef = {
         (select count(*)::text from leases where organization_id = ${ctx.org.id} and status = 'active') as "activeLeases",
         (coalesce(charge_totals.charged, 0) - coalesce(alloc_totals.allocated, 0))::text as "arrearsFils",
         coalesce(alloc_totals.allocated, 0)::text as "collectedFils",
-        coalesce(charge_totals.charged, 0)::text as "chargedFils"
-        from charge_totals, alloc_totals
+        coalesce(charge_totals.charged, 0)::text as "chargedFils",
+        coalesce(receipt_totals.received, 0)::text as "receivedFils"
+        from charge_totals, alloc_totals, receipt_totals
     `;
     const total = totals[0];
 
@@ -147,6 +153,13 @@ export const portfolioSummary: ToolDef = {
         chargedJod: formatFils(Number(total.chargedFils)),
         collectedFils: Number(total.collectedFils),
         collectedJod: formatFils(Number(total.collectedFils)),
+        // Cash that arrived but has not been applied to a charge. It is not arrears
+        // relief until it is allocated, and an operator who approves a payment
+        // needs to see that gap instead of wondering why arrears did not move.
+        receivedFils: Number(total.receivedFils),
+        receivedJod: formatFils(Number(total.receivedFils)),
+        unallocatedFils: Number(total.receivedFils) - Number(total.collectedFils),
+        unallocatedJod: formatFils(Number(total.receivedFils) - Number(total.collectedFils)),
         arrearsFils: Number(total.arrearsFils),
         arrearsJod: formatFils(Number(total.arrearsFils)),
       },
