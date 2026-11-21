@@ -1,7 +1,7 @@
 # Policy: one compiled predicate, two keys
 
-> Status: **P1 and P2 landed** (2026-11-21, `compile.ts` + both call sites).
-> P3 (dual control) and P4 (per-org limits) remain design. What exists, what
+> Status: **P1, P2 and P3 landed** (2026-11-21: `compile.ts`, both call sites,
+> `proposal_approvals` + concurrence). P4 (per-org limits) remains design. What exists, what
 > prior art says, and the smallest path that makes the claim true.
 
 ## 1. What the code does today (measured, not remembered)
@@ -180,13 +180,44 @@ Measured on the running app, not asserted:
 | reverse it | `policy.rules = [reversal.action_known, role.approver, reversal.window, reversal.self_correction]`, stored on `result.reversal.policy` |
 | browser click-through | status block persists after refresh, row flips to `تم التراجع` |
 
+### P3 — dual control, and the role list that kept coming back
+
+`proposal_approvals` (`0015`) has `primary key (proposal_id, approver_id)`. The
+**database**, not the handler, is what makes the second signature distinct.
+
+`DEFAULT_POLICY_LIMITS.dualControlAboveFils` is now **400 000 fils (400 JOD)**,
+below the 500 JOD NTE ceiling: ordinary receipts still need one approver, and
+anything larger needs two distinct ones. Historical decided proposals were
+backfilled with their single recorded approver, so "how many signatures did this
+take" stays answerable.
+
+Measured, 450 JOD payment `9ba66e58`:
+
+| step | result |
+|---|---|
+| accountant signs | `202 {status: awaiting_approval, signatures: 1, required: 2}` — status stays `pending`, **0 payments created** |
+| the same accountant signs again | `202 signatures: 1` — the primary key refused the duplicate, not the handler |
+| manager signs | `200 executed`, `signatures: 2`, payment `ba3bf355` read back `confirmed: true`, stamps `policy=86c00289dc51` |
+| approvers on record | `accountant@aqar.example/accountant, manager@aqar.example/property_manager` |
+| console | awaiting row renders `التوقيعات 1 من 2` (server-rendered), still in the queue |
+
+The role list had **five** copies: `limits.approverRoles`, the reversal service,
+the reversal route, the decision route and the console page (whose comment
+admitted it mirrored the route's). All five now read the compiled policy, so
+there is one list and one version.
+
+Still open: **the executor does not yet pass `requested_by` into the decision**,
+so `sod.requester_not_approver` only fires for callers that supply a requester.
+And there is no automated test for the primary-key invariant — it was proved
+against the live database, not in the suite.
+
 ## 4. Order of work
 
 | # | move | why it is this rank |
 |---|---|---|
 | P1 ✅ | Delete both `.includes()` checks; route reversal through the compiled predicate | Removes the LAW 3 asymmetry and gives refusals named rules. Cheapest, and it is a deletion |
 | P2 ✅ | Stamp `policyVersion` + rule ids onto the audit event and `result` | Without it a policy edit rewrites history. Nearly free once P1 exists |
-| P3 | `proposal_approvals` + `concurrence`/`sod` rules + executor count check | The actual two-key. Needs a migration and a console affordance ("approved by 1 of 2") |
+| P3 ✅ | `proposal_approvals` + `concurrence` rules + executor count check + console badge | The actual two-key. Migration `0015`; the PK is the control |
 | P4 | Per-org `policy_limits` row instead of the frozen constant | Only when a second org exists. Versioning (P2) makes this safe to defer |
 
 ## 5. Tests the design demands

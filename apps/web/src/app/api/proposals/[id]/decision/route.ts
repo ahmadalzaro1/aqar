@@ -8,19 +8,9 @@ export const dynamic = 'force-dynamic';
 
 const bodySchema = z.object({ decision: z.enum(['approve', 'reject']) });
 
-/**
- * Roles allowed to approve money movement or a vendor dispatch: the same set the
- * login flow forces a TOTP code for. A receptionist with a session is not an
- * approver just because they can see the queue.
- */
-const APPROVER_ROLES = new Set(['owner_admin', 'accountant', 'property_manager']);
-
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = await getSessionUser();
   if (user === null) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
-  if (!APPROVER_ROLES.has(user.role)) {
-    return NextResponse.json({ error: `role ${user.role} cannot approve consequential actions` }, { status: 403 });
-  }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'body must be {"decision":"approve"|"reject"}' }, { status: 400 });
@@ -34,7 +24,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       role: user.role,
       decision: parsed.data.decision,
     });
-    const status = outcome.status === 'executed' ? 200 : outcome.status === 'rejected' || outcome.status === 'expired' ? 200 : 200;
+    // A recorded signature that is still short of a second key is not an error
+    // and not an execution: 202 says "accepted, nothing happened yet".
+    const status = outcome.status === 'awaiting_approval' ? 202 : 200;
     return NextResponse.json(outcome, { status });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'decision failed';

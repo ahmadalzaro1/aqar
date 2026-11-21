@@ -21,6 +21,9 @@ export interface PendingProposal {
   /** `expires_at` already behind the server clock; the executor will refuse it. */
   readonly expired: boolean;
   readonly args: readonly ArgRow[];
+  /** Distinct approvers recorded so far, and how many the policy wants. */
+  readonly signatures: number;
+  readonly requiredSignatures: number;
 }
 
 export interface DecidedProposal {

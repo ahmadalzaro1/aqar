@@ -31,6 +31,19 @@ const TOKEN_TTL_MS = 5 * 60_000;
 export type Decision = 'approve' | 'reject';
 
 export type DecisionOutcome =
+  | {
+      /**
+       * Dual control: this signature is recorded, the proposal is not executed,
+       * and nothing has been spent. The row stays `pending` until enough distinct
+       * approvers have signed.
+       */
+      readonly status: 'awaiting_approval';
+      readonly proposalId: string;
+      readonly signatures: number;
+      readonly required: number;
+      readonly reason: string;
+      readonly policy: PolicyRecord;
+    }
   | { readonly status: 'rejected'; readonly proposalId: string }
   | { readonly status: 'expired'; readonly proposalId: string }
   | {
@@ -195,6 +208,14 @@ export const registeredActions = Object.freeze(Object.keys(handlers));
 const POLICY = compilePolicy();
 
 type TxOutcome =
+  | {
+      readonly kind: 'awaiting_approval';
+      readonly proposalId: string;
+      readonly signatures: number;
+      readonly required: number;
+      readonly reason: string;
+      readonly policy: PolicyRecord;
+    }
   | { readonly kind: 'rejected'; readonly proposalId: string }
   | { readonly kind: 'expired'; readonly proposalId: string }
   | { readonly kind: 'failed'; readonly proposalId: string; readonly reason: string }
@@ -250,14 +271,48 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
       throw new Error('proposal arguments do not match the hash that was filed — refusing to execute');
     }
 
+    // Dual control: record this signature first, then let the policy judge the
+    // signatures that now exist. The primary key is (proposal_id, approver_id),
+    // so a retry or a double click cannot manufacture the second key — the
+    // database refuses the duplicate, not this handler.
+    await tx`
+      insert into proposal_approvals (proposal_id, approver_id, role)
+      values (${row.id}, ${input.userId}, ${input.role})
+      on conflict (proposal_id, approver_id) do nothing
+    `;
+    const signatures = await tx<{ approver_id: string }[]>`
+      select approver_id from proposal_approvals where proposal_id = ${row.id} order by approved_at
+    `;
+
     // Policy is a predicate over the call's own fields, not a model's opinion and
     // not a role check bolted onto the route. A refusal here names its rules.
-    const decision = POLICY.decide({ kind: 'proposal', action: row.action, args: row.args, role: input.role });
+    const decision = POLICY.decide({
+      kind: 'proposal',
+      action: row.action,
+      args: row.args,
+      role: input.role,
+      actorId: input.userId,
+      approvals: signatures.map((s) => ({ userId: s.approver_id })),
+    });
     if (decision.verdict === 'deny') {
       const reasons = decision.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ');
       throw new Error(`policy denied this proposal: ${reasons}`);
     }
     const policyRecord = POLICY.record(decision);
+
+    // Below the threshold the concurrence rule reports `allow` and never appears
+    // in `decisive`, so this cannot fire for an ordinary proposal.
+    const shortOfSignatures = decision.decisive.find((r) => r.rule === 'concurrence.distinct_approvers');
+    if (shortOfSignatures !== undefined) {
+      return {
+        kind: 'awaiting_approval',
+        proposalId: row.id,
+        signatures: signatures.length,
+        required: POLICY.limits.requiredApprovers,
+        reason: shortOfSignatures.detail,
+        policy: policyRecord,
+      } as TxOutcome;
+    }
 
     const { token, claims } = mintApprovalToken(secret, {
       proposalId: row.id,
@@ -334,6 +389,16 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     }
   });
 
+  if (outcome.kind === 'awaiting_approval') {
+    return {
+      status: 'awaiting_approval',
+      proposalId: outcome.proposalId,
+      signatures: outcome.signatures,
+      required: outcome.required,
+      reason: outcome.reason,
+      policy: outcome.policy,
+    };
+  }
   if (outcome.kind === 'rejected') return { status: 'rejected', proposalId: outcome.proposalId };
   if (outcome.kind === 'expired') return { status: 'expired', proposalId: outcome.proposalId };
   if (outcome.kind === 'failed') return { status: 'failed', proposalId: outcome.proposalId, reason: outcome.reason };

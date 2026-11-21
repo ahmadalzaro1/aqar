@@ -134,8 +134,21 @@ describe('dual control', () => {
   const withDual: PolicyLimits = { ...DEFAULT_POLICY_LIMITS, dualControlAboveFils: 100_000, requiredApprovers: 2 };
 
   it('states that no threshold is configured rather than implying it', () => {
-    const decision = compilePolicy().decide({ kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant' });
+    // The invariant is that the rule *reports* the configuration; the shipped
+    // value is a separate fact, asserted below. An explicit null, not the default.
+    const noDual = compilePolicy({ ...DEFAULT_POLICY_LIMITS, dualControlAboveFils: null });
+    const decision = noDual.decide({ kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant' });
     expect(decision.rules.find((r) => r.rule === 'concurrence.dual_control')?.detail).toContain('no dual-control threshold');
+  });
+
+  it('ships with dual control above 400 JOD, below the NTE ceiling', () => {
+    const shipped = compilePolicy();
+    expect(shipped.limits.dualControlAboveFils).toBe(400_000);
+    expect(shipped.limits.dualControlAboveFils).toBeLessThan(shipped.limits.nteCeilingFils);
+    const one = shipped.decide({
+      kind: 'proposal', action: 'post_payment', args: payment({ amountFils: 450_000 }), role: 'accountant', approvals: [{ userId: 'user-1' }],
+    });
+    expect(one.decisive.map((r) => r.rule)).toContain('concurrence.distinct_approvers');
   });
 
   it('demands a second distinct approver above the threshold', () => {

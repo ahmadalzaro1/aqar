@@ -46,7 +46,7 @@ export const DEFAULT_POLICY_LIMITS: PolicyLimits = Object.freeze({
   nteCeilingFils: 500_000,
   autoApproveUnderFils: 0,
   reversalWindowHours: 720,
-  dualControlAboveFils: null,
+  dualControlAboveFils: 400_000,
   requiredApprovers: 2,
 });
 

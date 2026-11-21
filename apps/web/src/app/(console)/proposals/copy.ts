@@ -39,6 +39,7 @@ export interface Strings {
   readonly cannotDecide: string;
   readonly system: string;
   readonly reversal: string;
+  readonly signaturesOf: (have: number, need: number) => string;
   readonly reverse: string;
   readonly reversing: string;
   readonly reverseConfirm: string;
@@ -90,6 +91,7 @@ const en: Strings = {
   cannotDecide: 'Your role cannot approve. Only an owner admin, accountant or property manager can decide.',
   system: 'System',
   reversal: 'Reversal',
+  signaturesOf: (have, need) => `${have} of ${need} signatures`,
   reverse: 'Reverse',
   reversing: 'Reversing…',
   reverseConfirm: 'Reverse this action',
@@ -154,6 +156,7 @@ const ar: Strings = {
   cannotDecide: 'دورك لا يسمح بالموافقة. الأدوار المصرّح لها: مدير المالك، المحاسب، مدير العقارات.',
   system: 'النظام',
   reversal: 'التراجع',
+  signaturesOf: (have, need) => `التوقيعات ${have} من ${need}`,
   reverse: 'تراجع',
   reversing: 'جارٍ التراجع…',
   reverseConfirm: 'تراجع عن هذا الإجراء',

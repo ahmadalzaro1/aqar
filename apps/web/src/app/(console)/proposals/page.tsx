@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { Badge, Card, EmptyState } from '@aqar/ui';
+import { compilePolicy } from '@aqar/core';
 import { getSessionUser } from '@/lib/auth';
 import { getLocale } from '@/i18n/server';
 import { sql } from '@/lib/db';
@@ -9,9 +10,10 @@ import { stringsFor } from './copy';
 import { argEntries, stamp, statusTone } from './format';
 import type { DecidedProposal, PendingProposal } from './types';
 
-// Mirrors APPROVER_ROLES in app/api/proposals/[id]/decision/route.ts. The server
-// enforces it; this only decides whether to warn the viewer up front.
-const APPROVER_ROLES = new Set(['owner_admin', 'accountant', 'property_manager']);
+// One source for who may decide: the compiled policy. The server enforces it;
+// this only decides whether to draw the buttons, but it reads the same list
+// rather than a copy that can drift.
+const POLICY = compilePolicy();
 
 function asDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
@@ -32,7 +34,8 @@ export default async function ProposalsPage() {
   // approval executor are what make these rows consequential, so never read
   // another org's queue even if a policy regresses.
   const pendingRows = await sql`
-    SELECT id, action, tool_name, summary, args, model_id, created_at, expires_at
+    SELECT id, action, tool_name, summary, args, model_id, created_at, expires_at,
+           (SELECT count(*)::int FROM proposal_approvals a WHERE a.proposal_id = action_proposals.id) AS signatures
     FROM action_proposals
     WHERE organization_id = ${user.orgId} AND status = 'pending'
     ORDER BY expires_at ASC`;
@@ -65,6 +68,10 @@ export default async function ProposalsPage() {
       expiresIso: expiresAt === null ? '' : expiresAt.toISOString(),
       expired: expiresAt !== null && expiresAt.getTime() < now,
       args: argEntries(r['args'], locale),
+      // Dual control is visible where the operator acts: a proposal waiting for a
+      // second key must not look identical to one nobody has touched.
+      signatures: Number(r['signatures'] ?? 0),
+      requiredSignatures: POLICY.limits.requiredApprovers,
     };
   });
 
@@ -101,7 +108,7 @@ export default async function ProposalsPage() {
     };
   });
 
-  const canDecide = APPROVER_ROLES.has(user.role);
+  const canDecide = POLICY.limits.approverRoles.includes(user.role);
 
   return (
     // The chat dock floats over the bottom-left corner of every console page; the

@@ -186,6 +186,9 @@ export function ProposalQueue({
               <Badge tone="accent">{s.actions[proposal.action] ?? proposal.action}</Badge>
               <code style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }} dir="ltr">{proposal.toolName}</code>
               {proposal.expired && <Badge tone="warn">{s.pastExpiry}</Badge>}
+              {proposal.signatures > 0 && (
+                <Badge tone="warn">{s.signaturesOf(proposal.signatures, proposal.requiredSignatures)}</Badge>
+              )}
               <span
                 className="tnum"
                 style={{ marginInlineStart: 'auto', color: 'var(--muted)', fontSize: 'var(--text-xs)' }}
