@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { setLocale, setTheme, logoutAction } from '@/lib/actions';
 import type { SessionUser } from '@/lib/auth';
+import { ChatDock } from '@/components/ChatDock';
 
 const NAV = [
   { href: '/dashboard', key: 'nav.dashboard', Icon: LayoutDashboard },
@@ -178,6 +179,7 @@ export function Shell({ user, orgName, locale, messages, children }: {
           </div>
         </div>
       )}
+      <ChatDock locale={locale} />
     </div>
   );
 }
