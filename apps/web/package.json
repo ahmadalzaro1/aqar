@@ -16,6 +16,7 @@
     "@aqar/contracts": "workspace:*",
     "@aqar/core": "workspace:*",
     "@aqar/agents": "workspace:*",
+    "@aqar/approvals": "workspace:*",
     "@aqar/db": "workspace:*",
     "@aqar/tools": "workspace:*",
     "@aqar/drawings": "workspace:*",

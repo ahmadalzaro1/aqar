@@ -1,0 +1,21 @@
+{
+  "name": "@aqar/approvals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Human-approval signatures: what a named person approved, for which arguments, until when.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.1"
+  }
+}

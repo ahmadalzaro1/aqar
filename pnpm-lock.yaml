@@ -75,6 +75,9 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@aqar/approvals':
+        specifier: workspace:*
+        version: link:../../packages/approvals
       '@aqar/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -121,6 +124,9 @@ importers:
       '@aqar/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@aqar/approvals':
+        specifier: workspace:*
+        version: link:../../packages/approvals
       '@aqar/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -243,6 +249,18 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.1.1
+        version: 5.1.1(@types/node@26.6.6)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15))
+
+  packages/approvals:
     devDependencies:
       '@types/node':
         specifier: ^26.6.6
