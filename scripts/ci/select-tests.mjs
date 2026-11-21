@@ -37,12 +37,24 @@ const RERUN_ALL = [
   /^\.oxlintrc\.json$/,
 ];
 
+// GitHub's file command wants `key=value` lines, not JSON.
+const githubOutput = args.includes('--github-output');
+const emit = (payload) => {
+  if (githubOutput) {
+    console.log(`mode=${payload.mode}`);
+    console.log(`packages=${(payload.packages || []).join(',')}`);
+    console.log(`reason=${payload.reason}`);
+    return;
+  }
+  console.log(JSON.stringify(payload));
+};
+
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
 
 if (!base && filesArg === null) {
-  console.log(JSON.stringify({ mode: 'all', packages: [], reason: 'no base sha (first push or force-push) — running everything' }));
+  emit({ mode: 'all', packages: [], reason: 'no base sha (first push or force-push) — running everything' });
   process.exit(0);
 }
 
@@ -54,19 +66,19 @@ if (filesArg !== null) {
   try {
     changed = git(['diff', '--name-only', `${base}...${head}`]).split('\n').filter(Boolean);
   } catch {
-    console.log(JSON.stringify({ mode: 'all', packages: [], reason: 'cannot diff base..head — running everything' }));
+    emit({ mode: 'all', packages: [], reason: 'cannot diff base..head — running everything' });
     process.exit(0);
   }
 }
 
 if (changed.length === 0) {
-  console.log(JSON.stringify({ mode: 'affected', packages: [], reason: 'no changed files' }));
+  emit({ mode: 'affected', packages: [], reason: 'no changed files' });
   process.exit(0);
 }
 
 const forced = changed.find((f) => RERUN_ALL.some((re) => re.test(f)));
 if (forced) {
-  console.log(JSON.stringify({ mode: 'all', packages: [], reason: `shared input changed: ${forced}` }));
+  emit({ mode: 'all', packages: [], reason: `shared input changed: ${forced}` });
   process.exit(0);
 }
 
@@ -92,7 +104,7 @@ const touched = new Set();
 for (const file of changed) {
   const dir = pkgDirs.filter((d) => file.startsWith(d + '/')).sort((a, b) => b.length - a.length)[0];
   if (!dir) {
-    console.log(JSON.stringify({ mode: 'all', packages: [], reason: `changed file outside any package: ${file}` }));
+    emit({ mode: 'all', packages: [], reason: `changed file outside any package: ${file}` });
     process.exit(0);
   }
   touched.add(dir);
@@ -111,4 +123,4 @@ while (grew) {
   }
 }
 
-console.log(JSON.stringify({ mode: 'affected', packages: [...touched].sort(), changed: changed.length, reason: 'diff-reachable packages' }));
+emit({ mode: 'affected', packages: [...touched].sort(), changed: changed.length, reason: 'diff-reachable packages' });

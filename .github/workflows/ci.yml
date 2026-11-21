@@ -133,7 +133,10 @@ jobs:
 
       - name: select (PR feedback only — main and the queue always run everything)
         id: select
-        run: node scripts/ci/select-tests.mjs >> "$GITHUB_OUTPUT"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/ci/select-tests.mjs --github-output >> "$GITHUB_OUTPUT"
 
       # Every package's typecheck already ran in `checks`; this job is about
       # behaviour. On a PR an unreachable package is skipped, on main it is not.
@@ -182,7 +185,7 @@ jobs:
         image: axllent/mailpit:latest
         ports: ['1025:1025', '8025:8025']
     env:
-      DATABASE_URL: postgres://aqar:***@127.0.0.1:5433/aqar
+      DATABASE_URL: postgres://aqar:aqar@127.0.0.1:5433/aqar
       REDIS_URL: redis://127.0.0.1:6380
     steps:
       - name: start clock
@@ -210,7 +213,10 @@ jobs:
 
       - name: select
         id: select
-        run: node scripts/ci/select-tests.mjs >> "$GITHUB_OUTPUT"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/ci/select-tests.mjs --github-output >> "$GITHUB_OUTPUT"
 
       - name: db integration (real Postgres, RLS, guards)
         if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/db')
