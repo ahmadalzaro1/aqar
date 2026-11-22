@@ -46,8 +46,13 @@ export async function createFixture(sql: postgres.Sql, tag: string): Promise<Fix
             values (${propertyId}, ${orgId}, ${'Prop ' + tag}, ${'عقار ' + tag}, 'Abdoun', 'Amman')`;
   await sql`insert into buildings (id, organization_id, property_id, name, name_ar)
             values (${buildingId}, ${orgId}, ${propertyId}, ${'Bld ' + tag}, ${'بناية ' + tag})`;
-  await sql`insert into units (id, organization_id, property_id, building_id, unit_number, market_rent_fils, status)
-            values (${unitId}, ${orgId}, ${propertyId}, ${buildingId}, ${'U-' + tag}, 400000, 'occupied')`;
+  // space_kind defaults to 'flat', and a flat must now state its room count: the
+  // residential CHECK refuses a flat with an unknown number of bedrooms. A fixture
+  // that leaves it out is describing a flat nobody can let.
+  await sql`insert into units (id, organization_id, property_id, building_id, unit_number,
+                               bedrooms, bathrooms, market_rent_fils, status)
+            values (${unitId}, ${orgId}, ${propertyId}, ${buildingId}, ${'U-' + tag},
+                    2, 1, 400000, 'occupied')`;
   await sql`insert into tenants (id, organization_id, full_name_en, full_name_ar, phone)
             values (${tenantId}, ${orgId}, ${'Tenant ' + tag}, ${'مستأجر ' + tag}, '+962790000000')`;
   await sql`insert into leases (id, organization_id, property_id, unit_id, status, start_date, end_date, rent_fils, deposit_fils, due_day)
