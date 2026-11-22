@@ -33,7 +33,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const notFound = /not found/.test(message);
     // A deterministic policy refusal is not a server fault: the caller is not
     // allowed to do this, and the message says which rule stopped it.
-    const denied = /^policy denied/.test(message);
+    const denied = message.startsWith('policy denied');
     const conflict = /already |do not match|expired/i.test(message);
     const status = notFound ? 404 : denied ? 403 : conflict ? 409 : 500;
     return NextResponse.json({ error: message }, { status });

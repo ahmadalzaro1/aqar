@@ -9,7 +9,7 @@
   },
   "scripts": {
     "evals": "tsx src/run.ts --lane deterministic",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

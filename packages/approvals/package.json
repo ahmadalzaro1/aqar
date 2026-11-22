@@ -9,9 +9,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "oxlint --deny-warnings src"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

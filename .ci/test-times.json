@@ -1,0 +1,233 @@
+{
+ "packages/core": [
+  {
+   "file": "packages/core/src/channels/intent-values.test.ts",
+   "ms": 3.146728515625
+  },
+  {
+   "file": "packages/core/src/channels/templates.test.ts",
+   "ms": 13.130615234375
+  },
+  {
+   "file": "packages/core/src/channels/window.test.ts",
+   "ms": 6.593017578125
+  },
+  {
+   "file": "packages/core/src/ledger/aging.property.test.ts",
+   "ms": 26.364013671875
+  },
+  {
+   "file": "packages/core/src/ledger/aging.test.ts",
+   "ms": 6.205810546875
+  },
+  {
+   "file": "packages/core/src/ledger/allocations.property.test.ts",
+   "ms": 115.418701171875
+  },
+  {
+   "file": "packages/core/src/ledger/allocations.test.ts",
+   "ms": 4.040283203125
+  },
+  {
+   "file": "packages/core/src/ledger/charges.property.test.ts",
+   "ms": 85.27294921875
+  },
+  {
+   "file": "packages/core/src/ledger/charges.test.ts",
+   "ms": 16.1806640625
+  },
+  {
+   "file": "packages/core/src/ledger/fils.test.ts",
+   "ms": 14.22607421875
+  },
+  {
+   "file": "packages/core/src/ledger/journal.property.test.ts",
+   "ms": 83.69140625
+  },
+  {
+   "file": "packages/core/src/ledger/journal.test.ts",
+   "ms": 25.18701171875
+  },
+  {
+   "file": "packages/core/src/ledger/lateFees.property.test.ts",
+   "ms": 18.022216796875
+  },
+  {
+   "file": "packages/core/src/ledger/lateFees.test.ts",
+   "ms": 7.115234375
+  },
+  {
+   "file": "packages/core/src/ledger/money.property.test.ts",
+   "ms": 90.144775390625
+  },
+  {
+   "file": "packages/core/src/ops/acknowledge.test.ts",
+   "ms": 2.466796875
+  },
+  {
+   "file": "packages/core/src/ops/adversarial.test.ts",
+   "ms": 407.451904296875
+  },
+  {
+   "file": "packages/core/src/ops/emergency.test.ts",
+   "ms": 509.242919921875
+  },
+  {
+   "file": "packages/core/src/ops/interruption.test.ts",
+   "ms": 76.06298828125
+  },
+  {
+   "file": "packages/core/src/ops/merge.test.ts",
+   "ms": 585.228271484375
+  },
+  {
+   "file": "packages/core/src/ops/metrics.test.ts",
+   "ms": 11.08203125
+  },
+  {
+   "file": "packages/core/src/ops/normalize.test.ts",
+   "ms": 3.111083984375
+  },
+  {
+   "file": "packages/core/src/ops/policy.property.test.ts",
+   "ms": 190.398193359375
+  },
+  {
+   "file": "packages/core/src/ops/policy.test.ts",
+   "ms": 10.077392578125
+  },
+  {
+   "file": "packages/core/src/ops/safety.test.ts",
+   "ms": 7.40234375
+  },
+  {
+   "file": "packages/core/src/ops/scoring.property.test.ts",
+   "ms": 102.84130859375
+  },
+  {
+   "file": "packages/core/src/ops/sla.test.ts",
+   "ms": 12.515380859375
+  },
+  {
+   "file": "packages/core/src/ops/vendor.test.ts",
+   "ms": 2.08740234375
+  },
+  {
+   "file": "packages/core/src/plans/plans.test.ts",
+   "ms": 4.108154296875
+  },
+  {
+   "file": "packages/core/src/plans/raster.test.ts",
+   "ms": 4.337890625
+  },
+  {
+   "file": "packages/core/src/policy/args.test.ts",
+   "ms": 10.150146484375
+  },
+  {
+   "file": "packages/core/src/policy/compile.test.ts",
+   "ms": 11.0966796875
+  },
+  {
+   "file": "packages/core/src/policy/identity.test.ts",
+   "ms": 12.006103515625
+  },
+  {
+   "file": "packages/core/src/policy/limits.test.ts",
+   "ms": 57.24609375
+  },
+  {
+   "file": "packages/core/src/taxonomy/taxonomy.test.ts",
+   "ms": 12.529296875
+  },
+  {
+   "file": "packages/core/src/terms/allocation.property.test.ts",
+   "ms": 402.661376953125
+  },
+  {
+   "file": "packages/core/src/terms/bank.property.test.ts",
+   "ms": 341.80029296875
+  },
+  {
+   "file": "packages/core/src/terms/bank.test.ts",
+   "ms": 29.1376953125
+  },
+  {
+   "file": "packages/core/src/terms/cash.test.ts",
+   "ms": 6.13671875
+  },
+  {
+   "file": "packages/core/src/terms/cheque.test.ts",
+   "ms": 3.11962890625
+  },
+  {
+   "file": "packages/core/src/terms/dates.test.ts",
+   "ms": 2.096923828125
+  },
+  {
+   "file": "packages/core/src/terms/escalation.property.test.ts",
+   "ms": 2164.9208984375
+  },
+  {
+   "file": "packages/core/src/terms/escalation.test.ts",
+   "ms": 5.3427734375
+  },
+  {
+   "file": "packages/core/src/terms/proration.test.ts",
+   "ms": 3.123046875
+  },
+  {
+   "file": "packages/core/src/terms/shares.property.test.ts",
+   "ms": 406.279296875
+  },
+  {
+   "file": "packages/core/src/terms/shares.test.ts",
+   "ms": 3.180908203125
+  }
+ ],
+ "packages/ui": [
+  {
+   "file": "packages/ui/src/format.test.ts",
+   "ms": 29.16845703125
+  }
+ ],
+ "apps/web": [
+  {
+   "file": "apps/web/src/__tests__/dev-auth.test.ts",
+   "ms": 1.926513671875
+  },
+  {
+   "file": "apps/web/src/app/(console)/bank/lib.test.ts",
+   "ms": 6.337646484375
+  },
+  {
+   "file": "apps/web/src/app/(console)/statements/lib.test.ts",
+   "ms": 5.775146484375
+  }
+ ],
+ "packages/agents": [
+  {
+   "file": "packages/agents/src/__tests__/live.smoke.test.ts",
+   "ms": 0
+  },
+  {
+   "file": "packages/agents/src/__tests__/orchestrator.test.ts",
+   "ms": 118.49755859375
+  },
+  {
+   "file": "packages/agents/src/__tests__/provider.test.ts",
+   "ms": 33.53466796875
+  },
+  {
+   "file": "packages/agents/src/__tests__/tools.test.ts",
+   "ms": 3.192138671875
+  }
+ ],
+ "packages/tools": [
+  {
+   "file": "packages/tools/src/__tests__/registry.test.ts",
+   "ms": 10.496337890625
+  }
+ ],
+ "packages/contracts": []
+}

@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit",
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
+    "build": "tsgo -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

@@ -200,7 +200,7 @@ export function leaseRollForecast(
 ): readonly LeaseRollBucket[] {
   if (months <= 0) return [];
   const startIndex = monthIndex(asOfISO);
-  const counts = new Array<number>(months).fill(0);
+  const counts = Array.from({ length: months }, (): number => 0);
   for (const lease of leases) {
     const index = monthIndex(lease.endISO) - startIndex;
     if (index < 0 || index >= months) continue;
