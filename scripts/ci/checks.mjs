@@ -10,6 +10,7 @@
  * Usage: node scripts/ci/checks.mjs [--budget <seconds>]
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const args = process.argv.slice(2);
 const budgetIx = args.indexOf('--budget');
@@ -17,7 +18,10 @@ const budget = budgetIx === -1 ? null : Number(args[budgetIx + 1]);
 // --tracked-only: judge what is being pushed, not untracked scratch in the tree
 const trackedOnly = args.includes('--tracked-only');
 
-const lintArgv = ['pnpm', 'exec', 'oxlint'];
+// Call the binary, not `pnpm exec`: the wrapper costs ~0.5s of the 1s budget
+// (measured 0.64s via pnpm vs 0.16s direct on a clean copy).
+const OX = existsSync('node_modules/.bin/oxlint') ? 'node_modules/.bin/oxlint' : 'oxlint';
+const lintArgv = [OX];
 if (trackedOnly) {
   const { execFileSync } = await import('node:child_process');
   const files = execFileSync('git', ['ls-files', '*.ts', '*.tsx', '*.mts', '*.cts', '*.mjs'], { encoding: 'utf8' })
@@ -29,7 +33,8 @@ if (trackedOnly) {
 const CHECKS = [
   { name: 'boundaries', argv: ['node', 'scripts/check-core-deps.mjs'], budget: 5 },
   { name: 'lint', argv: lintArgv, budget: 1 },
-  { name: 'typecheck', argv: ['pnpm', 'typecheck'], budget: 5 },
+  // the parallel tsgo script directly: `pnpm typecheck` adds the same wrapper tax
+  { name: 'typecheck', argv: ['node', 'scripts/ci/typecheck-all.mjs'], budget: 5 },
 ];
 
 const started = Date.now();
