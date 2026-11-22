@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '26'
+  NODE_VERSION: '22'
   TURBO_TELEMETRY_DISABLED: '1'
   NEXT_TELEMETRY_DISABLED: '1'
   # one cache epoch for every branch: main populates it, PRs read it
@@ -41,9 +41,20 @@ jobs:
           fetch-depth: 1
           filter: blob:none
 
-      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+
+      # pnpm comes from Corepack, which ships with Node. The cache holds the one download
+      # per pnpm version; without it Corepack re-fetches on every job.
+      - name: pnpm (Corepack, pinned by packageManager)
+        env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' }
+        run: |
+          corepack enable pnpm
+          pnpm --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/node/corepack
+          key: corepack-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: restore node_modules
         uses: actions/cache@v5
@@ -93,9 +104,20 @@ jobs:
 
       - uses: actions/checkout@v7
         with: { fetch-depth: 1, filter: blob:none }
-      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+
+      # pnpm comes from Corepack, which ships with Node. The cache holds the one download
+      # per pnpm version; without it Corepack re-fetches on every job.
+      - name: pnpm (Corepack, pinned by packageManager)
+        env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' }
+        run: |
+          corepack enable pnpm
+          pnpm --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/node/corepack
+          key: corepack-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: restore node_modules
         uses: actions/cache@v5
@@ -134,9 +156,20 @@ jobs:
 
       - uses: actions/checkout@v7
         with: { fetch-depth: 1, filter: blob:none }
-      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+
+      # pnpm comes from Corepack, which ships with Node. The cache holds the one download
+      # per pnpm version; without it Corepack re-fetches on every job.
+      - name: pnpm (Corepack, pinned by packageManager)
+        env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' }
+        run: |
+          corepack enable pnpm
+          pnpm --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/node/corepack
+          key: corepack-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: restore node_modules
         uses: actions/cache@v5
@@ -219,9 +252,20 @@ jobs:
 
       - uses: actions/checkout@v7
         with: { fetch-depth: 1, filter: blob:none }
-      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+
+      # pnpm comes from Corepack, which ships with Node. The cache holds the one download
+      # per pnpm version; without it Corepack re-fetches on every job.
+      - name: pnpm (Corepack, pinned by packageManager)
+        env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' }
+        run: |
+          corepack enable pnpm
+          pnpm --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/node/corepack
+          key: corepack-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: restore node_modules
         uses: actions/cache@v5
