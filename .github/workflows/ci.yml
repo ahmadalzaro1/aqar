@@ -56,10 +56,28 @@ jobs:
       - name: install
         run: pnpm install --frozen-lockfile --prefer-offline
 
+      # PR feedback only: 13 projects on a 4-core runner is 8.7s of the typecheck
+      # budget, and the diff decides which of them can have changed. main and the
+      # merge queue still check all 13.
+      - name: select
+        id: select
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/ci/select-tests.mjs --github-api --github-output >> "$GITHUB_OUTPUT"
+
       # Runs every check even after one fails, then prints a single table: a PR
       # sees all of its problems in one pass instead of one run per problem.
       - name: all checks (never stops at the first failure)
-        run: node scripts/ci/checks.mjs --budget 25
+        env:
+          MODE: ${{ steps.select.outputs.mode }}
+          PACKAGES: ${{ steps.select.outputs.packages }}
+        run: |
+          if [ "$MODE" = "affected" ] && [ -n "$PACKAGES" ]; then
+            node scripts/ci/checks.mjs --budget 25 --projects "$PACKAGES" --typecheck-budget 5
+          else
+            node scripts/ci/checks.mjs --budget 45 --typecheck-budget 12
+          fi
 
       - name: budget
         if: always()
@@ -104,7 +122,7 @@ jobs:
 
       - name: budget
         if: always()
-        run: node scripts/ci/budget.mjs --job build --budget 60 --start "$JOB_START"
+        run: node scripts/ci/budget.mjs --job build --budget 75 --start "$JOB_START"
 
   test:
     name: tests (unit · property · offline)

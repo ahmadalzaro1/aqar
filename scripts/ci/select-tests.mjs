@@ -23,6 +23,31 @@ const opt = (k, d) => {
 const base = opt('--base', process.env.BASE_SHA || '');
 const head = opt('--head', process.env.HEAD_SHA || 'HEAD');
 const filesArg = opt('--files', null);
+const viaApi = args.includes('--github-api');
+
+/**
+ * Changed files straight from the API.
+ *
+ * A blobless, depth-1 clone has no base commit to diff against, and fetching one
+ * costs seconds on some days. The PR's file list is one HTTP call and needs no
+ * history. A full page of 100 results may be truncated, so it escalates to a full
+ * run rather than selecting from a partial list.
+ */
+async function changedFromApi() {
+  const [owner, repo] = (process.env.GITHUB_REPOSITORY || '').split('/');
+  const number = process.env.PR_NUMBER;
+  const token = process.env.GITHUB_TOKEN;
+  if (!owner || !repo || !number || !token) return null;
+  const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${number}/files?per_page=100`;
+  const res = await fetch(url, {
+    headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' },
+  });
+  if (!res.ok) return null;
+  const files = await res.json();
+  if (!Array.isArray(files)) return null;
+  if (files.length >= 100) return { truncated: true, files: [] };
+  return { truncated: false, files: files.map((f) => f.filename) };
+}
 
 const RERUN_ALL = [
   /^pnpm-lock\.yaml$/,
@@ -59,7 +84,14 @@ if (!base && filesArg === null) {
 }
 
 let changed = [];
-if (filesArg !== null) {
+const api = viaApi ? await changedFromApi() : null;
+if (api && api.truncated) {
+  emit({ mode: 'all', packages: [], reason: 'PR touches 100+ files (list may be truncated) — running everything' });
+  process.exit(0);
+}
+if (api) {
+  changed = api.files;
+} else if (filesArg !== null) {
   // test hook: an explicit list lets the selector's own tests exercise it
   changed = filesArg.split(',').map((s) => s.trim()).filter(Boolean);
 } else {

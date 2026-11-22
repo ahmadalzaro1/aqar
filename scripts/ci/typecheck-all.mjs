@@ -29,6 +29,17 @@ for (const root of ROOTS) {
   }
 }
 
+// --only <csv of package dirs>: typecheck just those. Used on pull requests, where
+// the diff decides which projects can have changed. main and the merge queue always
+// run every project — this narrows feedback, never the gate.
+const onlyIx = process.argv.indexOf('--only');
+const only = onlyIx === -1 ? null : new Set(process.argv[onlyIx + 1].split(',').filter(Boolean));
+const selected = only ? projects.filter((d) => only.has(d)) : projects;
+if (only && selected.length === 0) {
+  console.log('typecheck skipped — no project can be reached by this diff');
+  process.exit(0);
+}
+
 const started = Date.now();
 const runOne = (dir) =>
   new Promise((resolve) => {
@@ -40,7 +51,7 @@ const runOne = (dir) =>
     child.on('close', (code) => resolve({ dir, code, out, seconds: (Date.now() - t0) / 1000 }));
   });
 
-const results = await Promise.all(projects.map(runOne));
+const results = await Promise.all(selected.map(runOne));
 const failed = results.filter((r) => r.code !== 0);
 const worst = results.reduce((a, b) => (b.seconds > a.seconds ? b : a), results[0]);
 const total = (Date.now() - started) / 1000;
