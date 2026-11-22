@@ -48,6 +48,26 @@ for (const root of ROOTS) {
   }
 }
 
+// Only tracked files count. An untracked test runs on the machine that has it and on no
+// other, so recording it makes the inventory a record of one person's working tree — the
+// exact way a local baseline passes and the runner reports every one of its tests as lost.
+const { execFileSync: run } = await import('node:child_process');
+let tracked;
+try {
+  tracked = new Set(
+    run('git', ['ls-files'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+      .split('\n')
+      .filter(Boolean),
+  );
+} catch {
+  // No git (a bare extract, a tarball). Nothing can be known to be untracked, so say so:
+  // a silently unfiltered inventory is how a local baseline records a test the runner
+  // will never see.
+  console.error('inventory: no git repository — cannot tell tracked from untracked files; recording everything');
+  tracked = null;
+}
+const untrackedSeen = new Set();
+
 const out = [];
 const tmp = '.ci/.inventory-run.json';
 
@@ -71,6 +91,10 @@ for (const dir of packages) {
   const report = JSON.parse(readFileSync(tmp, 'utf8'));
   for (const file of report.testResults || []) {
     const rel = resolve(file.name).replace(`${resolve('.')}/`, '');
+    if (tracked && !tracked.has(rel)) {
+      untrackedSeen.add(rel);
+      continue;
+    }
     for (const assertion of file.assertionResults || []) {
       const full = assertion.fullName || assertion.title || '(unnamed)';
       out.push(`${dir} :: ${rel} :: ${full}`);
@@ -79,6 +103,9 @@ for (const dir of packages) {
 }
 rmSync(tmp, { force: true });
 
+for (const rel of untrackedSeen) {
+  console.log(`inventory: skipping untracked ${rel} (it exists only in this working tree)`);
+}
 const unique = [...new Set(out)].sort();
 const record = out.length - unique.length;
 if (record > 0) console.error(`inventory: ${record} duplicate test name(s) — names must be unique per file`);
