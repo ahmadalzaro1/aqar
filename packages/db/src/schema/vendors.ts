@@ -10,23 +10,21 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import type { Trade } from '@aqar/core';
 import { auditTimestamps, isoDate, pkId } from './common.js';
 import { organizations } from './organizations.js';
 
-export type VendorTrade =
-  | 'plumbing'
-  | 'electrical'
-  | 'hvac'
-  | 'gas'
-  | 'elevator'
-  | 'cleaning'
-  | 'carpentry'
-  | 'pest'
-  | 'appliance'
-  | 'generator'
-  | 'painting'
-  | 'locksmith'
-  | 'structural';
+/**
+ * The roster holds canonical trades. It used to hold a private 13-word
+ * vocabulary (`plumbing`, `electrical`, `carpentry`, `painting`) that no other
+ * module understood: the dispatch matcher's `Trade` tokens never matched them,
+ * so a seeded vendor was invisible to the agent path and only reachable from the
+ * console because the console derived aliases from the taxonomy.
+ *
+ * @deprecated use `Trade` from `@aqar/core`. Kept as an alias for the compiled
+ * surface only; the type is now the same type, so the mistake cannot recur.
+ */
+export type VendorTrade = Trade;
 
 export type VendorRates = {
   calloutFils: number;
@@ -53,7 +51,7 @@ export const vendors = pgTable(
     phone: text('phone').notNull(),
     email: text('email'),
     trades: jsonb('trades')
-      .$type<VendorTrade[]>()
+      .$type<Trade[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
     coverageAreas: jsonb('coverage_areas')
@@ -67,6 +65,13 @@ export const vendors = pgTable(
     /** null = no insurance on file. Expiry drives a compliance reminder. */
     insuranceCertExpiry: isoDate('insurance_cert_expiry'),
     licence: text('licence'),
+    /**
+     * When the licence above stops being valid. A statutory trade (elevator,
+     * gas, fire, signage) cannot be dispatched on a licence nobody can date:
+     * `licence` used to be free text with no clock, which is a decoration, not
+     * a compliance record. Null means "not recorded yet", not "never expires".
+     */
+    licenceExpiresOn: isoDate('licence_expires_on'),
     rating: numeric('rating', { precision: 3, scale: 2 }),
     /** agent policy may only award work to allow-listed vendors */
     allowListed: boolean('allow_listed').notNull().default(false),

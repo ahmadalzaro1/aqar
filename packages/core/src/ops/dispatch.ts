@@ -14,12 +14,18 @@
 // Nothing here reads a clock or a database: the caller passes the instant, so a
 // test can pin it and a replay produces the same answer.
 
+import { canonicalTrade, foldTradeWord } from '../taxonomy/trade-aliases.js';
+
 /** A vendor as the console knows it, narrowed to what a dispatch decision needs. */
 export interface DispatchVendor {
   readonly id: string;
   readonly nameEn: string;
   readonly nameAr: string | null;
-  /** trade vocabulary from core/taxonomy/trades — free text, compared trimmed */
+  /**
+   * Trade vocabulary from core/taxonomy/trades. Stored as written for whoever
+   * entered it, compared through `canonicalTrade` — «سباكة», "plumbing" and
+   * "plumber" are the same capability, and only one of them is a token.
+   */
   readonly trades: readonly string[];
   /** false means the vendor may exist in the roster but is not offered work */
   readonly allowListed: boolean;
@@ -46,7 +52,12 @@ export interface EligibilityQuery {
 }
 
 function normaliseTrade(value: string): string {
-  return value.trim().toLowerCase();
+  // One table decides what a trade is: `canonicalTrade` absorbs the category
+  // names the roster was typed with ("plumbing"), the Arabic words a Jordanian
+  // supplier writes («سباكة») and the retired VendorTrade vocabulary. The folded
+  // fallback keeps an unrecognised word comparable to itself instead of throwing
+  // it away — a vendor with a trade we have never seen is still a vendor.
+  return canonicalTrade(value) ?? foldTradeWord(value);
 }
 
 function insuranceInForce(expiry: string | null, onDate: string): boolean {

@@ -12,6 +12,7 @@ export * from './m2-leasing.js';
 export * from './m3-leases.js';
 export * from './m4-finance.js';
 export * from './vendors.js';
+export * from './trade-catalogue.js';
 export * from './m5-maintenance.js';
 export * from './m6-vendor-ops.js';
 export * from './m7-owners.js';

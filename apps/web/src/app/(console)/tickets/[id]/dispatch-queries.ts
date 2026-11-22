@@ -6,9 +6,11 @@
 import { sql } from '@/lib/db';
 import {
   CATEGORY_PROFILES,
+  canonicalTrade,
   defaultServiceStandard,
   eligibleVendors,
   rankQuotes,
+  tradeSpellings,
   vendorScore,
   type DispatchVendor,
   type Severity,
@@ -208,13 +210,17 @@ export async function vendorRoster(orgId: string): Promise<readonly RosterVendor
 }
 
 /**
- * Every word the roster might use for a trade: the trade itself plus the ticket
- * categories that map onto it. Derived from the taxonomy, never hand-listed.
+ * Every word the roster might use for a trade.
+ *
+ * This used to be derived by scanning `CATEGORY_PROFILES` for the categories
+ * whose trade matched, which found the tenant's words (`plumbing`) but not the
+ * suppliers' (`Plumbing Works`) and not Arabic («سباكة») — three sources of
+ * truth for one question. It now asks the canonical table in core, which is the
+ * only place the vocabulary lives.
  */
 export function tradeAliases(trade: string): readonly string[] {
-  return Object.entries(CATEGORY_PROFILES)
-    .filter(([, profile]) => profile.trade === trade)
-    .map(([category]) => category);
+  const canonical = canonicalTrade(trade);
+  return canonical === null ? [] : tradeSpellings(canonical);
 }
 
 /** Vendors that may be offered this trade today, best first. */

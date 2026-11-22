@@ -30,6 +30,12 @@ export type TicketCategory =
 export const SEVERITY_ORDER = ['cosmetic', 'low', 'medium', 'high', 'emergency'] as const;
 export type Severity = (typeof SEVERITY_ORDER)[number];
 
+/**
+ * Capabilities, not categories. The last six exist because the asset register
+ * (0018) knows about things the ticket taxonomy never named — a CCTV camera, a
+ * roof, a parking barrier — and a kind of asset whose trade does not exist is a
+ * kind nobody can be dispatched for. See `equipment-trades.ts` for the join.
+ */
 export type Trade =
   | 'gas_safety'
   | 'fire_safety'
@@ -45,7 +51,14 @@ export type Trade =
   | 'pest_control'
   | 'cleaning'
   | 'generator'
-  | 'handyman';
+  | 'handyman'
+  // capabilities that exist as assets before they exist as ticket categories:
+  | 'roofer_waterproofing'
+  | 'security_systems'
+  | 'kitchen_carpentry'
+  | 'gate_automation'
+  | 'signage_install'
+  | 'solar_pv';
 
 export interface CategoryProfile {
   readonly trade: Trade;

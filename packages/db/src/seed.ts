@@ -27,12 +27,12 @@ import {
   mulDivFloor,
   postJournal,
   splitByShares,
+  type Trade,
 } from '@aqar/core';
 import { config as loadEnv } from 'dotenv';
 import { eq, sql } from 'drizzle-orm';
 import { createDb } from './client.js';
 import { withOrganization } from './client.js';
-import type { VendorTrade } from './schema/vendors.js';
 import {
   auditEvents,
   bankImports,
@@ -192,7 +192,7 @@ const VENDORS: readonly {
   key: string;
   en: string;
   ar: string;
-  trades: readonly VendorTrade[];
+  trades: readonly Trade[];
   expiryDays: number;
   rating: string;
 }[] = [
@@ -200,7 +200,10 @@ const VENDORS: readonly {
     key: 'plumbing',
     en: 'Al-Weibdeh Plumbing Works',
     ar: 'ورشة سباكة الويبدية',
-    trades: ['plumbing'],
+    // Canonical tokens: the demo roster used to write `plumbing`, which no
+    // dispatch matcher understood. These are demo rows, not real suppliers —
+    // the licence numbers below are fabricated and must stay obvious.
+    trades: ['plumber'],
     expiryDays: 18,
     rating: '4.6',
   },
@@ -208,7 +211,7 @@ const VENDORS: readonly {
     key: 'electrical',
     en: 'Amman Electric Contractors',
     ar: 'مقاولو الكهرباء - عمان',
-    trades: ['electrical'],
+    trades: ['electrician'],
     expiryDays: 240,
     rating: '4.2',
   },
@@ -224,7 +227,7 @@ const VENDORS: readonly {
     key: 'hvac',
     en: 'Cool Air HVAC Services',
     ar: 'كوول إير للتكييف والتبريد',
-    trades: ['hvac', 'appliance'],
+    trades: ['hvac', 'appliance_repair'],
     expiryDays: 400,
     rating: '3.9',
   },

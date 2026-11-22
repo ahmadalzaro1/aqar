@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { formatFils } from '@aqar/core';
+import { canonicalTrade, formatFils } from '@aqar/core';
 import type { ToolContext } from '../context.js';
 import { canWrite } from '../env.js';
 import { ToolError } from '../errors.js';
@@ -308,12 +308,25 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
       description:
         'Vendors with their trades, allow-list status, insurance expiry and rating. Use before proposing a dispatch.',
       inputSchema: {
-        trade: z.string().max(40).optional().describe('Filter by trade, e.g. plumbing, electrical'),
+        trade: z
+          .string()
+          .max(40)
+          .optional()
+          .describe(
+            'Filter by trade. Everyday words resolve to the canonical token: plumbing and سباكة both mean plumber, electrical means electrician.',
+          ),
         limit: z.number().int().min(1).max(100).default(25),
       },
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     async ({ trade, limit }) => {
+      // Matching is element-exact against the canonical token, not a substring
+      // of the serialised array. Before this, `ilike '%plumbing%'` matched no
+      // row at all once the roster stored `plumber`, and matched every vendor
+      // whose array happened to contain the letters — the same question the
+      // console answered differently, answered wrongly here.
+      const token =
+        trade === undefined ? null : (canonicalTrade(trade) ?? trade.trim().toLowerCase());
       const rows = await ctx.sql<
         {
           id: string;
@@ -332,7 +345,7 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
                to_char(insurance_cert_expiry, 'YYYY-MM-DD') as "insuranceExpiry"
           from vendors
          where organization_id = ${ctx.org.id}
-           and (${trade ?? null}::text is null or trades::text ilike ${`%${trade ?? ''}%`})
+           and (${token}::text is null or trades ? ${token})
          order by allow_listed desc, rating desc nulls last
          limit ${limit}
       `;
