@@ -77,7 +77,9 @@ function encode(buf: Buffer): string {
 
 export function mintApprovalToken(secret: string, claims: ApprovalClaims): MintedApproval {
   if (secret.length < 32) {
-    throw new Error('approval secret must be at least 32 characters — a short secret is not a signature');
+    throw new Error(
+      'approval secret must be at least 32 characters — a short secret is not a signature',
+    );
   }
   const payload = canonical(claims);
   const token = `${encode(Buffer.from(payload, 'utf8'))}.${encode(sign(secret, payload))}`;
@@ -90,7 +92,11 @@ export interface VerifyOptions {
   /** `now` is an input: this function is used in tests and in replay checks. */
   readonly now: Date;
   /** The row as it exists right now; a token for different arguments must fail. */
-  readonly expected: { readonly proposalId: string; readonly toolName: string; readonly argsHash: string };
+  readonly expected: {
+    readonly proposalId: string;
+    readonly toolName: string;
+    readonly argsHash: string;
+  };
 }
 
 export function verifyApprovalToken(opts: VerifyOptions): VerifyResult {
@@ -115,7 +121,12 @@ export function verifyApprovalToken(opts: VerifyOptions): VerifyResult {
   const fields = payload.split(DELIMITER);
   if (fields.length !== 6) return { ok: false, reason: 'malformed' };
   const [version, proposalId, toolName, argsHash, expiresAt, approvedByUserId] = fields as [
-    string, string, string, string, string, string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
   ];
   if (version !== String(APPROVAL_TOKEN_VERSION)) return { ok: false, reason: 'bad_version' };
 

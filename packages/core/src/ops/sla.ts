@@ -28,7 +28,10 @@ export function defaultServiceStandard(): ServiceStandard {
   };
 }
 
-function clockFor(standard: ServiceStandard, severity: Severity): { responseMinutes: number; resolutionMinutes: number } {
+function clockFor(
+  standard: ServiceStandard,
+  severity: Severity,
+): { responseMinutes: number; resolutionMinutes: number } {
   const clocks: ClockMap = standard.clocks;
   const clock = clocks[severity];
   if (clock === undefined) {
@@ -90,10 +93,14 @@ export function slaState(
   const now = instantOf(nowISO);
 
   const responseBreached =
-    respondedAtISO === null ? now > instantOf(due.responseDueISO) : instantOf(respondedAtISO) > instantOf(due.responseDueISO);
+    respondedAtISO === null
+      ? now > instantOf(due.responseDueISO)
+      : instantOf(respondedAtISO) > instantOf(due.responseDueISO);
 
   const resolutionBreached =
-    resolvedAtISO === null ? now > instantOf(due.resolutionDueISO) : instantOf(resolvedAtISO) > instantOf(due.resolutionDueISO);
+    resolvedAtISO === null
+      ? now > instantOf(due.resolutionDueISO)
+      : instantOf(resolvedAtISO) > instantOf(due.resolutionDueISO);
 
   return {
     responseDueISO: due.responseDueISO,

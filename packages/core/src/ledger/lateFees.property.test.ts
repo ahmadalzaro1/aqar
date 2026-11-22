@@ -72,7 +72,11 @@ describe('computeLateFee properties', () => {
         fc.integer({ min: 1, max: 1_000_000 }),
         fc.integer({ min: 1, max: 1_000_000 }),
         (rule, outstandingFils, extraChargeFils) => {
-          const small = makeCharge({ id: 'c1', amountFils: outstandingFils, dueDateISO: '2026-03-05' });
+          const small = makeCharge({
+            id: 'c1',
+            amountFils: outstandingFils,
+            dueDateISO: '2026-03-05',
+          });
           const large = makeCharge({
             id: 'c1',
             amountFils: outstandingFils + extraChargeFils,

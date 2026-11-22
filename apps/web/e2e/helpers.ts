@@ -30,16 +30,19 @@ export async function login(page: Page, locale: Locale = 'en'): Promise<void> {
 }
 
 /** A money cell in either locale: "JOD 1,160.000" or "١٬١٦٠٫٠٠٠ د.أ". */
-export const MONEY_RE = /(JOD\s[\d,]+\.\d{3})|([\u0660-\u0669\u06f0-\u06f9][\u0660-\u0669\u06f0-\u06f9\u066b\u066c]*\s*د\.أ)/u;
+export const MONEY_RE =
+  /(JOD\s[\d,]+\.\d{3})|([\u0660-\u0669\u06f0-\u06f9][\u0660-\u0669\u06f0-\u06f9\u066b\u066c]*\s*د\.أ)/u;
 
 /** Parse either representation back to integer fils, so totals can be compared as numbers. */
 export function moneyToFils(text: string): number {
   const latin = text.replace(/[^\d.,-]/g, '').replace(/,/g, '');
   const arabicDigits = text.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-  const normalised =
-    /[\u0660-\u0669]/.test(text)
-      ? arabicDigits.replace(/[^\d\u066b\u066c.,-]/g, '').replace(/\u066c/g, '').replace(/\u066b/g, '.')
-      : latin;
+  const normalised = /[\u0660-\u0669]/.test(text)
+    ? arabicDigits
+        .replace(/[^\d\u066b\u066c.,-]/g, '')
+        .replace(/\u066c/g, '')
+        .replace(/\u066b/g, '.')
+    : latin;
   const value = Number.parseFloat(normalised.replace(/,/g, ''));
   return Math.round(value * 1000);
 }

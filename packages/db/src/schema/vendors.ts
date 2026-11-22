@@ -52,7 +52,10 @@ export const vendors = pgTable(
     nameAr: text('name_ar').notNull(),
     phone: text('phone').notNull(),
     email: text('email'),
-    trades: jsonb('trades').$type<VendorTrade[]>().notNull().default(sql`'[]'::jsonb`),
+    trades: jsonb('trades')
+      .$type<VendorTrade[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     coverageAreas: jsonb('coverage_areas')
       .$type<CoverageArea[]>()
       .notNull()
@@ -73,10 +76,7 @@ export const vendors = pgTable(
   (t) => [
     index('vendors_org_idx').on(t.organizationId),
     uniqueIndex('vendors_org_name_uq').on(t.organizationId, t.nameEn),
-    check(
-      'vendors_rating_ck',
-      sql`${t.rating} IS NULL OR (${t.rating} >= 0 AND ${t.rating} <= 5)`,
-    ),
+    check('vendors_rating_ck', sql`${t.rating} IS NULL OR (${t.rating} >= 0 AND ${t.rating} <= 5)`),
     check(
       'vendors_rates_ck',
       sql`(${t.rates} ->> 'calloutFils')::int >= 0 AND (${t.rates} ->> 'hourlyFils')::int >= 0`,

@@ -11,4 +11,11 @@ export {
   runDeterministicLane,
   runModelLane,
 } from './run.js';
-export type { CaseResult, Lane, LaneMetrics, LaneReport, ModelLaneOptions, ProviderInfo } from './run.js';
+export type {
+  CaseResult,
+  Lane,
+  LaneMetrics,
+  LaneReport,
+  ModelLaneOptions,
+  ProviderInfo,
+} from './run.js';

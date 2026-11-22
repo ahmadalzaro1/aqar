@@ -23,19 +23,23 @@ export const aqarContext: ToolDef = {
     emptyArgs.parse(raw);
     const policy = ctx.policy;
     if (policy === undefined) {
-      throw new Error('aqar_context needs a policy snapshot: the adapter must set ToolContext.policy');
+      throw new Error(
+        'aqar_context needs a policy snapshot: the adapter must set ToolContext.policy',
+      );
     }
 
     const at = ctx.now();
-    const counts = await ctx.sql<{
-      properties: string;
-      units: string;
-      occupied: string;
-      tenants: string;
-      open_tickets: string;
-      emergency_tickets: string;
-      pending_proposals: string;
-    }[]>`
+    const counts = await ctx.sql<
+      {
+        properties: string;
+        units: string;
+        occupied: string;
+        tenants: string;
+        open_tickets: string;
+        emergency_tickets: string;
+        pending_proposals: string;
+      }[]
+    >`
       select
         (select count(*)::text from properties    where organization_id = ${ctx.org.id}) as properties,
         (select count(*)::text from units         where organization_id = ${ctx.org.id}) as units,
@@ -57,7 +61,8 @@ export const aqarContext: ToolDef = {
       },
       actor: policy.actor,
       mode: policy.mode,
-      moneyRule: 'Amounts are integer fils. 1 JOD = 1000 fils. Never compute money yourself; report amountFils and amountJod as given.',
+      moneyRule:
+        'Amounts are integer fils. 1 JOD = 1000 fils. Never compute money yourself; report amountFils and amountJod as given.',
       mayWrite: policy.mode !== 'read_only',
       mayMoveMoney: false,
       moneyRuleDetail:
@@ -68,15 +73,18 @@ export const aqarContext: ToolDef = {
         organizationSpendPerDayFils: policy.orgDailySpendCapFils,
       },
       today: at.toISOString().slice(0, 10),
-      counts: row === undefined ? {} : {
-        properties: Number(row.properties),
-        units: Number(row.units),
-        occupiedUnits: Number(row.occupied),
-        tenants: Number(row.tenants),
-        openTickets: Number(row.open_tickets),
-        emergencyTickets: Number(row.emergency_tickets),
-        pendingProposals: Number(row.pending_proposals),
-      },
+      counts:
+        row === undefined
+          ? {}
+          : {
+              properties: Number(row.properties),
+              units: Number(row.units),
+              occupiedUnits: Number(row.occupied),
+              tenants: Number(row.tenants),
+              openTickets: Number(row.open_tickets),
+              emergencyTickets: Number(row.emergency_tickets),
+              pendingProposals: Number(row.pending_proposals),
+            },
       sourceTables:
         'properties, units, tenants, leases, charges, payments, payment_allocations, tickets, ticket_messages, action_proposals, payment_promises',
     };

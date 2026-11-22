@@ -20,7 +20,8 @@ export function computeLateFee(
   const daysLate = daysBetween(charge.dueDateISO, asOfISO);
   if (daysLate <= rule.graceDays) return 0;
 
-  const raw = rule.kind === 'flat' ? rule.amountFils : mulDivFloor(outstandingFils, rule.basisPoints, 10000);
+  const raw =
+    rule.kind === 'flat' ? rule.amountFils : mulDivFloor(outstandingFils, rule.basisPoints, 10000);
   const capped = rule.capFils === null ? raw : Math.min(raw, rule.capFils);
   return Math.min(capped, Number.MAX_SAFE_INTEGER);
 }

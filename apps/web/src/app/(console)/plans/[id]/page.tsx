@@ -28,18 +28,31 @@ export default async function PlanReviewPage({
     plan.statedAreaSqm,
   );
   const verdictTone =
-    reconciliation.verdict === 'within' ? 'ok' : reconciliation.verdict === 'outside' ? 'danger' : 'neutral';
+    reconciliation.verdict === 'within'
+      ? 'ok'
+      : reconciliation.verdict === 'outside'
+        ? 'danger'
+        : 'neutral';
   const confirmedUnits = lettable.filter((room) => room.confirmedAt !== null).length;
 
   return (
     <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
       <header style={{ display: 'grid', gap: 'var(--space-1)' }}>
-        <Link href="/plans" style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
+        <Link
+          href="/plans"
+          style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}
+        >
           ← {t(m, 'plan.title')}
         </Link>
-        <h1 style={{ fontSize: 'var(--text-xl)' }}>{plan.propertyName} · {plan.level}</h1>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Badge tone="neutral">{plan.format} · {plan.drawingUnit}</Badge>
+        <h1 style={{ fontSize: 'var(--text-xl)' }}>
+          {plan.propertyName} · {plan.level}
+        </h1>
+        <div
+          style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}
+        >
+          <Badge tone="neutral">
+            {plan.format} · {plan.drawingUnit}
+          </Badge>
           {/* Provenance, not decoration: rings were drawn, walls were closed by the
               extractor's polygonizer. Same number, different level of trust. */}
           <Badge tone="neutral">{t(m, `plan.strategy.${strategy}`)}</Badge>
@@ -51,7 +64,8 @@ export default async function PlanReviewPage({
               : ` · ${(reconciliation.deviationPct * 100).toFixed(2)}%`}
           </Badge>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
-            {t(m, 'plan.lettable')}: <span className="tnum">{reconciliation.sumSqm.toFixed(3)} m²</span>
+            {t(m, 'plan.lettable')}:{' '}
+            <span className="tnum">{reconciliation.sumSqm.toFixed(3)} m²</span>
             {reconciliation.statedSqm === null
               ? ''
               : ` / ${t(m, 'plan.stated')}: ${reconciliation.statedSqm.toFixed(3)} m²`}
@@ -66,7 +80,9 @@ export default async function PlanReviewPage({
 
       {!reconciliation.verdict.startsWith('within') && (
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
-          {reconciliation.verdict === 'no_statement' ? t(m, 'plan.no_statement.hint') : t(m, 'plan.outside.hint')}
+          {reconciliation.verdict === 'no_statement'
+            ? t(m, 'plan.no_statement.hint')
+            : t(m, 'plan.outside.hint')}
         </p>
       )}
 
@@ -95,25 +111,38 @@ export default async function PlanReviewPage({
             <tbody>
               {rooms.map((room) => (
                 <tr key={room.code}>
-                  <td className="tnum" style={{ fontFamily: 'var(--font-mono, monospace)' }}>{room.code}</td>
+                  <td className="tnum" style={{ fontFamily: 'var(--font-mono, monospace)' }}>
+                    {room.code}
+                  </td>
                   <td>{room.label ?? '—'}</td>
-                  <td><Badge tone={room.kind === 'unit' ? 'accent' : 'neutral'}>{room.kind}</Badge></td>
+                  <td>
+                    <Badge tone={room.kind === 'unit' ? 'accent' : 'neutral'}>{room.kind}</Badge>
+                  </td>
                   <td className="tnum">{room.areaSqm.toFixed(2)}</td>
                   <td style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
                     {room.source}
-                                        {room.confidence === null
+                    {room.confidence === null
                       ? ''
                       : ` · ${t(m, 'plan.confidence')} ${room.confidence.toFixed(2)}`}
                   </td>
                   <td style={{ fontSize: 'var(--text-xs)' }}>
-                    {room.confirmedAt ?? <span style={{ color: 'var(--muted-foreground)' }}>—</span>}
+                    {room.confirmedAt ?? (
+                      <span style={{ color: 'var(--muted-foreground)' }}>—</span>
+                    )}
                   </td>
                   <td>
                     {room.confirmedAt === null && (
                       <form action={confirmRoomAction}>
                         <input type="hidden" name="planId" value={plan.id} />
                         <input type="hidden" name="code" value={room.code} />
-                        <button type="submit" style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
+                        <button
+                          type="submit"
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: '1px solid var(--border)',
+                          }}
+                        >
                           {t(m, 'plan.confirm')}
                         </button>
                       </form>
@@ -128,7 +157,9 @@ export default async function PlanReviewPage({
 
       <section style={{ display: 'grid', gap: 'var(--space-2)', maxWidth: 620 }}>
         <strong style={{ fontSize: 'var(--text-sm)' }}>{t(m, 'plan.propose')}</strong>
-        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>{t(m, 'plan.propose.hint')}</p>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
+          {t(m, 'plan.propose.hint')}
+        </p>
         <form action={proposeUnitsAction}>
           <input type="hidden" name="planId" value={plan.id} />
           <button

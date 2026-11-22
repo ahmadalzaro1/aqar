@@ -10,7 +10,9 @@ const result = await sendEmail(email, {
   subject,
   text: 'طلبك وصل — السباك رح يوصلك بكرا الساعة 9:00 صباحاً.',
 });
-console.info(JSON.stringify({ smtpUrl: email.smtpUrl, from: email.from, subject, result }, null, 2));
+console.info(
+  JSON.stringify({ smtpUrl: email.smtpUrl, from: email.from, subject, result }, null, 2),
+);
 
 const deadline = Date.now() + 15_000;
 while (Date.now() < deadline) {

@@ -173,7 +173,11 @@ export function scaleWarnings(ring: Ring, unit: DrawingUnit): readonly ScaleWarn
   const factor = METRES_PER_UNIT[unit];
   // Unrounded on purpose: a room read in the wrong unit rounds to 0.000 m², and a
   // rounded zero would be reported as `degenerate` instead of "your scale is off".
-  return scaleWarningsForMetres(ringArea(ring) * factor * factor, size.width * factor, size.height * factor);
+  return scaleWarningsForMetres(
+    ringArea(ring) * factor * factor,
+    size.width * factor,
+    size.height * factor,
+  );
 }
 
 export type ReconciliationVerdict = 'no_statement' | 'within' | 'outside';
@@ -206,7 +210,14 @@ export function reconcileAreas(
 ): Reconciliation {
   const sumSqm = round3(rooms.reduce((total, room) => total + room.areaSqm, 0));
   if (statedSqm === null || statedSqm <= 0) {
-    return { sumSqm, statedSqm: null, deviationSqm: null, deviationPct: null, verdict: 'no_statement', tolerance };
+    return {
+      sumSqm,
+      statedSqm: null,
+      deviationSqm: null,
+      deviationPct: null,
+      verdict: 'no_statement',
+      tolerance,
+    };
   }
   const deviationSqm = round3(sumSqm - statedSqm);
   const deviationPct = Math.round((Math.abs(deviationSqm) / statedSqm) * 10000) / 10000;

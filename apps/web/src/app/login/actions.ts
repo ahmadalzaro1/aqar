@@ -10,7 +10,9 @@ const schema = z.object({
   totp: z.string().optional(),
 });
 
-export interface LoginState { error: string | null }
+export interface LoginState {
+  error: string | null;
+}
 
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const parsed = schema.safeParse({
@@ -20,7 +22,12 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   });
   if (!parsed.success) return { error: 'login.error.required' };
   const totp = parsed.data.totp;
-  const result = await login(parsed.data.email, parsed.data.password, totp === undefined || totp === '' ? null : totp);
-  if (!result.ok) return { error: result.error === 'totp' ? 'login.error.totp' : 'login.error.invalid' };
+  const result = await login(
+    parsed.data.email,
+    parsed.data.password,
+    totp === undefined || totp === '' ? null : totp,
+  );
+  if (!result.ok)
+    return { error: result.error === 'totp' ? 'login.error.totp' : 'login.error.invalid' };
   redirect('/dashboard');
 }

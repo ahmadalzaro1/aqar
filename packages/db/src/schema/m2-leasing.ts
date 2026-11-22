@@ -180,7 +180,10 @@ export const screeningResults = pgTable(
     kind: text('kind').notNull(),
     score: integer('score'),
     passed: boolean('passed').notNull(),
-    details: jsonb('details').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    details: jsonb('details')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     checkedAt: timestamp('checked_at', { withTimezone: true }).notNull(),
     ...auditTimestamps(),
   },
@@ -188,7 +191,10 @@ export const screeningResults = pgTable(
     index('screening_results_org_idx').on(t.organizationId),
     index('screening_results_application_idx').on(t.applicationId),
     uniqueIndex('screening_results_application_kind_uq').on(t.applicationId, t.kind),
-    check('screening_results_score_ck', sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`),
+    check(
+      'screening_results_score_ck',
+      sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`,
+    ),
   ],
 );
 

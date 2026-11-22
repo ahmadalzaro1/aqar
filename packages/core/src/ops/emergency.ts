@@ -48,7 +48,16 @@ export const HAZARD_SIGNALS: readonly HazardSignal[] = [
   {
     id: 'gas_leak',
     category: 'gas',
-    patterns: ['تسرب غاز', 'تسرب الغاز', 'تسريب غاز', 'gas leak', 'leaking gas', 'gas leaking', 'gas is leaking', 'leak of gas'],
+    patterns: [
+      'تسرب غاز',
+      'تسرب الغاز',
+      'تسريب غاز',
+      'gas leak',
+      'leaking gas',
+      'gas leaking',
+      'gas is leaking',
+      'leak of gas',
+    ],
   },
   {
     id: 'gas_smell',
@@ -119,7 +128,28 @@ export const HAZARD_SIGNALS: readonly HazardSignal[] = [
   {
     id: 'flooding',
     category: 'water',
-    patterns: ['فيضان', 'تسرب مياه', 'تسرب الماء', 'انفجار انبوب', 'المياه تغرق', 'طفح', 'بيفيض', 'مي بكل مكان', 'مياه بكل مكان', 'flooding', 'flood', 'burst pipe', 'water leak', 'pipe burst', 'overflow', 'overflowing', 'water everywhere', 'water all over', 'standing water', 'water pooling'],
+    patterns: [
+      'فيضان',
+      'تسرب مياه',
+      'تسرب الماء',
+      'انفجار انبوب',
+      'المياه تغرق',
+      'طفح',
+      'بيفيض',
+      'مي بكل مكان',
+      'مياه بكل مكان',
+      'flooding',
+      'flood',
+      'burst pipe',
+      'water leak',
+      'pipe burst',
+      'overflow',
+      'overflowing',
+      'water everywhere',
+      'water all over',
+      'standing water',
+      'water pooling',
+    ],
   },
   {
     id: 'no_water',
@@ -145,22 +175,77 @@ export const HAZARD_SIGNALS: readonly HazardSignal[] = [
   {
     id: 'elevator_entrapment',
     category: 'elevator',
-    patterns: ['محتجز بالمصعد', 'محتجز في المصعد', 'عالق بالمصعد', 'عالق في المصعد', 'بين الطوابق', 'المصعد واقف', 'واقف بين الطوابق', 'trapped in elevator', 'trapped in the elevator', 'stuck in elevator', 'stuck in the elevator', 'stopped between floors', 'stuck between floors', 'elevator stopped', 'elevator is stuck'],
+    patterns: [
+      'محتجز بالمصعد',
+      'محتجز في المصعد',
+      'عالق بالمصعد',
+      'عالق في المصعد',
+      'بين الطوابق',
+      'المصعد واقف',
+      'واقف بين الطوابق',
+      'trapped in elevator',
+      'trapped in the elevator',
+      'stuck in elevator',
+      'stuck in the elevator',
+      'stopped between floors',
+      'stuck between floors',
+      'elevator stopped',
+      'elevator is stuck',
+    ],
   },
   {
     id: 'structural',
     category: 'structural',
-    patterns: ['تصدع', 'انهيار', 'سقوط جدار', 'تشقق الجدران', 'يتدلى', 'متدلي', 'تهدل', 'آيل للسقوط', 'ايل للسقوط', 'crack', 'cracks', 'cracked', 'collapse', 'collapsed', 'structural', 'wall falling', 'sagging', 'sag', 'bulging'],
+    patterns: [
+      'تصدع',
+      'انهيار',
+      'سقوط جدار',
+      'تشقق الجدران',
+      'يتدلى',
+      'متدلي',
+      'تهدل',
+      'آيل للسقوط',
+      'ايل للسقوط',
+      'crack',
+      'cracks',
+      'cracked',
+      'collapse',
+      'collapsed',
+      'structural',
+      'wall falling',
+      'sagging',
+      'sag',
+      'bulging',
+    ],
   },
   {
     id: 'lock_failure',
     category: 'lock',
-    patterns: ['قفل', 'مقفل', 'ما بقدر افتح', 'ما بقدر أفتح', 'لا استطيع فتح الباب', 'locked out', 'lock broken', 'lock is broken', 'door lock'],
+    patterns: [
+      'قفل',
+      'مقفل',
+      'ما بقدر افتح',
+      'ما بقدر أفتح',
+      'لا استطيع فتح الباب',
+      'locked out',
+      'lock broken',
+      'lock is broken',
+      'door lock',
+    ],
   },
   {
     id: 'no_heat',
     category: 'hvac',
-    patterns: ['ما في تدفئة', 'ما في تدفئه', 'تدفئة مقطوعة', 'بلا تدفئة', 'no heat', 'no heating', 'heating is off', 'freezing'],
+    patterns: [
+      'ما في تدفئة',
+      'ما في تدفئه',
+      'تدفئة مقطوعة',
+      'بلا تدفئة',
+      'no heat',
+      'no heating',
+      'heating is off',
+      'freezing',
+    ],
   },
 ];
 
@@ -181,13 +266,13 @@ function phraseRegex(normalizedPattern: string): RegExp {
 }
 
 /** Normalized patterns per signal id, built once at load (pure string ops). */
-const NORMALIZED_PATTERNS: ReadonlyArray<{ id: HazardSignalId; regex: RegExp }> = HAZARD_SIGNALS.flatMap(
-  (signal) =>
+const NORMALIZED_PATTERNS: ReadonlyArray<{ id: HazardSignalId; regex: RegExp }> =
+  HAZARD_SIGNALS.flatMap((signal) =>
     signal.patterns.map((pattern) => ({
       id: signal.id,
       regex: phraseRegex(normalizeText(pattern)),
     })),
-);
+  );
 
 function matchesAny(normalizedText: string, regex: RegExp): boolean {
   return regex.test(normalizedText);

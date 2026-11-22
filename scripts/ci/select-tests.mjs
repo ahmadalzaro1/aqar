@@ -79,24 +79,37 @@ function git(args) {
 }
 
 if (!base && filesArg === null) {
-  emit({ mode: 'all', packages: [], reason: 'no base sha (first push or force-push) — running everything' });
+  emit({
+    mode: 'all',
+    packages: [],
+    reason: 'no base sha (first push or force-push) — running everything',
+  });
   process.exit(0);
 }
 
 let changed = [];
 const api = viaApi ? await changedFromApi() : null;
 if (api && api.truncated) {
-  emit({ mode: 'all', packages: [], reason: 'PR touches 100+ files (list may be truncated) — running everything' });
+  emit({
+    mode: 'all',
+    packages: [],
+    reason: 'PR touches 100+ files (list may be truncated) — running everything',
+  });
   process.exit(0);
 }
 if (api) {
   changed = api.files;
 } else if (filesArg !== null) {
   // test hook: an explicit list lets the selector's own tests exercise it
-  changed = filesArg.split(',').map((s) => s.trim()).filter(Boolean);
+  changed = filesArg
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 } else {
   try {
-    changed = git(['diff', '--name-only', `${base}...${head}`]).split('\n').filter(Boolean);
+    changed = git(['diff', '--name-only', `${base}...${head}`])
+      .split('\n')
+      .filter(Boolean);
   } catch {
     emit({ mode: 'all', packages: [], reason: 'cannot diff base..head — running everything' });
     process.exit(0);
@@ -128,13 +141,18 @@ const manifest = new Map();
 for (const dir of pkgDirs) {
   const p = JSON.parse(readFileSync(`${dir}/package.json`, 'utf8'));
   const deps = { ...p.dependencies, ...p.devDependencies };
-  manifest.set(dir, { name: p.name, deps: Object.keys(deps).filter((d) => d.startsWith('@aqar/')) });
+  manifest.set(dir, {
+    name: p.name,
+    deps: Object.keys(deps).filter((d) => d.startsWith('@aqar/')),
+  });
 }
 const nameToDir = new Map([...manifest].map(([dir, m]) => [m.name, dir]));
 
 const touched = new Set();
 for (const file of changed) {
-  const dir = pkgDirs.filter((d) => file.startsWith(d + '/')).sort((a, b) => b.length - a.length)[0];
+  const dir = pkgDirs
+    .filter((d) => file.startsWith(d + '/'))
+    .sort((a, b) => b.length - a.length)[0];
   if (!dir) {
     emit({ mode: 'all', packages: [], reason: `changed file outside any package: ${file}` });
     process.exit(0);
@@ -155,4 +173,9 @@ while (grew) {
   }
 }
 
-emit({ mode: 'affected', packages: [...touched].sort(), changed: changed.length, reason: 'diff-reachable packages' });
+emit({
+  mode: 'affected',
+  packages: [...touched].sort(),
+  changed: changed.length,
+  reason: 'diff-reachable packages',
+});

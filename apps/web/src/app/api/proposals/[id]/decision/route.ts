@@ -8,12 +8,19 @@ export const dynamic = 'force-dynamic';
 
 const bodySchema = z.object({ decision: z.enum(['approve', 'reject']) });
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+): Promise<Response> {
   const user = await getSessionUser();
   if (user === null) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'body must be {"decision":"approve"|"reject"}' }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: 'body must be {"decision":"approve"|"reject"}' },
+      { status: 400 },
+    );
 
   const { id } = await context.params;
   try {

@@ -12,7 +12,10 @@ const shareSetArb: fc.Arbitrary<OwnerShare[]> = fc
     for (let index = 1; index < bounds.length; index += 1) {
       const lower = bounds[index - 1] ?? 0;
       const upper = bounds[index] ?? 10000;
-      shares.push({ ownerId: `owner-${String(index - 1).padStart(2, '0')}`, shareBps: upper - lower });
+      shares.push({
+        ownerId: `owner-${String(index - 1).padStart(2, '0')}`,
+        shareBps: upper - lower,
+      });
     }
     return shares;
   });

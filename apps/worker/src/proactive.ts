@@ -57,8 +57,7 @@ export async function runProactiveCycle(
   const expired = await expireUnanswered(sql, orgId, now);
 
   const summary: ProactiveCycleSummary = {
-    scanned:
-      scanned.leaseExpiring + scanned.rentDueSoon + scanned.rentOverdue + scanned.slaBreach,
+    scanned: scanned.leaseExpiring + scanned.rentDueSoon + scanned.rentOverdue + scanned.slaBreach,
     published: relay.published,
     intentsCreated: relay.intentsCreated,
     sent: dispatch.sent,
@@ -68,7 +67,10 @@ export async function runProactiveCycle(
     localHour,
   };
 
-  if (summary.scanned + summary.published + summary.sent + summary.suppressed + summary.expired > 0) {
+  if (
+    summary.scanned + summary.published + summary.sent + summary.suppressed + summary.expired >
+    0
+  ) {
     log(
       `[proactive] scan=${String(summary.scanned)} published=${String(summary.published)} ` +
         `intents=${String(summary.intentsCreated)} sent=${String(summary.sent)} ` +
@@ -132,7 +134,9 @@ export async function startProactiveRuntime(options: {
     // Dev convenience: prove the wiring in seconds instead of waiting a quarter
     // hour. Production leaves this off so a restart storm cannot stampede.
     await runProactiveCycle(options.sql, options.orgId, options.log).catch((err: unknown) => {
-      options.log(`[proactive] boot cycle failed: ${err instanceof Error ? err.message : String(err)}`);
+      options.log(
+        `[proactive] boot cycle failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     });
   }
 

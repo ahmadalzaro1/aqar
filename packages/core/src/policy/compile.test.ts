@@ -14,7 +14,12 @@ describe('compilePolicy — the properties a stored decision depends on', () => 
   const policy = compilePolicy();
 
   it('is deterministic: same facts, byte-identical decision', () => {
-    const facts = { kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant' } as const;
+    const facts = {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment(),
+      role: 'accountant',
+    } as const;
     expect(JSON.stringify(policy.decide(facts))).toBe(JSON.stringify(policy.decide(facts)));
   });
 
@@ -22,9 +27,28 @@ describe('compilePolicy — the properties a stored decision depends on', () => 
     const shapes = [
       { kind: 'proposal', action: 'post_payment', args: {}, role: 'nobody' },
       { kind: 'proposal', action: 'unknown_action', args: {}, role: 'accountant' },
-      { kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v', amountFils: 10 }, role: 'accountant' },
-      { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u1', executedAt: '2026-11-21T00:00:00Z', now: '2026-11-21T01:00:00Z' },
-      { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u1', executedAt: 'not a date', now: 'also not' },
+      {
+        kind: 'proposal',
+        action: 'dispatch_vendor',
+        args: { ticketId: 't', vendorId: 'v', amountFils: 10 },
+        role: 'accountant',
+      },
+      {
+        kind: 'reversal',
+        action: 'post_payment',
+        role: 'accountant',
+        actorId: 'u1',
+        executedAt: '2026-11-21T00:00:00Z',
+        now: '2026-11-21T01:00:00Z',
+      },
+      {
+        kind: 'reversal',
+        action: 'post_payment',
+        role: 'accountant',
+        actorId: 'u1',
+        executedAt: 'not a date',
+        now: 'also not',
+      },
     ] as const;
     for (const facts of shapes) {
       expect(['allow', 'approve_required', 'deny']).toContain(policy.decide(facts).verdict);
@@ -33,7 +57,12 @@ describe('compilePolicy — the properties a stored decision depends on', () => 
 
   it('forbid overrides: a denied role is never outvoted by satisfied allows', () => {
     // Every other rule here is satisfied (known action, valid shape, tiny amount).
-    const decision = policy.decide({ kind: 'proposal', action: 'post_payment', args: payment({ amountFils: 1 }), role: 'maintenance_coordinator' });
+    const decision = policy.decide({
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment({ amountFils: 1 }),
+      role: 'maintenance_coordinator',
+    });
     expect(decision.verdict).toBe('deny');
     expect(decision.decisive.map((r) => r.rule)).toContain('role.approver');
     expect(decision.rules.filter((r) => r.verdict === 'allow').length).toBeGreaterThan(0);
@@ -48,7 +77,13 @@ describe('compilePolicy — the properties a stored decision depends on', () => 
 
 describe('compilePolicy — differential against evaluateProposal', () => {
   it('changes no existing answer', () => {
-    const roles = ['owner_admin', 'accountant', 'property_manager', 'maintenance_coordinator', 'viewer'];
+    const roles = [
+      'owner_admin',
+      'accountant',
+      'property_manager',
+      'maintenance_coordinator',
+      'viewer',
+    ];
     const argSets: Record<string, unknown>[] = [
       payment(),
       payment({ amountFils: 0 }),
@@ -67,7 +102,9 @@ describe('compilePolicy — differential against evaluateProposal', () => {
         for (const role of roles) {
           const expected = evaluateProposal({ action, args, role }).verdict;
           const actual = policy.decide({ kind: 'proposal', action, args, role }).verdict;
-          expect(`${action}/${role}/${JSON.stringify(args)} => ${actual}`).toBe(`${action}/${role}/${JSON.stringify(args)} => ${expected}`);
+          expect(`${action}/${role}/${JSON.stringify(args)} => ${actual}`).toBe(
+            `${action}/${role}/${JSON.stringify(args)} => ${expected}`,
+          );
           compared++;
         }
       }
@@ -93,8 +130,12 @@ describe('policyVersion', () => {
   });
 
   it('changes when a limit changes — an edit cannot masquerade as the old policy', () => {
-    expect(policyVersion({ ...base, nteCeilingFils: base.nteCeilingFils + 1 })).not.toBe(policyVersion(base));
-    expect(policyVersion({ ...base, approverRoles: [...base.approverRoles, 'viewer'] })).not.toBe(policyVersion(base));
+    expect(policyVersion({ ...base, nteCeilingFils: base.nteCeilingFils + 1 })).not.toBe(
+      policyVersion(base),
+    );
+    expect(policyVersion({ ...base, approverRoles: [...base.approverRoles, 'viewer'] })).not.toBe(
+      policyVersion(base),
+    );
   });
 
   it('is a stable 12-hex-digit string', () => {
@@ -127,19 +168,32 @@ describe('separation of duties', () => {
       requester: { kind: 'agent' },
     });
     expect(decision.verdict).toBe('approve_required');
-    expect(decision.rules.find((r) => r.rule === 'sod.requester_not_approver')?.verdict).toBe('allow');
+    expect(decision.rules.find((r) => r.rule === 'sod.requester_not_approver')?.verdict).toBe(
+      'allow',
+    );
   });
 });
 
 describe('dual control', () => {
-  const withDual: PolicyLimits = { ...DEFAULT_POLICY_LIMITS, dualControlAboveFils: 100_000, requiredApprovers: 2 };
+  const withDual: PolicyLimits = {
+    ...DEFAULT_POLICY_LIMITS,
+    dualControlAboveFils: 100_000,
+    requiredApprovers: 2,
+  };
 
   it('states that no threshold is configured rather than implying it', () => {
     // The invariant is that the rule *reports* the configuration; the shipped
     // value is a separate fact, asserted below. An explicit null, not the default.
     const noDual = compilePolicy({ ...DEFAULT_POLICY_LIMITS, dualControlAboveFils: null });
-    const decision = noDual.decide({ kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant' });
-    expect(decision.rules.find((r) => r.rule === 'concurrence.dual_control')?.detail).toContain('no dual-control threshold');
+    const decision = noDual.decide({
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment(),
+      role: 'accountant',
+    });
+    expect(decision.rules.find((r) => r.rule === 'concurrence.dual_control')?.detail).toContain(
+      'no dual-control threshold',
+    );
   });
 
   it('ships with dual control above 400 JOD, below the NTE ceiling', () => {
@@ -147,28 +201,45 @@ describe('dual control', () => {
     expect(shipped.limits.dualControlAboveFils).toBe(400_000);
     expect(shipped.limits.dualControlAboveFils).toBeLessThan(shipped.limits.nteCeilingFils);
     const one = shipped.decide({
-      kind: 'proposal', action: 'post_payment', args: payment({ amountFils: 450_000 }), role: 'accountant', approvals: [{ userId: 'user-1' }],
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment({ amountFils: 450_000 }),
+      role: 'accountant',
+      approvals: [{ userId: 'user-1' }],
     });
     expect(one.decisive.map((r) => r.rule)).toContain('concurrence.distinct_approvers');
   });
 
   it('demands a second distinct approver above the threshold', () => {
     const one = compilePolicy(withDual).decide({
-      kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant', approvals: [{ userId: 'user-1' }],
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment(),
+      role: 'accountant',
+      approvals: [{ userId: 'user-1' }],
     });
     expect(one.verdict).toBe('approve_required');
     expect(one.decisive.map((r) => r.rule)).toContain('concurrence.distinct_approvers');
 
     const two = compilePolicy(withDual).decide({
-      kind: 'proposal', action: 'post_payment', args: payment(), role: 'accountant', approvals: [{ userId: 'user-1' }, { userId: 'user-2' }],
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment(),
+      role: 'accountant',
+      approvals: [{ userId: 'user-1' }, { userId: 'user-2' }],
     });
     expect(two.verdict).toBe('approve_required'); // still needs a human to actually press it
-    expect(two.rules.find((r) => r.rule === 'concurrence.distinct_approvers')?.verdict).toBe('allow');
+    expect(two.rules.find((r) => r.rule === 'concurrence.distinct_approvers')?.verdict).toBe(
+      'allow',
+    );
   });
 
   it('ignores the threshold below it', () => {
     const decision = compilePolicy(withDual).decide({
-      kind: 'proposal', action: 'post_payment', args: payment({ amountFils: 50_000 }), role: 'accountant',
+      kind: 'proposal',
+      action: 'post_payment',
+      args: payment({ amountFils: 50_000 }),
+      role: 'accountant',
     });
     expect(decision.rules.some((r) => r.rule === 'concurrence.distinct_approvers')).toBe(false);
   });
@@ -215,6 +286,8 @@ describe('reversal rules', () => {
 
   it('permits self-correction, and says so in the record', () => {
     const decision = compilePolicy().decide(facts());
-    expect(decision.rules.find((r) => r.rule === 'reversal.self_correction')?.verdict).toBe('allow');
+    expect(decision.rules.find((r) => r.rule === 'reversal.self_correction')?.verdict).toBe(
+      'allow',
+    );
   });
 });

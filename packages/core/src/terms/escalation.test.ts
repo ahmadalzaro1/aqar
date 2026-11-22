@@ -18,12 +18,12 @@ function terms(overrides: Partial<LeaseMoneyTerms> = {}): LeaseMoneyTerms {
 
 describe('escalationStepFils', () => {
   it('computes a percent step from the base rent, floored', () => {
-    expect(escalationStepFils(200_000, { kind: 'percent', basisPoints: 500, everyMonths: 12 })).toBe(
-      10_000,
-    );
-    expect(escalationStepFils(100_000, { kind: 'percent', basisPoints: 333, everyMonths: 12 })).toBe(
-      3_330,
-    );
+    expect(
+      escalationStepFils(200_000, { kind: 'percent', basisPoints: 500, everyMonths: 12 }),
+    ).toBe(10_000);
+    expect(
+      escalationStepFils(100_000, { kind: 'percent', basisPoints: 333, everyMonths: 12 }),
+    ).toBe(3_330);
   });
 
   it('returns zero for a none rule and the amount for a flat rule', () => {
@@ -60,7 +60,11 @@ describe('escalationSchedule', () => {
   });
 
   it('applies a flat step at each completed interval', () => {
-    const schedule = escalationSchedule(200_000, { kind: 'flat', amountFils: 25_000, everyMonths: 6 }, 13);
+    const schedule = escalationSchedule(
+      200_000,
+      { kind: 'flat', amountFils: 25_000, everyMonths: 6 },
+      13,
+    );
     expect(schedule[5]).toBe(200_000);
     expect(schedule[6]).toBe(225_000);
     expect(schedule[12]).toBe(250_000);

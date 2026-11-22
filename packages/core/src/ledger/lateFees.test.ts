@@ -11,7 +11,11 @@ const flat = (amountFils: number, graceDays = 0, capFils: number | null = null):
   capFils,
 });
 
-const percent = (basisPoints: number, graceDays = 0, capFils: number | null = null): LateFeeRule => ({
+const percent = (
+  basisPoints: number,
+  graceDays = 0,
+  capFils: number | null = null,
+): LateFeeRule => ({
   kind: 'percent',
   basisPoints,
   graceDays,

@@ -219,8 +219,7 @@ export function safetyInstructions(signalKey: string, locale: SafetyLocale): str
   const set = isKnownSignal(signalKey) ? SAFETY_INSTRUCTIONS[signalKey] : undefined;
   const steps = set === undefined ? (locale === 'ar' ? GENERIC_AR : GENERIC_EN) : set[locale];
   const footer = locale === 'ar' ? AR_FOOTER : EN_FOOTER;
-  const header =
-    locale === 'ar' ? 'إرشادات سلامة فورية:' : 'Immediate safety steps:';
+  const header = locale === 'ar' ? 'إرشادات سلامة فورية:' : 'Immediate safety steps:';
   return [header, ...steps.map((s, i) => `${i + 1}. ${s}`), footer].join('\n');
 }
 

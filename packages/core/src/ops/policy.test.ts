@@ -82,14 +82,18 @@ describe('evaluatePolicy — dry_run gate', () => {
 
 describe('evaluatePolicy — money movement needs a token', () => {
   it('denies move_money without a human approval token', () => {
-    const decision = evaluatePolicy(input({ action: 'move_money', humanApprovalTokenPresent: false }));
+    const decision = evaluatePolicy(
+      input({ action: 'move_money', humanApprovalTokenPresent: false }),
+    );
     expect(decision).toMatchObject(DENIAL);
     expect(decision.reasons).toEqual(['approval_token_required']);
     expect(decision.requiresHumanApproval).toBe(true);
   });
 
   it('denies post_payment without a human approval token', () => {
-    const decision = evaluatePolicy(input({ action: 'post_payment', humanApprovalTokenPresent: false }));
+    const decision = evaluatePolicy(
+      input({ action: 'post_payment', humanApprovalTokenPresent: false }),
+    );
     expect(decision.allowed).toBe(false);
     expect(decision.reasons).toContain('approval_token_required');
   });
@@ -130,29 +134,52 @@ describe('evaluatePolicy — not-to-exceed', () => {
   });
 
   it('skips the check when the property has no NTE limit', () => {
-    expect(evaluatePolicy(input({ amountFils: 9_000_000, nteLimitFils: null, orgDailySpendCapFils: 100_000_000 })).reasons).toEqual([]);
+    expect(
+      evaluatePolicy(
+        input({ amountFils: 9_000_000, nteLimitFils: null, orgDailySpendCapFils: 100_000_000 }),
+      ).reasons,
+    ).toEqual([]);
   });
 
   it('skips the check when no amount is committed', () => {
-    expect(evaluatePolicy(input({ action: 'send_tenant_message', amountFils: null, nteLimitFils: 1 })).reasons).toEqual([]);
+    expect(
+      evaluatePolicy(input({ action: 'send_tenant_message', amountFils: null, nteLimitFils: 1 }))
+        .reasons,
+    ).toEqual([]);
   });
 });
 
 describe('evaluatePolicy — N-of-M owner approvals', () => {
   it('denies while owner approvals are pending', () => {
-    const decision = evaluatePolicy(input({ action: 'approve_quote', approvalRequiredM: 3, approvalRequiredN: 2, approvalVotesYes: 1 }));
+    const decision = evaluatePolicy(
+      input({
+        action: 'approve_quote',
+        approvalRequiredM: 3,
+        approvalRequiredN: 2,
+        approvalVotesYes: 1,
+      }),
+    );
     expect(decision.allowed).toBe(false);
     expect(decision.reasons).toContain('owner_approval_pending');
   });
 
   it('allows once the required votes are in', () => {
-    const decision = evaluatePolicy(input({ action: 'approve_quote', approvalRequiredM: 3, approvalRequiredN: 2, approvalVotesYes: 2 }));
+    const decision = evaluatePolicy(
+      input({
+        action: 'approve_quote',
+        approvalRequiredM: 3,
+        approvalRequiredN: 2,
+        approvalVotesYes: 2,
+      }),
+    );
     expect(decision.allowed).toBe(true);
     expect(decision.reasons).toEqual([]);
   });
 
   it('does nothing when no approval group is configured', () => {
-    expect(evaluatePolicy(input({ approvalRequiredM: 0, approvalRequiredN: 0 })).reasons).toEqual([]);
+    expect(evaluatePolicy(input({ approvalRequiredM: 0, approvalRequiredN: 0 })).reasons).toEqual(
+      [],
+    );
   });
 });
 
@@ -160,7 +187,12 @@ describe('evaluatePolicy — quiet hours', () => {
   it('denies a tenant message inside a window that wraps midnight', () => {
     for (const hour of [22, 23, 0, 3, 6]) {
       const decision = evaluatePolicy(
-        input({ action: 'send_tenant_message', localHour: hour, quietHoursStart: 22, quietHoursEnd: 7 }),
+        input({
+          action: 'send_tenant_message',
+          localHour: hour,
+          quietHoursStart: 22,
+          quietHoursEnd: 7,
+        }),
       );
       expect(decision.allowed, `hour ${hour}`).toBe(false);
       expect(decision.reasons, `hour ${hour}`).toContain('quiet_hours');
@@ -176,56 +208,88 @@ describe('evaluatePolicy — quiet hours', () => {
   });
 
   it('handles a same-day window', () => {
-    const quiet = evaluatePolicy(input({ action: 'send_tenant_message', localHour: 9, quietHoursStart: 9, quietHoursEnd: 17 }));
+    const quiet = evaluatePolicy(
+      input({ action: 'send_tenant_message', localHour: 9, quietHoursStart: 9, quietHoursEnd: 17 }),
+    );
     expect(quiet.allowed).toBe(false);
-    const ok = evaluatePolicy(input({ action: 'send_tenant_message', localHour: 17, quietHoursStart: 9, quietHoursEnd: 17 }));
+    const ok = evaluatePolicy(
+      input({
+        action: 'send_tenant_message',
+        localHour: 17,
+        quietHoursStart: 9,
+        quietHoursEnd: 17,
+      }),
+    );
     expect(ok.allowed).toBe(true);
-    const before = evaluatePolicy(input({ action: 'send_tenant_message', localHour: 8, quietHoursStart: 9, quietHoursEnd: 17 }));
+    const before = evaluatePolicy(
+      input({ action: 'send_tenant_message', localHour: 8, quietHoursStart: 9, quietHoursEnd: 17 }),
+    );
     expect(before.allowed).toBe(true);
   });
 
   it('treats start === end as "quiet hours disabled"', () => {
-    const decision = evaluatePolicy(input({ action: 'send_tenant_message', localHour: 3, quietHoursStart: 0, quietHoursEnd: 0 }));
+    const decision = evaluatePolicy(
+      input({ action: 'send_tenant_message', localHour: 3, quietHoursStart: 0, quietHoursEnd: 0 }),
+    );
     expect(decision.reasons).toEqual([]);
   });
 
   it('applies quiet hours only to tenant contact', () => {
-    const decision = evaluatePolicy(input({ action: 'create_charge', localHour: 23, quietHoursStart: 22, quietHoursEnd: 7 }));
+    const decision = evaluatePolicy(
+      input({ action: 'create_charge', localHour: 23, quietHoursStart: 22, quietHoursEnd: 7 }),
+    );
     expect(decision.reasons).not.toContain('quiet_hours');
   });
 });
 
 describe('evaluatePolicy — tenant message frequency cap', () => {
   it('denies at or above the daily cap', () => {
-    const atCap = evaluatePolicy(input({ action: 'send_tenant_message', tenantMessagesToday: 5, tenantMessageDailyCap: 5 }));
+    const atCap = evaluatePolicy(
+      input({ action: 'send_tenant_message', tenantMessagesToday: 5, tenantMessageDailyCap: 5 }),
+    );
     expect(atCap.allowed).toBe(false);
     expect(atCap.reasons).toContain('frequency_cap');
 
-    const overCap = evaluatePolicy(input({ action: 'send_tenant_message', tenantMessagesToday: 9, tenantMessageDailyCap: 5 }));
+    const overCap = evaluatePolicy(
+      input({ action: 'send_tenant_message', tenantMessagesToday: 9, tenantMessageDailyCap: 5 }),
+    );
     expect(overCap.reasons).toContain('frequency_cap');
   });
 
   it('allows below the cap', () => {
-    const decision = evaluatePolicy(input({ action: 'send_tenant_message', tenantMessagesToday: 4, tenantMessageDailyCap: 5 }));
+    const decision = evaluatePolicy(
+      input({ action: 'send_tenant_message', tenantMessagesToday: 4, tenantMessageDailyCap: 5 }),
+    );
     expect(decision.allowed).toBe(true);
   });
 });
 
 describe('evaluatePolicy — org daily spend cap', () => {
   it('denies when today plus this action exceeds the cap', () => {
-    const decision = evaluatePolicy(input({ amountFils: 30_000, orgSpendTodayFils: 990_000, orgDailySpendCapFils: 1_000_000 }));
+    const decision = evaluatePolicy(
+      input({ amountFils: 30_000, orgSpendTodayFils: 990_000, orgDailySpendCapFils: 1_000_000 }),
+    );
     expect(decision.allowed).toBe(false);
     expect(decision.reasons).toContain('spend_cap');
   });
 
   it('allows exactly up to the cap', () => {
-    const decision = evaluatePolicy(input({ amountFils: 10_000, orgSpendTodayFils: 990_000, orgDailySpendCapFils: 1_000_000 }));
+    const decision = evaluatePolicy(
+      input({ amountFils: 10_000, orgSpendTodayFils: 990_000, orgDailySpendCapFils: 1_000_000 }),
+    );
     expect(decision.allowed).toBe(true);
     expect(decision.reasons).toEqual([]);
   });
 
   it('ignores the cap when no amount is committed', () => {
-    const decision = evaluatePolicy(input({ action: 'send_tenant_message', amountFils: null, orgSpendTodayFils: 5_000_000, orgDailySpendCapFils: 1 }));
+    const decision = evaluatePolicy(
+      input({
+        action: 'send_tenant_message',
+        amountFils: null,
+        orgSpendTodayFils: 5_000_000,
+        orgDailySpendCapFils: 1,
+      }),
+    );
     expect(decision.reasons).not.toContain('spend_cap');
   });
 });

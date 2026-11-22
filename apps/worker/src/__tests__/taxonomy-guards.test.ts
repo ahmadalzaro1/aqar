@@ -74,9 +74,9 @@ maybe('the database enforces the space taxonomy', () => {
   });
 
   it('refuses land that claims a building', async () => {
-    await expect(
-      insertUnit({ space_kind: 'land', building_id: buildingId }),
-    ).rejects.toThrow(/units_building_ck/);
+    await expect(insertUnit({ space_kind: 'land', building_id: buildingId })).rejects.toThrow(
+      /units_building_ck/,
+    );
   });
 
   it('refuses a flat with no bedroom count, and a warehouse with one', async () => {
@@ -114,7 +114,12 @@ maybe('the database enforces the space taxonomy', () => {
   });
 
   it('refuses shop attributes on a flat — the pairing is a trigger, not a convention', async () => {
-    const flatId = await insertUnit({ space_kind: 'flat', building_id: buildingId, bedrooms: 2, bathrooms: 1 });
+    const flatId = await insertUnit({
+      space_kind: 'flat',
+      building_id: buildingId,
+      bedrooms: 2,
+      bathrooms: 1,
+    });
     await expect(
       sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${orgId}, true)`;

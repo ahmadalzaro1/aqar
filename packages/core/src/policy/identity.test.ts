@@ -35,27 +35,132 @@ function observedRules(): readonly string[] {
   });
   const seen = new Set<string>();
   const record = (facts: Parameters<ReturnType<typeof compilePolicy>['decide']>[0]): void => {
-    for (const shape of shapes) for (const rule of compilePolicy(shape).decide(facts).rules) seen.add(rule.rule);
+    for (const shape of shapes)
+      for (const rule of compilePolicy(shape).decide(facts).rules) seen.add(rule.rule);
   };
 
   record({ kind: 'proposal', action: 'unheard_of', args: {}, role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 100_000, method: 'cliq' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 100_000, method: 'cheque' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 100_000, method: 'cash', allocations: [{ chargeId: 'c', amountFils: 1 }] }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 100_000, method: 'cash' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: base.nteCeilingFils + 1, method: 'cash' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 1, method: 'cash' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 450_000, method: 'cash' }), role: 'accountant' });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 450_000, method: 'cash' }), role: 'accountant', actorId: 'u-1', requester: { kind: 'human', userId: 'u-1' } });
-  record({ kind: 'proposal', action: 'post_payment', args: args({ amountFils: 450_000, method: 'cash' }), role: 'accountant', actorId: 'u-1', requester: { kind: 'agent' }, approvals: [{ userId: 'u-2' }, { userId: 'u-3' }] });
-  record({ kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'accountant' });
-  record({ kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'property_manager' });
-  record({ kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v', amountFils: base.nteCeilingFils + 1 }, role: 'property_manager' });
-  record({ kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt: '2026-05-01T00:00:00.000Z', now: '2026-06-01T00:00:00.000Z' });
-  record({ kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt: '2025-01-01T00:00:00.000Z', now: '2026-06-01T00:00:00.000Z' });
-  record({ kind: 'reversal', action: 'post_payment', role: 'viewer', actorId: 'u-1', executedAt: '2026-05-01T00:00:00.000Z', now: '2026-06-01T00:00:00.000Z' });
-  record({ kind: 'reversal', action: 'unheard_of', role: 'accountant', actorId: 'u-1', executedAt: '2026-05-01T00:00:00.000Z', now: '2026-06-01T00:00:00.000Z' });
-  record({ kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt: 'not a date', now: '2026-06-01T00:00:00.000Z' });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 100_000, method: 'cliq' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 100_000, method: 'cheque' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({
+      amountFils: 100_000,
+      method: 'cash',
+      allocations: [{ chargeId: 'c', amountFils: 1 }],
+    }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 100_000, method: 'cash' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: base.nteCeilingFils + 1, method: 'cash' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 1, method: 'cash' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 450_000, method: 'cash' }),
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 450_000, method: 'cash' }),
+    role: 'accountant',
+    actorId: 'u-1',
+    requester: { kind: 'human', userId: 'u-1' },
+  });
+  record({
+    kind: 'proposal',
+    action: 'post_payment',
+    args: args({ amountFils: 450_000, method: 'cash' }),
+    role: 'accountant',
+    actorId: 'u-1',
+    requester: { kind: 'agent' },
+    approvals: [{ userId: 'u-2' }, { userId: 'u-3' }],
+  });
+  record({
+    kind: 'proposal',
+    action: 'dispatch_vendor',
+    args: { ticketId: 't', vendorId: 'v' },
+    role: 'accountant',
+  });
+  record({
+    kind: 'proposal',
+    action: 'dispatch_vendor',
+    args: { ticketId: 't', vendorId: 'v' },
+    role: 'property_manager',
+  });
+  record({
+    kind: 'proposal',
+    action: 'dispatch_vendor',
+    args: { ticketId: 't', vendorId: 'v', amountFils: base.nteCeilingFils + 1 },
+    role: 'property_manager',
+  });
+  record({
+    kind: 'reversal',
+    action: 'post_payment',
+    role: 'accountant',
+    actorId: 'u-1',
+    executedAt: '2026-05-01T00:00:00.000Z',
+    now: '2026-06-01T00:00:00.000Z',
+  });
+  record({
+    kind: 'reversal',
+    action: 'post_payment',
+    role: 'accountant',
+    actorId: 'u-1',
+    executedAt: '2025-01-01T00:00:00.000Z',
+    now: '2026-06-01T00:00:00.000Z',
+  });
+  record({
+    kind: 'reversal',
+    action: 'post_payment',
+    role: 'viewer',
+    actorId: 'u-1',
+    executedAt: '2026-05-01T00:00:00.000Z',
+    now: '2026-06-01T00:00:00.000Z',
+  });
+  record({
+    kind: 'reversal',
+    action: 'unheard_of',
+    role: 'accountant',
+    actorId: 'u-1',
+    executedAt: '2026-05-01T00:00:00.000Z',
+    now: '2026-06-01T00:00:00.000Z',
+  });
+  record({
+    kind: 'reversal',
+    action: 'post_payment',
+    role: 'accountant',
+    actorId: 'u-1',
+    executedAt: 'not a date',
+    now: '2026-06-01T00:00:00.000Z',
+  });
 
   return [...seen].sort();
 }
@@ -77,7 +182,10 @@ describe('policy identity — the version covers more than the numbers', () => {
     const v = compilePolicy(base).version;
     expect(compilePolicy({ ...base, nteCeilingFils: base.nteCeilingFils + 1 }).version).not.toBe(v);
     expect(compilePolicy({ ...base, dualControlAboveFils: 1_000 }).version).not.toBe(v);
-    expect(compilePolicy({ ...base, policyEditorRoles: [...base.policyEditorRoles, 'accountant'] }).version).not.toBe(v);
+    expect(
+      compilePolicy({ ...base, policyEditorRoles: [...base.policyEditorRoles, 'accountant'] })
+        .version,
+    ).not.toBe(v);
   });
 
   it('folds behaviour in: two measured fingerprints give two versions', () => {

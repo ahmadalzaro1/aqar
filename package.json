@@ -29,12 +29,15 @@
     "test:selector": "node scripts/ci/select-tests.selftest.mjs",
     "shard:verify": "node scripts/ci/shard.mjs --package packages/core --shards 4 --verify",
     "test:inventory": "node scripts/ci/test-inventory.mjs --check",
-    "test:inventory:record": "node scripts/ci/test-inventory.mjs --record"
+    "test:inventory:record": "node scripts/ci/test-inventory.mjs --record",
+    "fmt": "oxfmt --write .",
+    "fmt:check": "oxfmt --check ."
   },
   "devDependencies": {
     "@node-rs/argon2": "^2.2.2",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "globals": "^17.14.0",
+    "oxfmt": "0.79.0",
     "oxlint": "1.94.0",
     "turbo": "^2.11.13",
     "typescript": "^6.0.3"

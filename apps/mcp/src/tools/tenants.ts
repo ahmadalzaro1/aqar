@@ -31,8 +31,15 @@ export function registerTenantTools(server: McpServer, ctx: ToolContext): void {
         'Record that a tenant promised to pay an amount by a date (e.g. from a WhatsApp message). Creates a record for the collections workflow; it does not post a payment.',
       inputSchema: {
         tenantId: z.string().uuid(),
-        amountFils: z.number().int().positive().describe('Promised amount in fils (1 JOD = 1000 fils)'),
-        promisedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('ISO date YYYY-MM-DD'),
+        amountFils: z
+          .number()
+          .int()
+          .positive()
+          .describe('Promised amount in fils (1 JOD = 1000 fils)'),
+        promisedDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .describe('ISO date YYYY-MM-DD'),
         note: z.string().max(500).optional(),
         sourceChannel: z.enum(['whatsapp', 'telegram', 'sms', 'email', 'in_app']).default('in_app'),
         idempotencyKey: z.string().min(1).max(200).optional(),
@@ -41,7 +48,11 @@ export function registerTenantTools(server: McpServer, ctx: ToolContext): void {
     },
     async ({ tenantId, amountFils, promisedDate, note, sourceChannel, idempotencyKey }) => {
       if (!canWrite(ctx.cfg.mode)) {
-        throw new ToolError('read_only_mode', 'This server is in read_only mode', 'Set AQAR_MCP_MODE=propose to record data.');
+        throw new ToolError(
+          'read_only_mode',
+          'This server is in read_only mode',
+          'Set AQAR_MCP_MODE=propose to record data.',
+        );
       }
 
       return ctx.sql.begin(async (tx) => {
@@ -65,14 +76,18 @@ export function registerTenantTools(server: McpServer, ctx: ToolContext): void {
           propertyId: tenant.propertyId ?? '00000000-0000-0000-0000-000000000000',
         });
         if (!decision.allowed) {
-          throw new ToolError('policy_denied', `Policy denied logging the promise: ${decision.reasons.join(', ')}`);
+          throw new ToolError(
+            'policy_denied',
+            `Policy denied logging the promise: ${decision.reasons.join(', ')}`,
+          );
         }
 
         // Deterministic when the caller supplies a key, random otherwise; either
         // way the id is explicit, so the insert has one fixed shape.
-        const promiseId = idempotencyKey === undefined
-          ? randomUUID()
-          : deterministicId('aqar.promise', idempotencyKey);
+        const promiseId =
+          idempotencyKey === undefined
+            ? randomUUID()
+            : deterministicId('aqar.promise', idempotencyKey);
 
         const inserted = await tx<{ id: string }[]>`
           insert into payment_promises (

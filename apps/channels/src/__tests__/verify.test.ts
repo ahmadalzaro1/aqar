@@ -39,14 +39,14 @@ describe('WhatsApp X-Hub-Signature-256 verification', () => {
   it('accepts signatures computed over non-ASCII bytes (Arabic body)', () => {
     const body = JSON.stringify({ text: 'تسرب مياه في الحمام' });
     const header = whatsAppSignature(KAT_SECRET, body);
-    expect(
-      verifyWhatsAppSignature({ rawBody: body, header, appSecret: KAT_SECRET }),
-    ).toBe(true);
+    expect(verifyWhatsAppSignature({ rawBody: body, header, appSecret: KAT_SECRET })).toBe(true);
   });
 
   it('rejects a signature made with a different secret', () => {
     const header = whatsAppSignature('some-other-secret', KAT_BODY);
-    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header, appSecret: KAT_SECRET })).toBe(false);
+    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header, appSecret: KAT_SECRET })).toBe(
+      false,
+    );
   });
 
   it('rejects a tampered body that reuses a valid signature', () => {
@@ -68,9 +68,15 @@ describe('WhatsApp X-Hub-Signature-256 verification', () => {
   });
 
   it('rejects a missing header', () => {
-    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header: undefined, appSecret: KAT_SECRET })).toBe(false);
-    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header: null, appSecret: KAT_SECRET })).toBe(false);
-    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header: '', appSecret: KAT_SECRET })).toBe(false);
+    expect(
+      verifyWhatsAppSignature({ rawBody: KAT_BODY, header: undefined, appSecret: KAT_SECRET }),
+    ).toBe(false);
+    expect(
+      verifyWhatsAppSignature({ rawBody: KAT_BODY, header: null, appSecret: KAT_SECRET }),
+    ).toBe(false);
+    expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header: '', appSecret: KAT_SECRET })).toBe(
+      false,
+    );
   });
 
   it('rejects malformed headers (missing prefix, wrong length, non-hex)', () => {
@@ -82,7 +88,9 @@ describe('WhatsApp X-Hub-Signature-256 verification', () => {
       `sha256=${'z'.repeat(64)}`,
       `sha256=${KAT_HEX.slice(0, 63)}`,
     ]) {
-      expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header, appSecret: KAT_SECRET })).toBe(false);
+      expect(verifyWhatsAppSignature({ rawBody: KAT_BODY, header, appSecret: KAT_SECRET })).toBe(
+        false,
+      );
     }
   });
 

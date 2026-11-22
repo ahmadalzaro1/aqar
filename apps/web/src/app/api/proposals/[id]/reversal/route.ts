@@ -15,11 +15,18 @@ const bodySchema = z.object({ reason: z.string().min(10, 'a reversal needs a rea
  * The reason is mandatory and stored: a reversal nobody can explain later is
  * indistinguishable from a mistake being covered up.
  */
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+): Promise<Response> {
   const user = await getSessionUser();
   if (user === null) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'body must be {"reason":"<at least 10 characters>"}' }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: 'body must be {"reason":"<at least 10 characters>"}' },
+      { status: 400 },
+    );
 
   const { id } = await context.params;
   try {

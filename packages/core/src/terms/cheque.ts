@@ -8,13 +8,14 @@ export type ChequeEvent = 'deposit' | 'clear' | 'bounce';
  * A bounced cheque is terminal; re-depositing is a new cheque record, never a
  * resurrection of the old one.
  */
-const TRANSITIONS: Readonly<Record<ChequeStatus, Readonly<Record<ChequeEvent, ChequeStatus | null>>>> =
-  {
-    received: { deposit: 'deposited', clear: null, bounce: null },
-    deposited: { deposit: null, clear: 'cleared', bounce: 'bounced' },
-    cleared: { deposit: null, clear: null, bounce: null },
-    bounced: { deposit: null, clear: null, bounce: null },
-  };
+const TRANSITIONS: Readonly<
+  Record<ChequeStatus, Readonly<Record<ChequeEvent, ChequeStatus | null>>>
+> = {
+  received: { deposit: 'deposited', clear: null, bounce: null },
+  deposited: { deposit: null, clear: 'cleared', bounce: 'bounced' },
+  cleared: { deposit: null, clear: null, bounce: null },
+  bounced: { deposit: null, clear: null, bounce: null },
+};
 
 export function chequeTransition(current: ChequeStatus, event: ChequeEvent): ChequeStatus {
   const next = TRANSITIONS[current][event];

@@ -83,19 +83,30 @@ const PLAN_SELECT = sql`
    where f.organization_id = `;
 
 export async function floorPlansForOrg(orgId: string): Promise<PlanRow[]> {
-  const rows = await sql<RawPlan[]>`${PLAN_SELECT}${orgId}::uuid order by f.created_at desc limit 50`;
+  const rows = await sql<
+    RawPlan[]
+  >`${PLAN_SELECT}${orgId}::uuid order by f.created_at desc limit 50`;
   return rows.map(toPlan);
 }
 
 export async function planDetail(orgId: string, planId: string): Promise<PlanDetail | null> {
-  const plans = await sql<RawPlan[]>`${PLAN_SELECT}${orgId}::uuid and f.id = ${planId}::uuid limit 1`;
+  const plans = await sql<
+    RawPlan[]
+  >`${PLAN_SELECT}${orgId}::uuid and f.id = ${planId}::uuid limit 1`;
   const plan = plans[0];
   if (plan === undefined) return null;
 
-  const rooms = await sql<{
-    code: string; label: string | null; room_kind: string; area_sqm: string;
-    source: string; confidence: string | null; confirmed_at: string | null;
-  }[]>`
+  const rooms = await sql<
+    {
+      code: string;
+      label: string | null;
+      room_kind: string;
+      area_sqm: string;
+      source: string;
+      confidence: string | null;
+      confirmed_at: string | null;
+    }[]
+  >`
     select code, label, room_kind, area_sqm, source, confidence, confirmed_at
       from plan_rooms where floor_plan_id = ${planId}::uuid
      order by case when room_kind = 'unit' then 0 else 1 end, area_sqm desc`;

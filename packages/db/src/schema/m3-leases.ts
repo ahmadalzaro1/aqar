@@ -13,12 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { auditTimestamps, isoDate, pkId } from './common.js';
-import {
-  leaseStatusEnum,
-  noticeDirectionEnum,
-  noticeKindEnum,
-  offerStatusEnum,
-} from './enums.js';
+import { leaseStatusEnum, noticeDirectionEnum, noticeKindEnum, offerStatusEnum } from './enums.js';
 import { users } from './auth.js';
 import { organizations } from './organizations.js';
 import { properties, units } from './m1-property.js';

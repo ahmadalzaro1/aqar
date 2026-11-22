@@ -21,7 +21,13 @@ function hostile(severity: Classification['severity'], emergencyFlag: boolean): 
   };
 }
 
-const ALL_SEVERITIES: Classification['severity'][] = ['emergency', 'high', 'medium', 'low', 'cosmetic'];
+const ALL_SEVERITIES: Classification['severity'][] = [
+  'emergency',
+  'high',
+  'medium',
+  'low',
+  'cosmetic',
+];
 
 describe('LAW 2 adversarial — hostile model cannot lower an emergency', () => {
   it('Arabic gas smell + model saying cosmetic stays Emergency', () => {
@@ -81,7 +87,10 @@ describe('LAW 2 adversarial — hostile model cannot lower an emergency', () => 
   });
 
   it('a non-hazard stays non-emergency when both layers agree (no false escalation)', () => {
-    const merged = mergeClassification(emergencyPrecheck('the tap is dripping'), hostile('low', false));
+    const merged = mergeClassification(
+      emergencyPrecheck('the tap is dripping'),
+      hostile('low', false),
+    );
     expect(merged.emergencyFlag).toBe(false);
     expect(merged.severity).toBe('low');
   });

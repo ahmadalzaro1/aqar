@@ -5,10 +5,21 @@
 // instructions — the system prompt carries that contract.
 import { z } from 'zod';
 
-export interface ToolCall { id: string; name: string; argumentsJson: string }
-export interface FunctionDefinition { name: string; description: string; parameters: Record<string, unknown> }
+export interface ToolCall {
+  id: string;
+  name: string;
+  argumentsJson: string;
+}
+export interface FunctionDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
 /** A function tool as the wire format names it. Distinct from `@aqar/agents` ToolSpec (a policy entry). */
-export interface ModelTool { type: 'function'; function: FunctionDefinition }
+export interface ModelTool {
+  type: 'function';
+  function: FunctionDefinition;
+}
 
 export type ChatMessage =
   | { role: 'system' | 'user'; content: string }
@@ -23,7 +34,11 @@ export interface ChatRequest {
   /** Function tools the model may call. Absent ⇒ text-only call, unchanged. */
   tools?: ModelTool[];
 }
-export interface ChatUsage { promptTokens: number; completionTokens: number; totalTokens: number }
+export interface ChatUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
 export interface ChatResponse {
   /** Empty string when the model answered with tool calls only. */
   content: string;
@@ -37,7 +52,10 @@ export interface ChatResponse {
 }
 
 export class ProviderError extends Error {
-  constructor(message: string, readonly kind: 'timeout' | 'http' | 'schema' | 'network') {
+  constructor(
+    message: string,
+    readonly kind: 'timeout' | 'http' | 'schema' | 'network',
+  ) {
     super(message);
     this.name = 'ProviderError';
   }
@@ -51,13 +69,17 @@ const toolCallSchema = z.object({
 
 const completionSchema = z.object({
   model: z.string(),
-  choices: z.array(z.object({
-    message: z.object({
-      content: z.string().nullable().optional(),
-      tool_calls: z.array(toolCallSchema).optional(),
-    }),
-    finish_reason: z.string().nullable().optional(),
-  })).min(1),
+  choices: z
+    .array(
+      z.object({
+        message: z.object({
+          content: z.string().nullable().optional(),
+          tool_calls: z.array(toolCallSchema).optional(),
+        }),
+        finish_reason: z.string().nullable().optional(),
+      }),
+    )
+    .min(1),
   usage: z.object({
     prompt_tokens: z.number().int().nonnegative(),
     completion_tokens: z.number().int().nonnegative(),
@@ -92,7 +114,9 @@ function toWireMessage(m: ChatMessage): Record<string, unknown> {
     const wire: Record<string, unknown> = { role: 'assistant', content: m.content };
     if (m.toolCalls !== undefined && m.toolCalls.length > 0) {
       wire['tool_calls'] = m.toolCalls.map((c) => ({
-        id: c.id, type: 'function', function: { name: c.name, arguments: c.argumentsJson },
+        id: c.id,
+        type: 'function',
+        function: { name: c.name, arguments: c.argumentsJson },
       }));
     }
     return wire;
@@ -105,14 +129,18 @@ export function createProvider(opts: ProviderOptions): ModelProvider {
   const base = opts.baseUrl.replace(/\/$/, '');
   const [costIn, costOut] = opts.costPerMillion ?? [0, 0];
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (opts.apiKey !== undefined && opts.apiKey.length > 0) headers['Authorization'] = `Bearer ${opts.apiKey}`;
+  if (opts.apiKey !== undefined && opts.apiKey.length > 0)
+    headers['Authorization'] = `Bearer ${opts.apiKey}`;
 
   async function post(path: string, body: unknown, timeoutMs: number): Promise<unknown> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await doFetch(`${base}${path}`, {
-        method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal,
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
       });
       if (!res.ok) {
         // A bare status cannot distinguish a rejected prefill from an overloaded
@@ -120,16 +148,21 @@ export function createProvider(opts: ProviderOptions): ModelProvider {
         // HTTP failure into a mislabelled network failure.
         let detail = '';
         try {
-          if (typeof res.text === 'function') detail = (await res.text()).replace(/\s+/g, ' ').slice(0, 300);
+          if (typeof res.text === 'function')
+            detail = (await res.text()).replace(/\s+/g, ' ').slice(0, 300);
         } catch {
           detail = '';
         }
-        throw new ProviderError(`HTTP ${res.status} from ${base}${path}${detail.length > 0 ? ` — ${detail}` : ''}`, 'http');
+        throw new ProviderError(
+          `HTTP ${res.status} from ${base}${path}${detail.length > 0 ? ` — ${detail}` : ''}`,
+          'http',
+        );
       }
       return (await res.json()) as unknown;
     } catch (err) {
       if (err instanceof ProviderError) throw err;
-      if (err instanceof Error && err.name === 'AbortError') throw new ProviderError(`timeout after ${timeoutMs}ms`, 'timeout');
+      if (err instanceof Error && err.name === 'AbortError')
+        throw new ProviderError(`timeout after ${timeoutMs}ms`, 'timeout');
       throw new ProviderError(err instanceof Error ? err.message : String(err), 'network');
     } finally {
       clearTimeout(timer);
@@ -153,14 +186,17 @@ export function createProvider(opts: ProviderOptions): ModelProvider {
       }
       const raw = await post('/chat/completions', body, req.timeoutMs ?? 30_000);
       const parsed = completionSchema.safeParse(raw);
-      if (!parsed.success) throw new ProviderError(`malformed completion: ${parsed.error.message}`, 'schema');
+      if (!parsed.success)
+        throw new ProviderError(`malformed completion: ${parsed.error.message}`, 'schema');
       const latencyMs = Math.round(performance.now() - started);
       const usage = parsed.data.usage;
       const first = parsed.data.choices[0];
       if (first === undefined) throw new ProviderError('empty choices', 'schema');
       const content = first.message.content ?? '';
       const toolCalls: ToolCall[] = (first.message.tool_calls ?? []).map((c) => ({
-        id: c.id, name: c.function.name, argumentsJson: c.function.arguments,
+        id: c.id,
+        name: c.function.name,
+        argumentsJson: c.function.arguments,
       }));
       // A completion with neither prose nor a tool call is a provider defect, not an empty answer.
       if (content.length === 0 && toolCalls.length === 0) {
@@ -171,34 +207,44 @@ export function createProvider(opts: ProviderOptions): ModelProvider {
         toolCalls,
         finishReason: first.finish_reason ?? null,
         model: parsed.data.model,
-        usage: { promptTokens: usage.prompt_tokens, completionTokens: usage.completion_tokens, totalTokens: usage.total_tokens },
+        usage: {
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalTokens: usage.total_tokens,
+        },
         latencyMs,
-        estimatedCostUsd: (usage.prompt_tokens * costIn + usage.completion_tokens * costOut) / 1_000_000,
+        estimatedCostUsd:
+          (usage.prompt_tokens * costIn + usage.completion_tokens * costOut) / 1_000_000,
       };
     },
     async embed(texts) {
       const raw = await post('/embeddings', { model: opts.model, input: texts }, 30_000);
       const parsed = embeddingSchema.safeParse(raw);
-      if (!parsed.success) throw new ProviderError(`malformed embeddings: ${parsed.error.message}`, 'schema');
+      if (!parsed.success)
+        throw new ProviderError(`malformed embeddings: ${parsed.error.message}`, 'schema');
       return parsed.data.data.map((d) => d.embedding);
     },
   };
 }
 
 /** Resolve configured endpoints from env. Cloud is DISABLED unless CLOUD_BASE_URL is set. */
-export function providersFromEnv(env: Record<string, string | undefined>): { local: ModelProvider; strong: ModelProvider | null } {
+export function providersFromEnv(env: Record<string, string | undefined>): {
+  local: ModelProvider;
+  strong: ModelProvider | null;
+} {
   const local = createProvider({
     baseUrl: env['LOCAL_BASE_URL'] ?? 'http://127.0.0.1:11434/v1',
     model: env['LOCAL_MODEL'] ?? 'lfm3-local',
   });
   const cloudUrl = env['CLOUD_BASE_URL'];
-  const strong = cloudUrl !== undefined && cloudUrl.length > 0
-    ? createProvider({
-        baseUrl: cloudUrl,
-        model: env['CLOUD_MODEL'] ?? 'strong',
-        ...(env['CLOUD_API_KEY'] !== undefined ? { apiKey: env['CLOUD_API_KEY'] } : {}),
-        costPerMillion: [Number(env['CLOUD_COST_IN'] ?? 0), Number(env['CLOUD_COST_OUT'] ?? 0)],
-      })
-    : null;
+  const strong =
+    cloudUrl !== undefined && cloudUrl.length > 0
+      ? createProvider({
+          baseUrl: cloudUrl,
+          model: env['CLOUD_MODEL'] ?? 'strong',
+          ...(env['CLOUD_API_KEY'] !== undefined ? { apiKey: env['CLOUD_API_KEY'] } : {}),
+          costPerMillion: [Number(env['CLOUD_COST_IN'] ?? 0), Number(env['CLOUD_COST_OUT'] ?? 0)],
+        })
+      : null;
   return { local, strong };
 }

@@ -110,30 +110,67 @@ describe('slaState', () => {
   });
 
   it('uses the recorded response instant, not now, once a response exists', () => {
-    const onTime = slaState(standard, 'high', OPENED, '2026-03-01T10:00:00.000Z', null, '2026-04-01T00:00:00.000Z');
+    const onTime = slaState(
+      standard,
+      'high',
+      OPENED,
+      '2026-03-01T10:00:00.000Z',
+      null,
+      '2026-04-01T00:00:00.000Z',
+    );
     expect(onTime.responseBreached).toBe(false);
     expect(onTime.resolutionBreached).toBe(true);
 
-    const late = slaState(standard, 'high', OPENED, '2026-03-01T13:00:00.000Z', null, '2026-03-01T13:05:00.000Z');
+    const late = slaState(
+      standard,
+      'high',
+      OPENED,
+      '2026-03-01T13:00:00.000Z',
+      null,
+      '2026-03-01T13:05:00.000Z',
+    );
     expect(late.responseBreached).toBe(true);
   });
 
   it('stops the resolution clock when the ticket is resolved', () => {
-    const resolvedOnTime = slaState(standard, 'high', OPENED, '2026-03-01T10:00:00.000Z', '2026-03-02T07:00:00.000Z', '2026-05-01T00:00:00.000Z');
+    const resolvedOnTime = slaState(
+      standard,
+      'high',
+      OPENED,
+      '2026-03-01T10:00:00.000Z',
+      '2026-03-02T07:00:00.000Z',
+      '2026-05-01T00:00:00.000Z',
+    );
     expect(resolvedOnTime.responseBreached).toBe(false);
     expect(resolvedOnTime.resolutionBreached).toBe(false);
 
-    const resolvedLate = slaState(standard, 'high', OPENED, '2026-03-01T10:00:00.000Z', '2026-03-02T08:01:00.000Z', '2026-03-02T08:02:00.000Z');
+    const resolvedLate = slaState(
+      standard,
+      'high',
+      OPENED,
+      '2026-03-01T10:00:00.000Z',
+      '2026-03-02T08:01:00.000Z',
+      '2026-03-02T08:02:00.000Z',
+    );
     expect(resolvedLate.resolutionBreached).toBe(true);
   });
 
   it('treats an emergency as breached one minute after opening', () => {
-    expect(slaState(standard, 'emergency', OPENED, null, null, OPENED).responseBreached).toBe(false);
-    expect(slaState(standard, 'emergency', OPENED, null, null, '2026-03-01T08:01:00.000Z').responseBreached).toBe(true);
+    expect(slaState(standard, 'emergency', OPENED, null, null, OPENED).responseBreached).toBe(
+      false,
+    );
+    expect(
+      slaState(standard, 'emergency', OPENED, null, null, '2026-03-01T08:01:00.000Z')
+        .responseBreached,
+    ).toBe(true);
   });
 
   it('rejects malformed instants rather than silently scoring them', () => {
-    expect(() => slaState(standard, 'high', 'not-a-date', null, null, OPENED)).toThrow(/invalid ISO instant/);
-    expect(() => slaState(standard, 'high', OPENED, null, null, 'nope')).toThrow(/invalid ISO instant/);
+    expect(() => slaState(standard, 'high', 'not-a-date', null, null, OPENED)).toThrow(
+      /invalid ISO instant/,
+    );
+    expect(() => slaState(standard, 'high', OPENED, null, null, 'nope')).toThrow(
+      /invalid ISO instant/,
+    );
   });
 });

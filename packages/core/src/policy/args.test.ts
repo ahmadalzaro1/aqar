@@ -24,23 +24,37 @@ describe('validateActionArgs — post_payment', () => {
   });
 
   it('accepts a cheque with a status', () => {
-    expect(validateActionArgs('post_payment', payment({ method: 'cheque', chequeStatus: 'deposited' }))).toEqual([]);
+    expect(
+      validateActionArgs('post_payment', payment({ method: 'cheque', chequeStatus: 'deposited' })),
+    ).toEqual([]);
   });
 
   it('rejects a cheque status on a non-cheque payment', () => {
-    const problems = validateActionArgs('post_payment', payment({ method: 'cliq', chequeStatus: 'cleared' }));
+    const problems = validateActionArgs(
+      'post_payment',
+      payment({ method: 'cliq', chequeStatus: 'cleared' }),
+    );
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain('cannot carry one');
   });
 
   it('rejects a fractional or non-positive amount', () => {
-    expect(validateActionArgs('post_payment', payment({ amountFils: 12.5 }))[0]).toContain('positive integer');
-    expect(validateActionArgs('post_payment', payment({ amountFils: 0 }))[0]).toContain('positive integer');
-    expect(validateActionArgs('post_payment', payment({ amountFils: '125000' }))[0]).toContain('positive integer');
+    expect(validateActionArgs('post_payment', payment({ amountFils: 12.5 }))[0]).toContain(
+      'positive integer',
+    );
+    expect(validateActionArgs('post_payment', payment({ amountFils: 0 }))[0]).toContain(
+      'positive integer',
+    );
+    expect(validateActionArgs('post_payment', payment({ amountFils: '125000' }))[0]).toContain(
+      'positive integer',
+    );
   });
 
   it('rejects an unknown method and a malformed date', () => {
-    const problems = validateActionArgs('post_payment', payment({ method: 'cheque-note', receivedDate: '21/11/2026' }));
+    const problems = validateActionArgs(
+      'post_payment',
+      payment({ method: 'cheque-note', receivedDate: '21/11/2026' }),
+    );
     expect(problems.some((p) => p.includes('"method"'))).toBe(true);
     expect(problems.some((p) => p.includes('receivedDate'))).toBe(true);
   });
@@ -72,23 +86,42 @@ describe('validateActionArgs — allocations', () => {
   });
 
   it('rejects a list that over-applies the payment, with both numbers', () => {
-    const problems = validateActionArgs('post_payment', withAllocations([{ chargeId: 'c', amountFils: 200_000 }]));
+    const problems = validateActionArgs(
+      'post_payment',
+      withAllocations([{ chargeId: 'c', amountFils: 200_000 }]),
+    );
     expect(problems).toHaveLength(1);
-    expect(problems[0]).toBe('allocations total 200000 fils exceeds the payment amount 125000 fils');
+    expect(problems[0]).toBe(
+      'allocations total 200000 fils exceeds the payment amount 125000 fils',
+    );
   });
 
   it('rejects a non-array, a non-object entry, and a bad amount', () => {
-    expect(validateActionArgs('post_payment', withAllocations('everything'))[0]).toContain('must be an array');
-    expect(validateActionArgs('post_payment', withAllocations(['charge-1']))[0]).toContain('allocations[0] must be an object');
-    expect(validateActionArgs('post_payment', withAllocations([{ chargeId: 'c', amountFils: 0 }]))[0]).toContain('positive integer');
-    expect(validateActionArgs('post_payment', withAllocations([{ amountFils: 10 }]))[0]).toContain('chargeId');
+    expect(validateActionArgs('post_payment', withAllocations('everything'))[0]).toContain(
+      'must be an array',
+    );
+    expect(validateActionArgs('post_payment', withAllocations(['charge-1']))[0]).toContain(
+      'allocations[0] must be an object',
+    );
+    expect(
+      validateActionArgs('post_payment', withAllocations([{ chargeId: 'c', amountFils: 0 }]))[0],
+    ).toContain('positive integer');
+    expect(validateActionArgs('post_payment', withAllocations([{ amountFils: 10 }]))[0]).toContain(
+      'chargeId',
+    );
   });
 });
 
 describe('validateActionArgs — dispatch_vendor', () => {
   it('accepts a dispatch with an optional ceiling', () => {
     expect(validateActionArgs('dispatch_vendor', { ticketId: 't-1', vendorId: 'v-1' })).toEqual([]);
-    expect(validateActionArgs('dispatch_vendor', { ticketId: 't-1', vendorId: 'v-1', amountFils: 60_000 })).toEqual([]);
+    expect(
+      validateActionArgs('dispatch_vendor', {
+        ticketId: 't-1',
+        vendorId: 'v-1',
+        amountFils: 60_000,
+      }),
+    ).toEqual([]);
   });
 
   it('requires both ids and refuses a fractional ceiling', () => {

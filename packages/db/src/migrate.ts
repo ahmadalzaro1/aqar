@@ -153,9 +153,7 @@ export async function migrateDown(url?: string, steps?: number): Promise<Migrate
         );
       }
       if (migration.checksum !== row.checksum) {
-        throw new Error(
-          `checksum drift for ${row.filename}: file changed after it was applied`,
-        );
+        throw new Error(`checksum drift for ${row.filename}: file changed after it was applied`);
       }
       const down = readFileSync(migration.downPath, 'utf8');
       await sql.begin(async (tx) => {
@@ -173,8 +171,7 @@ export async function migrateDown(url?: string, steps?: number): Promise<Migrate
 async function main(): Promise<void> {
   const [, , command = 'up', ...rest] = process.argv;
   const stepsFlag = rest.indexOf('--steps');
-  const steps =
-    stepsFlag >= 0 ? Number.parseInt(rest[stepsFlag + 1] ?? '', 10) : undefined;
+  const steps = stepsFlag >= 0 ? Number.parseInt(rest[stepsFlag + 1] ?? '', 10) : undefined;
 
   if (command === 'up') {
     const result = await migrateUp();
@@ -201,8 +198,7 @@ async function main(): Promise<void> {
   }
 }
 
-const invokedDirectly =
-  process.argv[1] !== undefined && process.argv[1].endsWith('migrate.ts');
+const invokedDirectly = process.argv[1] !== undefined && process.argv[1].endsWith('migrate.ts');
 
 if (invokedDirectly) {
   main().catch((error: unknown) => {

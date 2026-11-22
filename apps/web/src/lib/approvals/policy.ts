@@ -11,19 +11,30 @@
  *     the default on a parse error would silently widen policy for exactly the
  *     organization whose limits someone was editing.
  */
-import { compilePolicy, DEFAULT_POLICY_LIMITS, type CompiledPolicy, type PolicyLimits } from '@aqar/core';
+import {
+  compilePolicy,
+  DEFAULT_POLICY_LIMITS,
+  type CompiledPolicy,
+  type PolicyLimits,
+} from '@aqar/core';
 import { z } from 'zod';
 import { sql } from '@/lib/db';
 
-const limitsSchema = z.object({
-  approverRoles: z.array(z.string().min(1)).min(1).max(20),
-  nteCeilingFils: z.number().int().positive(),
-  autoApproveUnderFils: z.number().int().nonnegative(),
-  reversalWindowHours: z.number().int().positive().max(24 * 365),
-  dualControlAboveFils: z.number().int().positive().nullable(),
-  requiredApprovers: z.number().int().min(1).max(5),
-  policyEditorRoles: z.array(z.string().min(1)).min(1).max(5),
-}).strict();
+const limitsSchema = z
+  .object({
+    approverRoles: z.array(z.string().min(1)).min(1).max(20),
+    nteCeilingFils: z.number().int().positive(),
+    autoApproveUnderFils: z.number().int().nonnegative(),
+    reversalWindowHours: z
+      .number()
+      .int()
+      .positive()
+      .max(24 * 365),
+    dualControlAboveFils: z.number().int().positive().nullable(),
+    requiredApprovers: z.number().int().min(1).max(5),
+    policyEditorRoles: z.array(z.string().min(1)).min(1).max(5),
+  })
+  .strict();
 
 export const policyLimitsSchema = limitsSchema;
 
@@ -37,8 +48,12 @@ export async function loadPolicy(organizationId: string): Promise<CompiledPolicy
 
   const parsed = limitsSchema.safeParse(row.limits);
   if (!parsed.success) {
-    const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
-    throw new Error(`stored policy limits for this organization are unreadable (${issues}) — refusing to decide rather than apply a different policy`);
+    const issues = parsed.error.issues
+      .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `stored policy limits for this organization are unreadable (${issues}) — refusing to decide rather than apply a different policy`,
+    );
   }
   const limits: PolicyLimits = parsed.data;
   return compilePolicy(limits);

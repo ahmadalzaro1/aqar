@@ -6,13 +6,7 @@ import { units } from '../schema/index.js';
 import { runSeed } from '../seed.js';
 import postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
-import {
-  APP_URL,
-  TEST_URL,
-  createFixture,
-  resetSchema,
-  type Fixture,
-} from './helpers.js';
+import { APP_URL, TEST_URL, createFixture, resetSchema, type Fixture } from './helpers.js';
 
 let sql: postgres.Sql;
 let appSql: postgres.Sql;
@@ -65,7 +59,8 @@ describe('(2) row-level security', () => {
     expect(seenByA.some((row) => row.organizationId === b.orgId)).toBe(false);
 
     // No GUC set at all => zero tenant rows (fail closed, not "see everything").
-    const unfiltered = await appSql`select count(*)::int as n from units where organization_id = ${b.orgId}`;
+    const unfiltered =
+      await appSql`select count(*)::int as n from units where organization_id = ${b.orgId}`;
     expect(unfiltered[0]?.n).toBe(0);
 
     // Writing another tenant's row while scoped to A is rejected by WITH CHECK.
@@ -94,7 +89,9 @@ describe('(3) audit_events is append-only', () => {
     await sql`insert into audit_events (id, organization_id, actor, action, entity_type, entity_id, idempotency_key, occurred_at)
               values (${id}, ${orgId}, ${sql.json({ type: 'system', component: 'test' })}, 'test.create', 'organization', ${orgId}, ${'test:' + id}, now())`;
 
-    await expect(sql`update audit_events set action = 'tampered' where id = ${id}`).rejects.toThrow();
+    await expect(
+      sql`update audit_events set action = 'tampered' where id = ${id}`,
+    ).rejects.toThrow();
     await expect(sql`delete from audit_events where id = ${id}`).rejects.toThrow();
     const still = await sql`select action from audit_events where id = ${id}`;
     expect(still[0]?.action).toBe('test.create');
@@ -152,7 +149,8 @@ describe('(5) period locks', () => {
     // An open period is still writable.
     await sql`insert into charges (id, organization_id, lease_id, period, kind, amount_fils, due_date)
               values (${randomUUID()}, ${fx.orgId}, ${fx.leaseId}, '2026-02', 'rent', 400000, '2026-02-01')`;
-    const open = await sql`select count(*)::int as n from charges where organization_id = ${fx.orgId}`;
+    const open =
+      await sql`select count(*)::int as n from charges where organization_id = ${fx.orgId}`;
     expect(open[0]?.n).toBe(1);
   });
 });

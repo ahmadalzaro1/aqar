@@ -4,7 +4,8 @@ import type { Locale } from '@aqar/contracts';
 
 const en: Record<string, string> = {
   'bank.title': 'Bank import',
-  'bank.subtitle': 'Upload a statement, review every proposed match, then confirm. Nothing is written until you confirm.',
+  'bank.subtitle':
+    'Upload a statement, review every proposed match, then confirm. Nothing is written until you confirm.',
   'bank.step1': '1. Upload',
   'bank.step2': '2. Preview',
   'bank.step3': '3. Confirm',
@@ -15,28 +16,33 @@ const en: Record<string, string> = {
   'bank.pickFile': 'Choose CSV file',
   'bank.noFile': 'No file chosen',
   'bank.pasteLabel': 'Or paste CSV text',
-  'bank.pasteHint': 'Columns: date (YYYY-MM-DD), payer, amount (JOD), reference. Amounts are converted to integer fils.',
+  'bank.pasteHint':
+    'Columns: date (YYYY-MM-DD), payer, amount (JOD), reference. Amounts are converted to integer fils.',
   'bank.analyze': 'Analyze statement',
   'bank.analyzing': 'Analyzing…',
   'bank.reupload.title': 'This exact file was already imported',
-  'bank.reupload.body': 'Source hash {hash} matches an existing import. Re-uploading it would duplicate the statement, so nothing will be written.',
+  'bank.reupload.body':
+    'Source hash {hash} matches an existing import. Re-uploading it would duplicate the statement, so nothing will be written.',
   'bank.reupload.meta': '{fileName} · {accountLabel} · {lineCount} lines · {importedAt}',
   'bank.issues.title': 'Rows rejected — fix the file before importing',
   'bank.issues.none': 'No rejected rows.',
   'bank.fatal.emptyFile': 'The file is empty.',
-  'bank.fatal.missingHeader': 'The header must include date, payer and amount columns. Missing: {value}.',
+  'bank.fatal.missingHeader':
+    'The header must include date, payer and amount columns. Missing: {value}.',
   'bank.error.badDate': 'Row {row}: date "{value}" is not a valid YYYY-MM-DD date.',
   'bank.error.emptyPayer': 'Row {row}: payer is empty.',
   'bank.error.amountFormat': 'Row {row}: amount "{value}" is not a decimal number.',
   'bank.error.amountScale': 'Row {row}: amount "{value}" has more than 3 decimals; JOD has 3.',
-  'bank.error.amountNotPositive': 'Row {row}: amount "{value}" must be greater than zero (outgoing lines are not imported).',
+  'bank.error.amountNotPositive':
+    'Row {row}: amount "{value}" must be greater than zero (outgoing lines are not imported).',
   'bank.error.columnCount': 'Row {row}: expected 4 columns, found {value}.',
   'bank.error.malformedRow': 'Row {row}: unbalanced quotes.',
   'bank.preview.title': 'Preview',
   'bank.preview.total': 'Parsed lines',
   'bank.preview.new': 'New lines',
   'bank.preview.duplicates': 'Duplicates',
-  'bank.preview.summary': '{total} parsed · {fresh} new · {duplicates} duplicate(s) · {errors} rejected row(s)',
+  'bank.preview.summary':
+    '{total} parsed · {fresh} new · {duplicates} duplicate(s) · {errors} rejected row(s)',
   'bank.col.row': 'Row',
   'bank.col.date': 'Date',
   'bank.col.payer': 'Payer',
@@ -58,11 +64,13 @@ const en: Record<string, string> = {
   'bank.kind.partial': 'Partial',
   'bank.allocation.none': 'None',
   'bank.allocation.total': 'Allocated {amount}',
-  'bank.postable.note': 'A payment and its allocations are created only for Auto/Partial matches whose proposal covers the amount exactly. Everything else is stored as a suggestion for a human.',
+  'bank.postable.note':
+    'A payment and its allocations are created only for Auto/Partial matches whose proposal covers the amount exactly. Everything else is stored as a suggestion for a human.',
   'bank.confirm': 'Confirm import',
   'bank.confirming': 'Importing…',
   'bank.confirmBlocked': 'Resolve the rejected rows, or import nothing, before confirming.',
-  'bank.confirmHint': 'Confirming writes the statement, its lines, the suggestions and the eligible payments in one transaction.',
+  'bank.confirmHint':
+    'Confirming writes the statement, its lines, the suggestions and the eligible payments in one transaction.',
   'bank.done.title': 'Import committed',
   'bank.done.body': 'Import {id} committed in one transaction.',
   'bank.done.lines': '{count} bank line(s)',
@@ -97,21 +105,26 @@ const ar: Record<string, string> = {
   'bank.pickFile': 'اختر ملف CSV',
   'bank.noFile': 'لم يتم اختيار ملف',
   'bank.pasteLabel': 'أو الصق نص CSV',
-  'bank.pasteHint': 'الأعمدة: date (YYYY-MM-DD)، payer، amount (دينار)، reference. تُحوَّل المبالغ إلى فلس كأعداد صحيحة.',
+  'bank.pasteHint':
+    'الأعمدة: date (YYYY-MM-DD)، payer، amount (دينار)، reference. تُحوَّل المبالغ إلى فلس كأعداد صحيحة.',
   'bank.analyze': 'تحليل الكشف',
   'bank.analyzing': 'جارٍ التحليل…',
   'bank.reupload.title': 'هذا الملف نفسه سبق استيراده',
-  'bank.reupload.body': 'بصمة الملف {hash} تطابق استيراداً موجوداً. إعادة رفعه ستكرر الكشف، لذلك لن يُكتب أي شيء.',
+  'bank.reupload.body':
+    'بصمة الملف {hash} تطابق استيراداً موجوداً. إعادة رفعه ستكرر الكشف، لذلك لن يُكتب أي شيء.',
   'bank.reupload.meta': '{fileName} · {accountLabel} · {lineCount} سطراً · {importedAt}',
   'bank.issues.title': 'أسطر مرفوضة — صحّح الملف قبل الاستيراد',
   'bank.issues.none': 'لا أسطر مرفوضة.',
   'bank.fatal.emptyFile': 'الملف فارغ.',
-  'bank.fatal.missingHeader': 'يجب أن يحتوي رأس الجدول على أعمدة date وpayer وamount. المفقود: {value}.',
+  'bank.fatal.missingHeader':
+    'يجب أن يحتوي رأس الجدول على أعمدة date وpayer وamount. المفقود: {value}.',
   'bank.error.badDate': 'السطر {row}: التاريخ "{value}" ليس تاريخاً صحيحاً بصيغة YYYY-MM-DD.',
   'bank.error.emptyPayer': 'السطر {row}: اسم الدافع فارغ.',
   'bank.error.amountFormat': 'السطر {row}: المبلغ "{value}" ليس رقماً عشرياً.',
-  'bank.error.amountScale': 'السطر {row}: المبلغ "{value}" يحمل أكثر من ٣ منازل عشرية؛ الدينار بثلاث منازل.',
-  'bank.error.amountNotPositive': 'السطر {row}: المبلغ "{value}" يجب أن يكون أكبر من صفر (الحركات الصادرة لا تُستورد).',
+  'bank.error.amountScale':
+    'السطر {row}: المبلغ "{value}" يحمل أكثر من ٣ منازل عشرية؛ الدينار بثلاث منازل.',
+  'bank.error.amountNotPositive':
+    'السطر {row}: المبلغ "{value}" يجب أن يكون أكبر من صفر (الحركات الصادرة لا تُستورد).',
   'bank.error.columnCount': 'السطر {row}: المتوقع ٤ أعمدة، والموجود {value}.',
   'bank.error.malformedRow': 'السطر {row}: علامات اقتباس غير متوازنة.',
   'bank.preview.title': 'المعاينة',
@@ -140,7 +153,8 @@ const ar: Record<string, string> = {
   'bank.kind.partial': 'جزئي',
   'bank.allocation.none': 'لا يوجد',
   'bank.allocation.total': 'المخصص {amount}',
-  'bank.postable.note': 'يُنشأ قيد دفع وتوزيعاته فقط للمطابقات التلقائية/الجزئية التي يغطي مقترحها المبلغ بالكامل. كل ما عدا ذلك يُحفظ كاقتراح ينتظر قرار إنسان.',
+  'bank.postable.note':
+    'يُنشأ قيد دفع وتوزيعاته فقط للمطابقات التلقائية/الجزئية التي يغطي مقترحها المبلغ بالكامل. كل ما عدا ذلك يُحفظ كاقتراح ينتظر قرار إنسان.',
   'bank.confirm': 'تأكيد الاستيراد',
   'bank.confirming': 'جارٍ الاستيراد…',
   'bank.confirmBlocked': 'عالج الأسطر المرفوضة، أو لا تستورد شيئاً، قبل التأكيد.',

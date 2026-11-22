@@ -13,7 +13,11 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const run = (files) =>
-  JSON.parse(execFileSync('node', ['scripts/ci/select-tests.mjs', '--files', files], { encoding: 'utf8' }).trim());
+  JSON.parse(
+    execFileSync('node', ['scripts/ci/select-tests.mjs', '--files', files], {
+      encoding: 'utf8',
+    }).trim(),
+  );
 
 const deps = new Map();
 for (const root of ['packages', 'apps']) {
@@ -21,7 +25,12 @@ for (const root of ['packages', 'apps']) {
     const manifest = `${root}/${name}/package.json`;
     try {
       const p = JSON.parse(readFileSync(manifest, 'utf8'));
-      deps.set(`${root}/${name}`, Object.keys({ ...p.dependencies, ...p.devDependencies }).filter((d) => d.startsWith('@aqar/')));
+      deps.set(
+        `${root}/${name}`,
+        Object.keys({ ...p.dependencies, ...p.devDependencies }).filter((d) =>
+          d.startsWith('@aqar/'),
+        ),
+      );
     } catch {
       /* not a package */
     }
@@ -65,7 +74,8 @@ check('lockfile change reruns everything', () => {
 });
 
 check('any package.json reruns everything', () => {
-  if (run('apps/channels/package.json').mode !== 'all') throw new Error('manifest did not escalate');
+  if (run('apps/channels/package.json').mode !== 'all')
+    throw new Error('manifest did not escalate');
 });
 
 check('ci script change reruns everything', () => {

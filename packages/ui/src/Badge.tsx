@@ -12,11 +12,21 @@ const tones: Record<Tone, { bg: string; fg: string }> = {
 export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   const t = tones[tone];
   return (
-    <span style={{
-      background: t.bg, color: t.fg, borderRadius: 'var(--radius-sm)',
-      fontSize: 'var(--text-xs)', fontWeight: 600, paddingInline: 6, paddingBlock: 2,
-      display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-    }}>
+    <span
+      style={{
+        background: t.bg,
+        color: t.fg,
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 600,
+        paddingInline: 6,
+        paddingBlock: 2,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        whiteSpace: 'nowrap',
+      }}
+    >
       {children}
     </span>
   );

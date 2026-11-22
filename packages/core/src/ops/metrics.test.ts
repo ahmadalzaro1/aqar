@@ -10,7 +10,14 @@ import {
 
 describe('occupancyRate (frozen contracts enum)', () => {
   it('counts occupied over leasable stock in basis points', () => {
-    expect(occupancyRate([{ status: 'occupied' }, { status: 'occupied' }, { status: 'vacant' }, { status: 'turnover' }])).toBe(5000);
+    expect(
+      occupancyRate([
+        { status: 'occupied' },
+        { status: 'occupied' },
+        { status: 'vacant' },
+        { status: 'turnover' },
+      ]),
+    ).toBe(5000);
   });
   it('excludes unavailable units from the denominator', () => {
     expect(occupancyRate([{ status: 'occupied' }, { status: 'unavailable' }])).toBe(10000);
@@ -42,10 +49,10 @@ describe('workOrderAging', () => {
   it('buckets open tickets by age and ignores closed ones', () => {
     const report = workOrderAging(
       [
-        { openedAtISO: '2026-03-30T00:00:00.000Z', status: 'open' },        // 1 day
+        { openedAtISO: '2026-03-30T00:00:00.000Z', status: 'open' }, // 1 day
         { openedAtISO: '2026-03-20T00:00:00.000Z', status: 'in_progress' }, // 11 days
-        { openedAtISO: '2026-02-20T00:00:00.000Z', status: 'open' },        // 39 days
-        { openedAtISO: '2025-12-01T00:00:00.000Z', status: 'open' },        // 120 days
+        { openedAtISO: '2026-02-20T00:00:00.000Z', status: 'open' }, // 39 days
+        { openedAtISO: '2025-12-01T00:00:00.000Z', status: 'open' }, // 120 days
         { openedAtISO: '2025-01-01T00:00:00.000Z', status: 'closed' },
       ],
       NOW,

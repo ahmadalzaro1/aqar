@@ -5,8 +5,21 @@ export const severitySchema = z.enum(['emergency', 'high', 'medium', 'low', 'cos
 export type Severity = z.infer<typeof severitySchema>;
 
 export const ticketCategorySchema = z.enum([
-  'gas', 'fire', 'electrical', 'plumbing', 'sewage', 'water', 'hvac', 'structural',
-  'lock', 'elevator', 'appliance', 'pest', 'common_area', 'generator', 'other',
+  'gas',
+  'fire',
+  'electrical',
+  'plumbing',
+  'sewage',
+  'water',
+  'hvac',
+  'structural',
+  'lock',
+  'elevator',
+  'appliance',
+  'pest',
+  'common_area',
+  'generator',
+  'other',
 ]);
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 
@@ -48,10 +61,13 @@ export const serviceStandardSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   propertyClass: z.string().min(1),
-  clocks: z.record(severitySchema, z.object({
-    responseMinutes: z.number().int().nonnegative(),
-    resolutionMinutes: z.number().int().nonnegative(),
-  })),
+  clocks: z.record(
+    severitySchema,
+    z.object({
+      responseMinutes: z.number().int().nonnegative(),
+      resolutionMinutes: z.number().int().nonnegative(),
+    }),
+  ),
 });
 export type ServiceStandard = z.infer<typeof serviceStandardSchema>;
 
@@ -64,8 +80,14 @@ export const slaStateSchema = z.object({
 export type SlaState = z.infer<typeof slaStateSchema>;
 
 export const policyActionSchema = z.enum([
-  'dispatch_vendor', 'post_payment', 'approve_quote', 'send_tenant_message',
-  'create_charge', 'move_money', 'award_work', 'draft_only',
+  'dispatch_vendor',
+  'post_payment',
+  'approve_quote',
+  'send_tenant_message',
+  'create_charge',
+  'move_money',
+  'award_work',
+  'draft_only',
 ]);
 export type PolicyAction = z.infer<typeof policyActionSchema>;
 

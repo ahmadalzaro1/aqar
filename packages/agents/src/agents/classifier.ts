@@ -42,27 +42,41 @@ export const classifierAgent: IAgent<In, Classification> = {
     let lastError = '';
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const userPrompt = attempt === 0
-          ? `Tenant report (locale ${parsedIn.locale}):\n${parsedIn.text}`
-          : `Your previous reply was not valid JSON for the schema. Reply again with ONLY the JSON object.\nTenant report (locale ${parsedIn.locale}):\n${parsedIn.text}`;
+        const userPrompt =
+          attempt === 0
+            ? `Tenant report (locale ${parsedIn.locale}):\n${parsedIn.text}`
+            : `Your previous reply was not valid JSON for the schema. Reply again with ONLY the JSON object.\nTenant report (locale ${parsedIn.locale}):\n${parsedIn.text}`;
         const res = await ctx.provider.chat({
-          messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userPrompt }],
-          maxTokens: 300, temperature: 0,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt },
+          ],
+          maxTokens: 300,
+          temperature: 0,
         });
         const classification = classificationSchema.parse(extractJson(res.content));
         return {
           output: classification,
           trace: {
-            step: 'classify', agent: 'classifier', promptVersion: CLASSIFIER_PROMPT_VERSION,
-            model: res.model, promptHash: sha256(SYSTEM_PROMPT + '\n' + userPrompt),
-            inputHash: sha256(parsedIn.text), outputHash: sha256(JSON.stringify(classification)),
-            tokens: res.usage.totalTokens, latencyMs: res.latencyMs, estimatedCostUsd: res.estimatedCostUsd,
-            confidence: classification.confidence, ok: true,
-            detail: attempt === 0 ? 'classified on first attempt' : 'classified after one repair retry',
+            step: 'classify',
+            agent: 'classifier',
+            promptVersion: CLASSIFIER_PROMPT_VERSION,
+            model: res.model,
+            promptHash: sha256(SYSTEM_PROMPT + '\n' + userPrompt),
+            inputHash: sha256(parsedIn.text),
+            outputHash: sha256(JSON.stringify(classification)),
+            tokens: res.usage.totalTokens,
+            latencyMs: res.latencyMs,
+            estimatedCostUsd: res.estimatedCostUsd,
+            confidence: classification.confidence,
+            ok: true,
+            detail:
+              attempt === 0 ? 'classified on first attempt' : 'classified after one repair retry',
           },
         };
       } catch (err) {
-        if (err instanceof ProviderError) throw new EscalationError(`provider failure: ${err.message}`, 'provider');
+        if (err instanceof ProviderError)
+          throw new EscalationError(`provider failure: ${err.message}`, 'provider');
         lastError = err instanceof Error ? err.message : String(err);
       }
     }

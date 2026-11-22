@@ -2,10 +2,18 @@
 // Every step is schema-validated; failures escalate to a human. LAW 2: the
 // deterministic pre-check is OR-merged with the model and is sticky.
 import { z } from 'zod';
-import { mergeClassification, hazardSignalCategory, evaluatePolicy, safetyInstructions } from '@aqar/core';
+import {
+  mergeClassification,
+  hazardSignalCategory,
+  evaluatePolicy,
+  safetyInstructions,
+} from '@aqar/core';
 import {
   mergedClassificationSchema,
-  type Classification, type MergedClassification, type PolicyDecision, type PolicyInput,
+  type Classification,
+  type MergedClassification,
+  type PolicyDecision,
+  type PolicyInput,
 } from '@aqar/contracts';
 import { precheckAgent } from './agents/precheck.js';
 import { classifierAgent } from './agents/classifier.js';
@@ -19,16 +27,23 @@ export const triageInputSchema = z.object({
   priorEmergency: z.boolean().default(false),
   /** Everything the policy gate needs except action/amount (set per proposal). */
   policyBase: z.object({
-    orgId: z.string(), propertyId: z.string(), actor: z.string(),
+    orgId: z.string(),
+    propertyId: z.string(),
+    actor: z.string(),
     mode: z.enum(['dry_run', 'live']),
-    vendorId: z.string().nullable(), vendorOnAllowList: z.boolean(),
+    vendorId: z.string().nullable(),
+    vendorOnAllowList: z.boolean(),
     nteLimitFils: z.number().int().nonnegative().nullable(),
-    approvalRequiredN: z.number().int().nonnegative(), approvalRequiredM: z.number().int().nonnegative(),
+    approvalRequiredN: z.number().int().nonnegative(),
+    approvalRequiredM: z.number().int().nonnegative(),
     approvalVotesYes: z.number().int().nonnegative(),
     localHour: z.number().int().min(0).max(23),
-    quietHoursStart: z.number().int().min(0).max(23), quietHoursEnd: z.number().int().min(0).max(23),
-    tenantMessagesToday: z.number().int().nonnegative(), tenantMessageDailyCap: z.number().int().nonnegative(),
-    orgSpendTodayFils: z.number().int().nonnegative(), orgDailySpendCapFils: z.number().int().nonnegative(),
+    quietHoursStart: z.number().int().min(0).max(23),
+    quietHoursEnd: z.number().int().min(0).max(23),
+    tenantMessagesToday: z.number().int().nonnegative(),
+    tenantMessageDailyCap: z.number().int().nonnegative(),
+    orgSpendTodayFils: z.number().int().nonnegative(),
+    orgDailySpendCapFils: z.number().int().nonnegative(),
     humanApprovalTokenPresent: z.boolean(),
   }),
 });
@@ -48,7 +63,11 @@ export interface TriageResult {
   routedToStrongModel: boolean;
 }
 
-function fallbackClassification(text: string, emergency: boolean, signals: string[]): Classification {
+function fallbackClassification(
+  text: string,
+  emergency: boolean,
+  signals: string[],
+): Classification {
   const hazardCategory = signals.map((s) => hazardSignalCategory(s)).find((c) => c !== undefined);
   return {
     category: hazardCategory ?? 'other',
@@ -93,12 +112,25 @@ export async function runTriage(input: TriageInput, ctx: AgentContext): Promise<
     if (reason === 'schema') schemaFailedOnce = true;
     handedOff = true;
     handoffReason = `classifier escalated (${reason}): ${err instanceof Error ? err.message : String(err)}`;
-    modelClassification = fallbackClassification(parsed.text, pre.output.emergency, pre.output.signals);
+    modelClassification = fallbackClassification(
+      parsed.text,
+      pre.output.emergency,
+      pre.output.signals,
+    );
     steps.push({
-      step: 'classify-fallback', agent: 'orchestrator', promptVersion: 'det-1.0.0',
-      model: null, promptHash: null, inputHash: sha256(parsed.text),
+      step: 'classify-fallback',
+      agent: 'orchestrator',
+      promptVersion: 'det-1.0.0',
+      model: null,
+      promptHash: null,
+      inputHash: sha256(parsed.text),
       outputHash: sha256(JSON.stringify(modelClassification)),
-      tokens: 0, latencyMs: 0, estimatedCostUsd: 0, confidence: 0, ok: false, detail: handoffReason,
+      tokens: 0,
+      latencyMs: 0,
+      estimatedCostUsd: 0,
+      confidence: 0,
+      ok: false,
+      detail: handoffReason,
     });
   }
 
@@ -107,32 +139,58 @@ export async function runTriage(input: TriageInput, ctx: AgentContext): Promise<
     mergeClassification(pre.output, modelClassification, parsed.priorEmergency),
   );
   steps.push({
-    step: 'merge', agent: 'orchestrator', promptVersion: 'det-1.0.0', model: null, promptHash: null,
+    step: 'merge',
+    agent: 'orchestrator',
+    promptVersion: 'det-1.0.0',
+    model: null,
+    promptHash: null,
     inputHash: sha256(JSON.stringify({ pre: pre.output, model: modelClassification })),
     outputHash: sha256(JSON.stringify(merged)),
-    tokens: 0, latencyMs: 0, estimatedCostUsd: 0, confidence: merged.confidence, ok: true,
+    tokens: 0,
+    latencyMs: 0,
+    estimatedCostUsd: 0,
+    confidence: merged.confidence,
+    ok: true,
     detail: `emergency=${merged.emergencyFlag} (deterministic=${merged.deterministicEmergency}, model=${merged.modelEmergencyFlag}, prior=${parsed.priorEmergency})`,
   });
 
   // 4. Cost routing: escalate to the stronger model when confidence < 0.7 OR
   //    severity >= high OR schema failed once. No strong model configured ⇒
   //    human handoff (never silent truncation).
-  const needsStrong = merged.confidence < 0.7 || merged.severity === 'emergency' || merged.severity === 'high' || schemaFailedOnce;
+  const needsStrong =
+    merged.confidence < 0.7 ||
+    merged.severity === 'emergency' ||
+    merged.severity === 'high' ||
+    schemaFailedOnce;
   if (needsStrong && modelClassification !== null && !handedOff) {
     if (ctx.strongProvider !== null) {
       try {
         const strongCtx: AgentContext = { ...ctx, provider: ctx.strongProvider };
-        const cls = await classifierAgent.run({ text: parsed.text, locale: parsed.locale }, strongCtx);
-        account({ ...cls.trace, step: 'classify-strong', detail: `cost routing: ${cls.trace.detail}` });
+        const cls = await classifierAgent.run(
+          { text: parsed.text, locale: parsed.locale },
+          strongCtx,
+        );
+        account({
+          ...cls.trace,
+          step: 'classify-strong',
+          detail: `cost routing: ${cls.trace.detail}`,
+        });
         routedToStrong = true;
-        merged = mergedClassificationSchema.parse(mergeClassification(pre.output, cls.output, parsed.priorEmergency || merged.emergencyFlag));
+        merged = mergedClassificationSchema.parse(
+          mergeClassification(
+            pre.output,
+            cls.output,
+            parsed.priorEmergency || merged.emergencyFlag,
+          ),
+        );
       } catch (err) {
         handedOff = true;
         handoffReason = `strong model escalation failed: ${err instanceof Error ? err.message : String(err)}`;
       }
     } else {
       handedOff = true;
-      handoffReason = 'cost routing requires a stronger model (confidence < 0.7 or severity >= high or schema retry); CLOUD_BASE_URL not configured — human review';
+      handoffReason =
+        'cost routing requires a stronger model (confidence < 0.7 or severity >= high or schema retry); CLOUD_BASE_URL not configured — human review';
     }
   }
 
@@ -149,10 +207,18 @@ export async function runTriage(input: TriageInput, ctx: AgentContext): Promise<
     const decision = evaluatePolicy({ ...base, action, amountFils });
     proposals.push({ action, decision });
     steps.push({
-      step: `policy:${action}`, agent: 'policy-engine', promptVersion: 'det-1.0.0', model: null, promptHash: null,
+      step: `policy:${action}`,
+      agent: 'policy-engine',
+      promptVersion: 'det-1.0.0',
+      model: null,
+      promptHash: null,
       inputHash: sha256(JSON.stringify({ ...base, action, amountFils })),
       outputHash: sha256(JSON.stringify(decision)),
-      tokens: 0, latencyMs: 0, estimatedCostUsd: 0, confidence: null, ok: decision.allowed,
+      tokens: 0,
+      latencyMs: 0,
+      estimatedCostUsd: 0,
+      confidence: null,
+      ok: decision.allowed,
       detail: decision.allowed ? 'allowed' : `denied: ${decision.reasons.join(', ')}`,
     });
   };
@@ -168,8 +234,16 @@ export async function runTriage(input: TriageInput, ctx: AgentContext): Promise<
     : null;
 
   return {
-    ticketId: parsed.ticketId, merged, safetyInstructions: safety, proposals, steps,
-    handedOffToHuman: handedOff, handoffReason, tokensUsed, totalLatencyMs, estimatedCostUsd,
+    ticketId: parsed.ticketId,
+    merged,
+    safetyInstructions: safety,
+    proposals,
+    steps,
+    handedOffToHuman: handedOff,
+    handoffReason,
+    tokensUsed,
+    totalLatencyMs,
+    estimatedCostUsd,
     routedToStrongModel: routedToStrong,
   };
 }

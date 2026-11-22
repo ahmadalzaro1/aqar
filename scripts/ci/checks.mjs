@@ -27,10 +27,14 @@ const typecheckBudget = tcIx === -1 ? 5 : Number(args[tcIx + 1]);
 // Call the binary, not `pnpm exec`: the wrapper costs ~0.5s of the 1s budget
 // (measured 0.64s via pnpm vs 0.16s direct on a clean copy).
 const OX = existsSync('node_modules/.bin/oxlint') ? 'node_modules/.bin/oxlint' : 'oxlint';
+// same reason as oxlint: the wrapper costs more than the check
+const OXFMT = existsSync('node_modules/.bin/oxfmt') ? 'node_modules/.bin/oxfmt' : 'oxfmt';
 const lintArgv = [OX];
 if (trackedOnly) {
   const { execFileSync } = await import('node:child_process');
-  const files = execFileSync('git', ['ls-files', '*.ts', '*.tsx', '*.mts', '*.cts', '*.mjs'], { encoding: 'utf8' })
+  const files = execFileSync('git', ['ls-files', '*.ts', '*.tsx', '*.mts', '*.cts', '*.mjs'], {
+    encoding: 'utf8',
+  })
     .split('\n')
     .filter((f) => f && !f.startsWith('node_modules/'));
   lintArgv.push(...files);
@@ -38,11 +42,16 @@ if (trackedOnly) {
 
 const CHECKS = [
   { name: 'boundaries', argv: ['node', 'scripts/check-core-deps.mjs'], budget: 5 },
+  // 0.17s for the whole repo (359 files), and it reads .prettierignore for the
+  // files that must not be touched: docs prose, the SQL migrations, fixtures.
+  { name: 'format', argv: [OXFMT, '--check', '.'], budget: 1 },
   { name: 'lint', argv: lintArgv, budget: 1 },
   // the parallel tsgo script directly: `pnpm typecheck` adds the same wrapper tax
   {
     name: 'typecheck',
-    argv: projects ? ['node', 'scripts/ci/typecheck-all.mjs', '--only', projects] : ['node', 'scripts/ci/typecheck-all.mjs'],
+    argv: projects
+      ? ['node', 'scripts/ci/typecheck-all.mjs', '--only', projects]
+      : ['node', 'scripts/ci/typecheck-all.mjs'],
     budget: typecheckBudget,
   },
 ];
@@ -53,7 +62,10 @@ const results = [];
 for (const check of CHECKS) {
   const t0 = Date.now();
   // inherit stdio so a failure's own message stays readable in the log
-  const run = spawnSync(check.argv[0], check.argv.slice(1), { stdio: 'inherit', shell: process.platform === 'win32' });
+  const run = spawnSync(check.argv[0], check.argv.slice(1), {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
   const seconds = (Date.now() - t0) / 1000;
   const ok = run.status === 0;
   const overBudget = seconds > check.budget;
@@ -83,7 +95,9 @@ if (failed.length > 0) {
 // A check that runs over budget is still a failure: the budget is the contract
 // that keeps the whole lane under a minute, and a silent drift breaks it.
 if (slow.length > 0) {
-  console.log(`\nOVER BUDGET: ${slow.map((r) => `${r.name} ${r.seconds.toFixed(1)}s > ${r.budget}s`).join(', ')}`);
+  console.log(
+    `\nOVER BUDGET: ${slow.map((r) => `${r.name} ${r.seconds.toFixed(1)}s > ${r.budget}s`).join(', ')}`,
+  );
   process.exit(1);
 }
 if (budget !== null && total > budget) {

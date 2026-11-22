@@ -34,30 +34,44 @@ const isChequeStatus = (v: unknown): v is ChequeStatus =>
  * Problems with the arguments for one action. An empty array means the executor's
  * handler can run; anything else is a refusal that names the field.
  */
-export function validateActionArgs(action: string, args: Record<string, unknown>): readonly string[] {
+export function validateActionArgs(
+  action: string,
+  args: Record<string, unknown>,
+): readonly string[] {
   const problems: string[] = [];
 
   if (action === 'post_payment') {
     const method = args['method'];
     if (!isPaymentMethod(method)) {
-      problems.push(`"method" must be one of ${PAYMENT_METHODS.join(', ')} (got ${JSON.stringify(method ?? null)})`);
+      problems.push(
+        `"method" must be one of ${PAYMENT_METHODS.join(', ')} (got ${JSON.stringify(method ?? null)})`,
+      );
     }
 
     const amount = args['amountFils'];
     if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0) {
-      problems.push(`"amountFils" must be a positive integer number of fils (got ${JSON.stringify(amount ?? null)})`);
+      problems.push(
+        `"amountFils" must be a positive integer number of fils (got ${JSON.stringify(amount ?? null)})`,
+      );
     }
 
     const chequeStatus = args['chequeStatus'];
     if (method === 'cheque') {
       if (!isChequeStatus(chequeStatus)) {
-        problems.push(`a cheque payment needs "chequeStatus" to be one of ${CHEQUE_STATUSES.join(', ')} (got ${JSON.stringify(chequeStatus ?? null)})`);
+        problems.push(
+          `a cheque payment needs "chequeStatus" to be one of ${CHEQUE_STATUSES.join(', ')} (got ${JSON.stringify(chequeStatus ?? null)})`,
+        );
       }
     } else if (chequeStatus !== undefined && chequeStatus !== null) {
-      problems.push(`"chequeStatus" was supplied for a ${String(method)} payment, which cannot carry one`);
+      problems.push(
+        `"chequeStatus" was supplied for a ${String(method)} payment, which cannot carry one`,
+      );
     }
 
-    if (typeof args['receivedDate'] !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(args['receivedDate'])) {
+    if (
+      typeof args['receivedDate'] !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(args['receivedDate'])
+    ) {
       problems.push('"receivedDate" must be a YYYY-MM-DD date');
     }
 
@@ -81,13 +95,17 @@ export function validateActionArgs(action: string, args: Record<string, unknown>
           }
           const part = row['amountFils'];
           if (typeof part !== 'number' || !Number.isInteger(part) || part <= 0) {
-            problems.push(`allocations[${index}].amountFils must be a positive integer number of fils`);
+            problems.push(
+              `allocations[${index}].amountFils must be a positive integer number of fils`,
+            );
             return;
           }
           total += part;
         });
         if (typeof amount === 'number' && Number.isInteger(amount) && total > amount) {
-          problems.push(`allocations total ${total} fils exceeds the payment amount ${amount} fils`);
+          problems.push(
+            `allocations total ${total} fils exceeds the payment amount ${amount} fils`,
+          );
         }
       }
     }
@@ -108,7 +126,9 @@ export function validateActionArgs(action: string, args: Record<string, unknown>
     const nte = args['amountFils'];
     if (nte !== undefined && nte !== null) {
       if (typeof nte !== 'number' || !Number.isInteger(nte) || nte <= 0) {
-        problems.push(`"amountFils" must be a positive integer number of fils when present (got ${JSON.stringify(nte)})`);
+        problems.push(
+          `"amountFils" must be a positive integer number of fils when present (got ${JSON.stringify(nte)})`,
+        );
       }
     }
   }

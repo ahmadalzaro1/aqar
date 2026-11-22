@@ -11,11 +11,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { auditTimestamps, isoDate, pkId } from './common.js';
-import {
-  distributionStatusEnum,
-  ownerVoteEnum,
-  spendKindEnum,
-} from './enums.js';
+import { distributionStatusEnum, ownerVoteEnum, spendKindEnum } from './enums.js';
 import { users } from './auth.js';
 import { organizations } from './organizations.js';
 import { properties } from './m1-property.js';
@@ -39,10 +35,7 @@ export const owners = pgTable(
     notes: text('notes'),
     ...auditTimestamps(),
   },
-  (t) => [
-    index('owners_org_idx').on(t.organizationId),
-    index('owners_email_idx').on(t.email),
-  ],
+  (t) => [index('owners_org_idx').on(t.organizationId), index('owners_email_idx').on(t.email)],
 );
 
 /**

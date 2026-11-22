@@ -71,12 +71,16 @@ function render(key: string, value: unknown, locale: Locale, depth: number): str
     // turning one row into a wall of text.
     if (depth >= 2) return '…';
     if (Array.isArray(value)) {
-      return value.length === 0 ? '—' : value.map((item) => render(key, item, locale, depth + 1)).join(' · ');
+      return value.length === 0
+        ? '—'
+        : value.map((item) => render(key, item, locale, depth + 1)).join(' · ');
     }
     const entries = Object.entries(value as Record<string, unknown>);
     return entries.length === 0
       ? '—'
-      : entries.map(([k, v]) => `${argLabel(k, locale)}: ${render(k, v, locale, depth + 1)}`).join(' · ');
+      : entries
+          .map(([k, v]) => `${argLabel(k, locale)}: ${render(k, v, locale, depth + 1)}`)
+          .join(' · ');
   }
   return String(value);
 }
@@ -100,10 +104,14 @@ export function argEntries(args: unknown, locale: Locale): ArgRow[] {
 
 const dateFormats: Record<Locale, Intl.DateTimeFormat> = {
   en: new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Amman',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Amman',
   }),
   ar: new Intl.DateTimeFormat('ar-JO', {
-    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Amman',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Amman',
   }),
 };
 
@@ -113,14 +121,21 @@ export function stamp(date: Date | null, locale: Locale): string {
 
 export function statusTone(status: string): Tone {
   switch (status) {
-    case 'executed': return 'ok';
+    case 'executed':
+      return 'ok';
     // Reversed is not a failure: the action ran and was then undone on the
     // record. Amber keeps it visibly different from both.
-    case 'reversed': return 'warn';
-    case 'failed': return 'danger';
-    case 'approved': return 'accent';
-    case 'expired': return 'warn';
-    case 'pending': return 'info';
-    default: return 'neutral';
+    case 'reversed':
+      return 'warn';
+    case 'failed':
+      return 'danger';
+    case 'approved':
+      return 'accent';
+    case 'expired':
+      return 'warn';
+    case 'pending':
+      return 'info';
+    default:
+      return 'neutral';
   }
 }

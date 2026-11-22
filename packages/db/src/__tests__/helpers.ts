@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { migrateUp } from '../migrate.js';
 
-export const TEST_URL =
-  process.env.DATABASE_URL ?? 'postgres://aqar:aqar@127.0.0.1:5433/aqar_test';
+export const TEST_URL = process.env.DATABASE_URL ?? 'postgres://aqar:aqar@127.0.0.1:5433/aqar_test';
 // Build the RLS-enforced role URL by parsing, never string replacement:
 // the test URL's password may come from env/.env and must not matter here.
 const appUrl = new URL(TEST_URL);

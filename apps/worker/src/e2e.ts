@@ -23,7 +23,13 @@ import { inspect } from 'node:util';
 import { QueueEvents, type Job } from 'bullmq';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { agentTraceStepSchema, TRIAGE_QUEUE_NAME, ticketIngestJobSchema, type TicketIngestJob, type TriageJobResult } from '@aqar/contracts';
+import {
+  agentTraceStepSchema,
+  TRIAGE_QUEUE_NAME,
+  ticketIngestJobSchema,
+  type TicketIngestJob,
+  type TriageJobResult,
+} from '@aqar/contracts';
 
 /** The worker persists AgentTraceStep plus a step label + detail; parse, never coerce. */
 const persistedStepSchema = agentTraceStepSchema.extend({ step: z.string(), detail: z.string() });
@@ -87,7 +93,13 @@ interface Evidence {
     totalLatencyMs: number;
     handedOffToHuman: boolean;
     handoffReason: string | null;
-    steps: { step: string; agentName: string; modelId: string; tokensIn: number; latencyMs: number }[];
+    steps: {
+      step: string;
+      agentName: string;
+      modelId: string;
+      tokensIn: number;
+      latencyMs: number;
+    }[];
   } | null;
   audit: {
     id: string;
@@ -102,7 +114,14 @@ interface Evidence {
     occurredAt: Date;
     after: unknown;
   } | null;
-  messages: { id: string; direction: string; channel: string; bodyLocale: string; externalId: string | null; body: string }[];
+  messages: {
+    id: string;
+    direction: string;
+    channel: string;
+    bodyLocale: string;
+    externalId: string | null;
+    body: string;
+  }[];
   dispatchCount: number;
   workOrderCount: number;
   ticketEmergencyFlag: boolean | null;
@@ -129,22 +148,32 @@ async function main(): Promise<void> {
       .where(eq(organizations.slug, DEMO_ORG_SLUG))
       .limit(1);
     const org = orgRows[0];
-    if (org === undefined) throw new Error(`organization slug '${DEMO_ORG_SLUG}' not found — run pnpm db:seed`);
+    if (org === undefined)
+      throw new Error(`organization slug '${DEMO_ORG_SLUG}' not found — run pnpm db:seed`);
     const orgId = org.id;
     console.info(`database: ${databaseUrl.replace(/:\/\/[^@]*@/, '://***@')}`);
     console.info(`redis:    ${process.env['REDIS_URL'] ?? 'redis://127.0.0.1:6380'}`);
-    console.info(`model:    ${process.env['LOCAL_BASE_URL'] ?? 'http://127.0.0.1:11434/v1'} ${process.env['LOCAL_MODEL'] ?? 'lfm3-local'}`);
+    console.info(
+      `model:    ${process.env['LOCAL_BASE_URL'] ?? 'http://127.0.0.1:11434/v1'} ${process.env['LOCAL_MODEL'] ?? 'lfm3-local'}`,
+    );
     console.info(`org:      ${org.slug} (${orgId})`);
 
     banner('2/6 fixture ticket');
     const baseline = await withOrganization(db, orgId, (tx) =>
-      tx.select({ n: sql<number>`count(*)::int` }).from(tickets).where(eq(tickets.organizationId, orgId)),
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(tickets)
+        .where(eq(tickets.organizationId, orgId)),
     );
     const baselineTickets = baseline[0]?.n ?? 0;
 
     const anchorRows = await withOrganization(db, orgId, (tx) =>
       tx
-        .select({ propertyId: tickets.propertyId, unitId: tickets.unitId, tenantId: tickets.tenantId })
+        .select({
+          propertyId: tickets.propertyId,
+          unitId: tickets.unitId,
+          tenantId: tickets.tenantId,
+        })
         .from(tickets)
         .where(
           and(
@@ -205,7 +234,9 @@ async function main(): Promise<void> {
     queue = createTriageQueue();
     events = new QueueEvents(TRIAGE_QUEUE_NAME, { connection: connectionOptions() });
     await events.waitUntilReady();
-    worker = createTriageWorker(async (job) => processTriageJob(job.data, deps), { concurrency: 1 });
+    worker = createTriageWorker(async (job) => processTriageJob(job.data, deps), {
+      concurrency: 1,
+    });
     await worker.waitUntilReady();
     console.info(`worker listening on ${TRIAGE_QUEUE_NAME}`);
 
@@ -267,7 +298,10 @@ async function main(): Promise<void> {
           })
           .from(auditEvents)
           .where(
-            and(eq(auditEvents.organizationId, orgId), eq(auditEvents.idempotencyKey, idempotencyKey)),
+            and(
+              eq(auditEvents.organizationId, orgId),
+              eq(auditEvents.idempotencyKey, idempotencyKey),
+            ),
           ),
       );
 
@@ -282,14 +316,22 @@ async function main(): Promise<void> {
             body: ticketMessages.body,
           })
           .from(ticketMessages)
-          .where(and(eq(ticketMessages.ticketId, ticketId), eq(ticketMessages.direction, 'outbound'))),
+          .where(
+            and(eq(ticketMessages.ticketId, ticketId), eq(ticketMessages.direction, 'outbound')),
+          ),
       );
 
       const [dispatchCount] = await withOrganization(db, orgId, (tx) =>
-        tx.select({ n: sql<number>`count(*)::int` }).from(dispatches).where(eq(dispatches.ticketId, ticketId)),
+        tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(dispatches)
+          .where(eq(dispatches.ticketId, ticketId)),
       );
       const [workOrderCount] = await withOrganization(db, orgId, (tx) =>
-        tx.select({ n: sql<number>`count(*)::int` }).from(workOrders).where(eq(workOrders.ticketId, ticketId)),
+        tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(workOrders)
+          .where(eq(workOrders.ticketId, ticketId)),
       );
 
       const [ticketRow] = await withOrganization(db, orgId, (tx) =>
@@ -363,7 +405,11 @@ async function main(): Promise<void> {
     assert.equal(first.classification.emergencyFlag, true, 'emergency flag must be raised');
     assert.equal(first.classification.severity, 'emergency', 'severity must be emergency');
     assert.equal(first.classification.category, 'gas', 'hazard signal must win the category');
-    assert.equal(first.classification.deterministicEmergency, true, 'deterministic pre-check must fire');
+    assert.equal(
+      first.classification.deterministicEmergency,
+      true,
+      'deterministic pre-check must fire',
+    );
     assert.ok(first.classification.modelSeverity.length > 0, 'model_severity is NOT NULL');
     assert.ok(first.classification.rationale.length > 0, 'rationale is NOT NULL');
     assert.ok(first.classification.confidence.length > 0, 'confidence recorded');
@@ -386,7 +432,10 @@ async function main(): Promise<void> {
     const dispatchProposal = payloadParsed.proposals.find((p) => p.action === 'dispatch_vendor');
     assert.ok(dispatchProposal !== undefined, 'emergency must propose dispatch_vendor');
     assert.equal(dispatchProposal.decision.allowed, false, 'dry_run must deny vendor dispatch');
-    assert.ok(dispatchProposal.decision.reasons.includes('dry_run'), 'denial reason must be dry_run');
+    assert.ok(
+      dispatchProposal.decision.reasons.includes('dry_run'),
+      'denial reason must be dry_run',
+    );
     assert.equal(first.dispatchCount, 0, 'no dispatches row may exist (dry_run)');
     assert.equal(first.workOrderCount, 0, 'no work order may exist (dry_run)');
     assert.equal(payloadParsed.result.proposalCount, payloadParsed.proposals.length);
@@ -398,7 +447,10 @@ async function main(): Promise<void> {
       ['ar', 'en'],
       'safety advisory must exist in Arabic and English',
     );
-    assert.ok(first.messages.every((m) => m.externalId === null), 'nothing was actually sent (dry_run)');
+    assert.ok(
+      first.messages.every((m) => m.externalId === null),
+      'nothing was actually sent (dry_run)',
+    );
     assert.equal(first.ticketEmergencyFlag, true, 'tickets.emergency_flag must be raised');
     console.info('assertions (run 1): OK');
 
@@ -407,13 +459,15 @@ async function main(): Promise<void> {
     const result2 = await job2.waitUntilFinished(events, JOB_TIMEOUT_MS);
     print('triageJobResult (run 2)', result2);
     const second = await readEvidence();
-    const [counts] = await client<{
-      classifications: number;
-      traces: number;
-      audits: number;
-      messages: number;
-      tickets: number;
-    }[]>`
+    const [counts] = await client<
+      {
+        classifications: number;
+        traces: number;
+        audits: number;
+        messages: number;
+        tickets: number;
+      }[]
+    >`
       select
         (select count(*)::int from classifications where ticket_id = ${ticketId}) as classifications,
         (select count(*)::int from agent_traces where ticket_id = ${ticketId}) as traces,
@@ -423,9 +477,17 @@ async function main(): Promise<void> {
     `;
     print('row counts after replay', counts);
 
-    assert.equal(result2.traceId, result1.traceId, 'replay must return the recorded result, not a new run');
+    assert.equal(
+      result2.traceId,
+      result1.traceId,
+      'replay must return the recorded result, not a new run',
+    );
     assert.equal(result2.idempotencyKey, result1.idempotencyKey);
-    assert.deepEqual(second.classification, first.classification, 'classification must not change on replay');
+    assert.deepEqual(
+      second.classification,
+      first.classification,
+      'classification must not change on replay',
+    );
     assert.deepEqual(second.trace?.id, first.trace?.id, 'no second agent_traces row');
     assert.deepEqual(second.audit?.id, first.audit?.id, 'no second audit_events row');
     assert.equal(second.messages.length, first.messages.length, 'no duplicated safety messages');
@@ -443,13 +505,27 @@ async function main(): Promise<void> {
     console.info(`trace id:              ${first.trace.id}`);
     console.info(`audit id:              ${first.audit.id}`);
     console.info(`emergency flag:        ${String(first.ticketEmergencyFlag)}`);
-    console.info(`severity / category:   ${first.classification.severity} / ${first.classification.category}`);
-    console.info(`model severity:        ${first.classification.modelSeverity} (modelId ${String(first.classification.modelId)}, prompt ${String(first.classification.promptVersion)})`);
-    console.info(`tokens / latency:      ${first.trace.totalTokens} / ${first.trace.totalLatencyMs} ms`);
-    console.info(`handed off to human:   ${String(first.trace.handedOffToHuman)} — ${String(first.trace.handoffReason)}`);
-    console.info(`proposals:             ${payloadParsed.proposals.map((p) => `${p.action}=${p.decision.allowed ? 'allowed' : `denied(${p.decision.reasons.join('|')})`}`).join(', ')}`);
-    console.info(`dispatches / work orders: ${first.dispatchCount} / ${first.workOrderCount} (dry_run)`);
-    console.info(`job latencies:         ${elapsed1} ms (first), replay returned the recorded result`);
+    console.info(
+      `severity / category:   ${first.classification.severity} / ${first.classification.category}`,
+    );
+    console.info(
+      `model severity:        ${first.classification.modelSeverity} (modelId ${String(first.classification.modelId)}, prompt ${String(first.classification.promptVersion)})`,
+    );
+    console.info(
+      `tokens / latency:      ${first.trace.totalTokens} / ${first.trace.totalLatencyMs} ms`,
+    );
+    console.info(
+      `handed off to human:   ${String(first.trace.handedOffToHuman)} — ${String(first.trace.handoffReason)}`,
+    );
+    console.info(
+      `proposals:             ${payloadParsed.proposals.map((p) => `${p.action}=${p.decision.allowed ? 'allowed' : `denied(${p.decision.reasons.join('|')})`}`).join(', ')}`,
+    );
+    console.info(
+      `dispatches / work orders: ${first.dispatchCount} / ${first.workOrderCount} (dry_run)`,
+    );
+    console.info(
+      `job latencies:         ${elapsed1} ms (first), replay returned the recorded result`,
+    );
 
     if (worker !== null) await worker.close();
     if (events !== null) await events.close();

@@ -41,9 +41,7 @@ export const TRIAGE_AUDIT_ACTION = 'ticket.triage.classified';
 /** The audit payload. Read back verbatim to answer a redelivery (idempotency). */
 export const triageAuditPayloadSchema = z.object({
   result: triageJobResultSchema,
-  proposals: z.array(
-    z.object({ action: policyActionSchema, decision: policyDecisionSchema }),
-  ),
+  proposals: z.array(z.object({ action: policyActionSchema, decision: policyDecisionSchema })),
   safetyInstructions: z.object({ ar: z.string(), en: z.string() }).nullable(),
 });
 export type TriageAuditPayload = z.infer<typeof triageAuditPayloadSchema>;
@@ -124,8 +122,10 @@ function toTraceSteps(steps: readonly StepTrace[]): PersistedStep[] {
 
 /** Model verdict actually recorded, if a model step ran at all. */
 function modelStepOf(result: TriageResult): StepTrace | undefined {
-  return result.steps.find((step) => step.step === 'classify-strong')
-    ?? result.steps.find((step) => step.step === 'classify');
+  return (
+    result.steps.find((step) => step.step === 'classify-strong') ??
+    result.steps.find((step) => step.step === 'classify')
+  );
 }
 
 function rationaleFor(result: TriageResult): string {

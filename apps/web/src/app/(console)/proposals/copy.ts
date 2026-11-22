@@ -67,7 +67,8 @@ const en: Strings = {
   emptyPendingTitle: 'No proposals are waiting',
   emptyPendingHint: 'Consequential actions requested by the agent queue here for a human decision.',
   emptyDecidedTitle: 'Nothing decided yet',
-  emptyDecidedHint: 'The last ten decisions will appear here once someone approves or rejects a proposal.',
+  emptyDecidedHint:
+    'The last ten decisions will appear here once someone approves or rejects a proposal.',
   action: 'Action',
   tool: 'Tool',
   args: 'Arguments',
@@ -89,7 +90,8 @@ const en: Strings = {
   errorLabel: 'Error',
   pastExpiry: 'Past expiry',
   justDecided: 'Decided in this session',
-  cannotDecide: 'Your role cannot approve. Only an owner admin, accountant or property manager can decide.',
+  cannotDecide:
+    'Your role cannot approve. Only an owner admin, accountant or property manager can decide.',
   system: 'System',
   reversal: 'Reversal',
   signaturesOf: (have, need) => `${have} of ${need} signatures`,

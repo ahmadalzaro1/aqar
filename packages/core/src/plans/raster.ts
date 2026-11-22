@@ -15,7 +15,14 @@
  *   * nothing here is confirmed. `confirmed_by` is a person's name or it is null.
  */
 
-import { bounds, ringArea, selfIntersects, scaleWarningsForMetres, type Ring, type ScaleWarning } from './geometry.js';
+import {
+  bounds,
+  ringArea,
+  selfIntersects,
+  scaleWarningsForMetres,
+  type Ring,
+  type ScaleWarning,
+} from './geometry.js';
 
 export const RASTER_SOURCES = ['cubicas5k', 'mmdetection', 'manual_tracing'] as const;
 export type RasterSource = (typeof RASTER_SOURCES)[number];
@@ -36,11 +43,7 @@ export interface RasterRoomInput {
   readonly label?: string | null;
 }
 
-export type RasterFlag =
-  | ScaleWarning
-  | 'self_intersecting'
-  | 'outside_image'
-  | 'low_confidence';
+export type RasterFlag = ScaleWarning | 'self_intersecting' | 'outside_image' | 'low_confidence';
 
 export interface RasterRoomArea {
   readonly code: string;

@@ -57,21 +57,96 @@ export interface CategoryProfile {
 }
 
 export const CATEGORY_PROFILES: Readonly<Record<TicketCategory, CategoryProfile>> = {
-  gas: { trade: 'gas_safety', severityFloor: 'emergency', emergencyCapable: true, safetyInstruction: 'gas_smell' },
-  fire: { trade: 'fire_safety', severityFloor: 'emergency', emergencyCapable: true, safetyInstruction: 'fire' },
-  electrical: { trade: 'electrician', severityFloor: 'high', emergencyCapable: true, safetyInstruction: 'electrical_shock' },
-  plumbing: { trade: 'plumber', severityFloor: 'medium', emergencyCapable: true, safetyInstruction: 'water_damage' },
-  sewage: { trade: 'drainage', severityFloor: 'high', emergencyCapable: true, safetyInstruction: 'sewage_health' },
-  water: { trade: 'water_tank', severityFloor: 'medium', emergencyCapable: true, safetyInstruction: 'water_damage' },
-  hvac: { trade: 'hvac', severityFloor: 'medium', emergencyCapable: false, safetyInstruction: null },
-  structural: { trade: 'structural_engineer', severityFloor: 'high', emergencyCapable: true, safetyInstruction: 'collapse_risk' },
-  lock: { trade: 'locksmith', severityFloor: 'medium', emergencyCapable: true, safetyInstruction: 'locked_out' },
-  elevator: { trade: 'elevator', severityFloor: 'high', emergencyCapable: true, safetyInstruction: 'trapped_in_lift' },
-  appliance: { trade: 'appliance_repair', severityFloor: 'low', emergencyCapable: false, safetyInstruction: null },
-  pest: { trade: 'pest_control', severityFloor: 'low', emergencyCapable: false, safetyInstruction: null },
-  common_area: { trade: 'cleaning', severityFloor: 'cosmetic', emergencyCapable: false, safetyInstruction: null },
-  generator: { trade: 'generator', severityFloor: 'medium', emergencyCapable: true, safetyInstruction: 'power_outage' },
-  other: { trade: 'handyman', severityFloor: 'low', emergencyCapable: false, safetyInstruction: null },
+  gas: {
+    trade: 'gas_safety',
+    severityFloor: 'emergency',
+    emergencyCapable: true,
+    safetyInstruction: 'gas_smell',
+  },
+  fire: {
+    trade: 'fire_safety',
+    severityFloor: 'emergency',
+    emergencyCapable: true,
+    safetyInstruction: 'fire',
+  },
+  electrical: {
+    trade: 'electrician',
+    severityFloor: 'high',
+    emergencyCapable: true,
+    safetyInstruction: 'electrical_shock',
+  },
+  plumbing: {
+    trade: 'plumber',
+    severityFloor: 'medium',
+    emergencyCapable: true,
+    safetyInstruction: 'water_damage',
+  },
+  sewage: {
+    trade: 'drainage',
+    severityFloor: 'high',
+    emergencyCapable: true,
+    safetyInstruction: 'sewage_health',
+  },
+  water: {
+    trade: 'water_tank',
+    severityFloor: 'medium',
+    emergencyCapable: true,
+    safetyInstruction: 'water_damage',
+  },
+  hvac: {
+    trade: 'hvac',
+    severityFloor: 'medium',
+    emergencyCapable: false,
+    safetyInstruction: null,
+  },
+  structural: {
+    trade: 'structural_engineer',
+    severityFloor: 'high',
+    emergencyCapable: true,
+    safetyInstruction: 'collapse_risk',
+  },
+  lock: {
+    trade: 'locksmith',
+    severityFloor: 'medium',
+    emergencyCapable: true,
+    safetyInstruction: 'locked_out',
+  },
+  elevator: {
+    trade: 'elevator',
+    severityFloor: 'high',
+    emergencyCapable: true,
+    safetyInstruction: 'trapped_in_lift',
+  },
+  appliance: {
+    trade: 'appliance_repair',
+    severityFloor: 'low',
+    emergencyCapable: false,
+    safetyInstruction: null,
+  },
+  pest: {
+    trade: 'pest_control',
+    severityFloor: 'low',
+    emergencyCapable: false,
+    safetyInstruction: null,
+  },
+  common_area: {
+    trade: 'cleaning',
+    severityFloor: 'cosmetic',
+    emergencyCapable: false,
+    safetyInstruction: null,
+  },
+  generator: {
+    trade: 'generator',
+    severityFloor: 'medium',
+    emergencyCapable: true,
+    safetyInstruction: 'power_outage',
+  },
+  other: {
+    trade: 'handyman',
+    severityFloor: 'low',
+    emergencyCapable: false,
+    safetyInstruction: null,
+  },
 };
 
 export const TICKET_CATEGORIES = Object.keys(CATEGORY_PROFILES) as readonly TicketCategory[];
@@ -91,7 +166,9 @@ export function severityFloorIndex(category: TicketCategory): number {
  */
 export function applySeverityFloor(category: TicketCategory, claimed: Severity): Severity {
   const floor = severityFloorIndex(category);
-  return SEVERITY_ORDER.indexOf(claimed) >= floor ? claimed : SEVERITY_ORDER[floor] ?? 'emergency';
+  return SEVERITY_ORDER.indexOf(claimed) >= floor
+    ? claimed
+    : (SEVERITY_ORDER[floor] ?? 'emergency');
 }
 
 export function isEmergencyCapable(category: TicketCategory): boolean {

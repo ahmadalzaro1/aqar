@@ -25,11 +25,22 @@ export const listOpenTickets: ToolDef = {
   schema: listOpenTicketsSchema,
   async run(ctx, raw) {
     const { propertyId, emergencyOnly, olderThanHours, limit } = listOpenTicketsSchema.parse(raw);
-    const rows = await ctx.sql<{
-      id: string; subject: string; status: string; channel: string; emergencyFlag: boolean;
-      openedAt: Date; ageHours: number; property: string | null; unitNumber: string | null;
-      tenant: string | null; category: string | null; severity: string | null;
-    }[]>`
+    const rows = await ctx.sql<
+      {
+        id: string;
+        subject: string;
+        status: string;
+        channel: string;
+        emergencyFlag: boolean;
+        openedAt: Date;
+        ageHours: number;
+        property: string | null;
+        unitNumber: string | null;
+        tenant: string | null;
+        category: string | null;
+        severity: string | null;
+      }[]
+    >`
       select t.id,
              t.subject,
              t.status::text as status,
@@ -92,11 +103,23 @@ export const getTicket: ToolDef = {
   async run(ctx, raw) {
     const { ticketId } = getTicketSchema.parse(raw);
 
-    const tickets = await ctx.sql<{
-      id: string; subject: string; body: string; status: string; channel: string;
-      locale: string; emergencyFlag: boolean; openedAt: Date; closedAt: Date | null;
-      property: string | null; unitNumber: string | null; tenant: string | null; tenantId: string | null;
-    }[]>`
+    const tickets = await ctx.sql<
+      {
+        id: string;
+        subject: string;
+        body: string;
+        status: string;
+        channel: string;
+        locale: string;
+        emergencyFlag: boolean;
+        openedAt: Date;
+        closedAt: Date | null;
+        property: string | null;
+        unitNumber: string | null;
+        tenant: string | null;
+        tenantId: string | null;
+      }[]
+    >`
       select t.id, t.subject, t.body, t.status::text as status, t.channel::text as channel,
              t.body_locale::text as locale, t.emergency_flag as "emergencyFlag",
              t.opened_at as "openedAt", t.closed_at as "closedAt",
@@ -114,9 +137,15 @@ export const getTicket: ToolDef = {
       throw new ToolFailure('ticket_not_found', `No ticket ${ticketId} in this organization`);
     }
 
-    const messages = await ctx.sql<{
-      direction: string; channel: string; body: string; locale: string; sentAt: Date | null;
-    }[]>`
+    const messages = await ctx.sql<
+      {
+        direction: string;
+        channel: string;
+        body: string;
+        locale: string;
+        sentAt: Date | null;
+      }[]
+    >`
       select direction::text as direction, channel::text as channel, body,
              body_locale::text as locale, sent_at as "sentAt"
         from ticket_messages
@@ -125,10 +154,17 @@ export const getTicket: ToolDef = {
        limit 50
     `;
 
-    const classification = await ctx.sql<{
-      category: string; severity: string; emergencyFlag: boolean; confidence: string;
-      rationale: string; modelId: string | null; createdAt: Date;
-    }[]>`
+    const classification = await ctx.sql<
+      {
+        category: string;
+        severity: string;
+        emergencyFlag: boolean;
+        confidence: string;
+        rationale: string;
+        modelId: string | null;
+        createdAt: Date;
+      }[]
+    >`
       select category::text as category, severity::text as severity,
              emergency_flag as "emergencyFlag", confidence::text as confidence,
              rationale, model_id as "modelId", created_at as "createdAt"
@@ -143,7 +179,9 @@ export const getTicket: ToolDef = {
        where organization_id = ${ctx.org.id} and ticket_id = ${ticketId}
     `;
 
-    const traces = await ctx.sql<{ handedOff: boolean; reason: string | null; tokens: number | null }[]>`
+    const traces = await ctx.sql<
+      { handedOff: boolean; reason: string | null; tokens: number | null }[]
+    >`
       select handed_off_to_human as "handedOff", handoff_reason as reason, total_tokens as tokens
         from agent_traces
        where organization_id = ${ctx.org.id} and ticket_id = ${ticketId}
@@ -168,15 +206,18 @@ export const getTicket: ToolDef = {
         tenant: ticket.tenant,
         tenantId: ticket.tenantId,
       },
-      classification: latest === undefined ? null : {
-        category: latest.category,
-        severity: latest.severity,
-        emergency: latest.emergencyFlag,
-        confidence: Number(latest.confidence),
-        rationale: latest.rationale,
-        modelId: latest.modelId,
-        at: latest.createdAt.toISOString(),
-      },
+      classification:
+        latest === undefined
+          ? null
+          : {
+              category: latest.category,
+              severity: latest.severity,
+              emergency: latest.emergencyFlag,
+              confidence: Number(latest.confidence),
+              rationale: latest.rationale,
+              modelId: latest.modelId,
+              at: latest.createdAt.toISOString(),
+            },
       attachmentCount: Number(attachments[0]?.count ?? '0'),
       handoff: traces[0] === undefined ? null : traces[0],
       messages: messages.map((message) => ({

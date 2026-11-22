@@ -69,7 +69,10 @@ export const planExtractRequestSchema = z.object({
   filePath: z.string().min(1),
   unit: z.enum(['mm', 'cm', 'm', 'ft', 'in']).optional(),
   /** `x1,y1,x2,y2,metres` — the one thing a PDF cannot tell us by itself. */
-  calibrate: z.string().regex(/^-?[\d.]+,-?[\d.]+,-?[\d.]+,-?[\d.]+,?[\d.]+$/).optional(),
+  calibrate: z
+    .string()
+    .regex(/^-?[\d.]+,-?[\d.]+,-?[\d.]+,-?[\d.]+,?[\d.]+$/)
+    .optional(),
 });
 export type PlanExtractRequest = z.infer<typeof planExtractRequestSchema>;
 

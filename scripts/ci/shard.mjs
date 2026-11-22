@@ -59,13 +59,16 @@ if (!pkg) throw new Error('--package is required');
 const db = load();
 const rows = db[pkg];
 if (!rows || rows.length === 0) {
-  console.error(`shard.mjs: no recorded times for ${pkg}; run a full main build with --record first`);
+  console.error(
+    `shard.mjs: no recorded times for ${pkg}; run a full main build with --record first`,
+  );
   process.exit(2);
 }
 
 const total = rows.reduce((a, r) => a + r.ms, 0);
 if (shards <= 1) {
-  if (verify) console.log(`${pkg}: 1 shard covers all ${rows.length} files (${(total / 1000).toFixed(1)}s)`);
+  if (verify)
+    console.log(`${pkg}: 1 shard covers all ${rows.length} files (${(total / 1000).toFixed(1)}s)`);
   if (index !== null) rows.forEach((r) => console.log(resolve(r.file)));
   process.exit(0);
 }
@@ -86,13 +89,19 @@ if (verify) {
   const extra = [...unique].filter((f) => !expected.has(f));
   const dupes = seen.length !== unique.size;
   console.log(`${pkg}: ${rows.length} files, ${(total / 1000).toFixed(1)}s total`);
-  bins.forEach((b, i) => console.log(`  shard ${i}: ${b.files.length} files, ${(b.ms / 1000).toFixed(1)}s`));
+  bins.forEach((b, i) =>
+    console.log(`  shard ${i}: ${b.files.length} files, ${(b.ms / 1000).toFixed(1)}s`),
+  );
   if (missing.length || extra.length || dupes) {
-    console.error(`SHARD COVERAGE BROKEN: missing=${missing.length} extra=${extra.length} duplicates=${dupes}`);
+    console.error(
+      `SHARD COVERAGE BROKEN: missing=${missing.length} extra=${extra.length} duplicates=${dupes}`,
+    );
     process.exit(1);
   }
   if (seen.length !== rows.length) {
-    console.error(`SHARD COVERAGE BROKEN: ${seen.length} files across shards, ${rows.length} recorded`);
+    console.error(
+      `SHARD COVERAGE BROKEN: ${seen.length} files across shards, ${rows.length} recorded`,
+    );
     process.exit(1);
   }
   console.log('  every recorded file appears exactly once');
@@ -100,7 +109,9 @@ if (verify) {
 }
 
 if (index === null) {
-  bins.forEach((b, i) => console.log(`shard ${i}: ${(b.ms / 1000).toFixed(1)}s / ${b.files.length} files`));
+  bins.forEach((b, i) =>
+    console.log(`shard ${i}: ${(b.ms / 1000).toFixed(1)}s / ${b.files.length} files`),
+  );
   process.exit(0);
 }
 const bin = bins[Number(index)];

@@ -33,7 +33,9 @@ export async function PUT(request: Request): Promise<Response> {
   const current = await loadPolicy(user.orgId);
   if (!current.limits.policyEditorRoles.includes(user.role)) {
     return NextResponse.json(
-      { error: `role ${user.role} cannot edit policy limits (policy ${current.version} allows ${current.limits.policyEditorRoles.join(', ')})` },
+      {
+        error: `role ${user.role} cannot edit policy limits (policy ${current.version} allows ${current.limits.policyEditorRoles.join(', ')})`,
+      },
       { status: 403 },
     );
   }
@@ -50,15 +52,24 @@ export async function PUT(request: Request): Promise<Response> {
   const parsed = policyLimitsSchema.safeParse(candidate);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'body must be the complete PolicyLimits object', issues: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) },
+      {
+        error: 'body must be the complete PolicyLimits object',
+        issues: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      },
       { status: 400 },
     );
   }
 
   // Sanity the schema cannot express: dual control must leave a band to apply to.
-  if (parsed.data.dualControlAboveFils !== null && parsed.data.dualControlAboveFils >= parsed.data.nteCeilingFils) {
+  if (
+    parsed.data.dualControlAboveFils !== null &&
+    parsed.data.dualControlAboveFils >= parsed.data.nteCeilingFils
+  ) {
     return NextResponse.json(
-      { error: 'dualControlAboveFils must be below nteCeilingFils, otherwise the second key can never be required' },
+      {
+        error:
+          'dualControlAboveFils must be below nteCeilingFils, otherwise the second key can never be required',
+      },
       { status: 400 },
     );
   }
@@ -88,5 +99,9 @@ export async function PUT(request: Request): Promise<Response> {
     `;
   });
 
-  return NextResponse.json({ version: after.version, previousVersion: current.version, limits: after.limits });
+  return NextResponse.json({
+    version: after.version,
+    previousVersion: current.version,
+    limits: after.limits,
+  });
 }

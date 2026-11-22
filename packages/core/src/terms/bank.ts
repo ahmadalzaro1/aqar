@@ -283,8 +283,7 @@ export function suggestMatch(
 
   const plausible = candidates.filter(
     (candidate) =>
-      candidate.exactChargeIds.length > 0 ||
-      (amount > 0 && candidate.outstandingFils === amount),
+      candidate.exactChargeIds.length > 0 || (amount > 0 && candidate.outstandingFils === amount),
   );
 
   if (plausible.length >= 2) {
@@ -358,9 +357,7 @@ export function suggestMatch(
       ? `overpays by ${describeFils(overpayment)}`
       : target.outstandingFils === 0
         ? 'has no open charge on the lease'
-        : `does not match an open charge (${describeFils(
-            target.outstandingFils,
-          )} outstanding)`;
+        : `does not match an open charge (${describeFils(target.outstandingFils)} outstanding)`;
   return {
     bankLineId: line.id,
     kind: 'review',

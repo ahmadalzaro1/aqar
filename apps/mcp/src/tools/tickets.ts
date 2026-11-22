@@ -48,7 +48,11 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
     },
     async ({ subject, body, propertyId, unitId, tenantId, locale, channel, idempotencyKey }) => {
       if (!canWrite(ctx.cfg.mode)) {
-        throw new ToolError('read_only_mode', 'This server is in read_only mode', 'Set AQAR_MCP_MODE=propose to file tickets.');
+        throw new ToolError(
+          'read_only_mode',
+          'This server is in read_only mode',
+          'Set AQAR_MCP_MODE=propose to file tickets.',
+        );
       }
 
       // LAW 2: the deterministic classifier runs on every ingress path, and a
@@ -60,12 +64,16 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
 
         const decision = await gate(tx, ctx, { action: 'draft_only', propertyId });
         if (!decision.allowed) {
-          throw new ToolError('policy_denied', `Policy denied creating the ticket: ${decision.reasons.join(', ')}`);
+          throw new ToolError(
+            'policy_denied',
+            `Policy denied creating the ticket: ${decision.reasons.join(', ')}`,
+          );
         }
 
-        const ticketId = idempotencyKey === undefined
-          ? randomUUID()
-          : deterministicId('aqar.ticket', idempotencyKey);
+        const ticketId =
+          idempotencyKey === undefined
+            ? randomUUID()
+            : deterministicId('aqar.ticket', idempotencyKey);
 
         const inserted = await tx<{ id: string }[]>`
           insert into tickets (
@@ -93,7 +101,14 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
           entityId: created.id,
           actor: { kind: 'agent', name: ctx.cfg.actorName, model: ctx.cfg.modelId },
           toolName: 'create_ticket',
-          after: { subject, propertyId, unitId: unitId ?? null, tenantId: tenantId ?? null, emergency: precheck.emergency, signals: precheck.signals },
+          after: {
+            subject,
+            propertyId,
+            unitId: unitId ?? null,
+            tenantId: tenantId ?? null,
+            emergency: precheck.emergency,
+            signals: precheck.signals,
+          },
           ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
           occurredAt: ctx.now(),
         });
@@ -113,7 +128,10 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
       // Enqueue only after the commit: a job must never point at an uncommitted row.
       let triage: EnqueueOutcome;
       if (ctx.queue === null) {
-        triage = { enqueued: false, error: 'triage queue not available (Redis unreachable at boot)' };
+        triage = {
+          enqueued: false,
+          error: 'triage queue not available (Redis unreachable at boot)',
+        };
       } else {
         const payload: TicketIngestJob = ticketIngestJobSchema.parse({
           ticketId: outcome.ticketId,
@@ -122,7 +140,8 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
           text: `${subject}\n${body}`,
           locale,
           tenantId: tenantId ?? null,
-          idempotencyKey: idempotencyKey === undefined ? `mcp:${outcome.ticketId}` : `mcp:${idempotencyKey}`,
+          idempotencyKey:
+            idempotencyKey === undefined ? `mcp:${outcome.ticketId}` : `mcp:${idempotencyKey}`,
         });
         triage = await enqueueTriage(ctx.queue, payload);
       }
@@ -156,7 +175,12 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
         body: z.string().min(1).max(4000),
         locale: localeSchema.default('ar'),
         channel: z.enum(['whatsapp', 'telegram', 'email', 'in_app', 'phone']).default('whatsapp'),
-        externalId: z.string().min(1).max(200).optional().describe('Provider message id, for dedupe'),
+        externalId: z
+          .string()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe('Provider message id, for dedupe'),
       },
       annotations: { readOnlyHint: false, idempotentHint: true },
     },
@@ -168,7 +192,9 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
       return ctx.sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${ctx.org.id}, true)`;
 
-        const ticketRows = await tx<{ id: string; propertyId: string | null; tenantId: string | null }[]>`
+        const ticketRows = await tx<
+          { id: string; propertyId: string | null; tenantId: string | null }[]
+        >`
           select id, property_id as "propertyId", tenant_id as "tenantId"
             from tickets
            where organization_id = ${ctx.org.id} and id = ${ticketId}
@@ -179,9 +205,10 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
           throw new ToolError('ticket_not_found', `No ticket ${ticketId} in this organization`);
         }
 
-        const messageId = externalId === undefined
-          ? randomUUID()
-          : deterministicId('aqar.ticket_message', externalId);
+        const messageId =
+          externalId === undefined
+            ? randomUUID()
+            : deterministicId('aqar.ticket_message', externalId);
 
         const inserted = await tx<{ id: string }[]>`
           insert into ticket_messages (
@@ -238,7 +265,9 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
       return ctx.sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${ctx.org.id}, true)`;
 
-        const ticketRows = await tx<{ id: string; propertyId: string | null; tenant: string | null; subject: string }[]>`
+        const ticketRows = await tx<
+          { id: string; propertyId: string | null; tenant: string | null; subject: string }[]
+        >`
           select t.id, t.property_id as "propertyId", t.subject,
                  coalesce(tn.full_name_en, tn.full_name_ar) as tenant
             from tickets t
@@ -253,7 +282,11 @@ export function registerTicketTools(server: McpServer, ctx: ToolContext): void {
 
         const targetProperty = propertyId ?? ticket.propertyId;
         if (targetProperty === null) {
-          throw new ToolError('property_required', 'The ticket has no property, so policy cannot be evaluated', 'Pass propertyId explicitly.');
+          throw new ToolError(
+            'property_required',
+            'The ticket has no property, so policy cannot be evaluated',
+            'Pass propertyId explicitly.',
+          );
         }
 
         const proposal = await createProposal(tx, ctx, {

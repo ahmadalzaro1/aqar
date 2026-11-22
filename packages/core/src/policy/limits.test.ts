@@ -5,7 +5,13 @@ import { DEFAULT_POLICY_LIMITS, evaluateProposal, type PolicyLimits } from './li
 const payment = (over: Record<string, unknown> = {}) => ({
   action: 'post_payment',
   role: 'accountant',
-  args: { leaseId: 'lease-1', amountFils: 250_000, receivedDate: '2026-11-20', method: 'cliq', ...over },
+  args: {
+    leaseId: 'lease-1',
+    amountFils: 250_000,
+    receivedDate: '2026-11-20',
+    method: 'cliq',
+    ...over,
+  },
 });
 
 const dispatch = (over: Record<string, unknown> = {}) => ({
@@ -32,7 +38,9 @@ describe('evaluateProposal — the default posture', () => {
   it('allows below a configured threshold once one is set', () => {
     const limits: PolicyLimits = { ...DEFAULT_POLICY_LIMITS, autoApproveUnderFils: 5_000 };
     expect(evaluateProposal({ ...payment({ amountFils: 5_000 }), limits }).verdict).toBe('allow');
-    expect(evaluateProposal({ ...payment({ amountFils: 5_001 }), limits }).verdict).toBe('approve_required');
+    expect(evaluateProposal({ ...payment({ amountFils: 5_001 }), limits }).verdict).toBe(
+      'approve_required',
+    );
   });
 });
 
@@ -44,7 +52,9 @@ describe('evaluateProposal — refusals', () => {
   });
 
   it('denies an action that has no policy', () => {
-    expect(evaluateProposal({ action: 'send_everyone_a_gift', role: 'owner_admin', args: {} }).verdict).toBe('deny');
+    expect(
+      evaluateProposal({ action: 'send_everyone_a_gift', role: 'owner_admin', args: {} }).verdict,
+    ).toBe('deny');
   });
 
   it('denies a fractional or zero amount', () => {
@@ -59,17 +69,28 @@ describe('evaluateProposal — refusals', () => {
   });
 
   it('denies allocations that exceed the receipt', () => {
-    const decision = evaluateProposal(payment({ allocations: [{ chargeId: 'c1', amountFils: 200_000 }, { chargeId: 'c2', amountFils: 60_000 }] }));
+    const decision = evaluateProposal(
+      payment({
+        allocations: [
+          { chargeId: 'c1', amountFils: 200_000 },
+          { chargeId: 'c2', amountFils: 60_000 },
+        ],
+      }),
+    );
     expect(decision.verdict).toBe('deny');
     expect(ruleOf(decision, 'args.allocations')?.detail).toContain('exceeds');
   });
 
   it('accepts allocations that fit', () => {
-    expect(evaluateProposal(payment({ allocations: [{ chargeId: 'c1', amountFils: 250_000 }] })).verdict).toBe('approve_required');
+    expect(
+      evaluateProposal(payment({ allocations: [{ chargeId: 'c1', amountFils: 250_000 }] })).verdict,
+    ).toBe('approve_required');
   });
 
   it('denies a dispatch above the NTE ceiling and allows one below it', () => {
-    const over = evaluateProposal(dispatch({ amountFils: DEFAULT_POLICY_LIMITS.nteCeilingFils + 1 }));
+    const over = evaluateProposal(
+      dispatch({ amountFils: DEFAULT_POLICY_LIMITS.nteCeilingFils + 1 }),
+    );
     expect(over.verdict).toBe('deny');
     expect(ruleOf(over, 'limit.nte_ceiling')?.detail).toContain('dispatch ceiling');
     expect(evaluateProposal(dispatch()).verdict).toBe('approve_required');
@@ -112,7 +133,10 @@ describe('evaluateProposal — properties', () => {
   it('names at least one decisive rule whenever it denies', () => {
     fc.assert(
       fc.property(fc.anything(), (role) => {
-        const decision = evaluateProposal({ ...payment(), role: typeof role === 'string' ? role : 'nobody' });
+        const decision = evaluateProposal({
+          ...payment(),
+          role: typeof role === 'string' ? role : 'nobody',
+        });
         if (decision.verdict === 'deny') expect(decision.decisive.length).toBeGreaterThan(0);
       }),
       { numRuns: 100 },

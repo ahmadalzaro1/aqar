@@ -27,23 +27,43 @@ const base: DispatchInput = {
 
 describe('notificationDedupeKey', () => {
   it('is stable for the same fact, so a re-scan cannot re-notify', () => {
-    const key = notificationDedupeKey({ trigger: 'rent_due', entityType: 'charge', entityId: 'c1' });
+    const key = notificationDedupeKey({
+      trigger: 'rent_due',
+      entityType: 'charge',
+      entityId: 'c1',
+    });
     expect(key).toBe('rent_due:charge:c1');
-    expect(notificationDedupeKey({ trigger: 'rent_due', entityType: 'charge', entityId: 'c1' })).toBe(key);
+    expect(
+      notificationDedupeKey({ trigger: 'rent_due', entityType: 'charge', entityId: 'c1' }),
+    ).toBe(key);
   });
 
   it('separates periods, so a monthly charge notifies once per month not once forever', () => {
-    const a = notificationDedupeKey({ trigger: 'rent_due', entityType: 'charge', entityId: 'c1', period: '2026-11' });
-    const b = notificationDedupeKey({ trigger: 'rent_due', entityType: 'charge', entityId: 'c1', period: '2026-12' });
+    const a = notificationDedupeKey({
+      trigger: 'rent_due',
+      entityType: 'charge',
+      entityId: 'c1',
+      period: '2026-11',
+    });
+    const b = notificationDedupeKey({
+      trigger: 'rent_due',
+      entityType: 'charge',
+      entityId: 'c1',
+      period: '2026-12',
+    });
     expect(a).not.toBe(b);
   });
 
   it('ignores an empty period rather than emitting a trailing colon', () => {
-    expect(notificationDedupeKey({ trigger: 't', entityType: 'e', entityId: 'i', period: '' })).toBe('t:e:i');
+    expect(
+      notificationDedupeKey({ trigger: 't', entityType: 'e', entityId: 'i', period: '' }),
+    ).toBe('t:e:i');
   });
 
   it('separates triggers on the same entity', () => {
-    expect(notificationDedupeKey({ trigger: 'rent_due_soon', entityType: 'charge', entityId: 'c1' })).not.toBe(
+    expect(
+      notificationDedupeKey({ trigger: 'rent_due_soon', entityType: 'charge', entityId: 'c1' }),
+    ).not.toBe(
       notificationDedupeKey({ trigger: 'rent_overdue', entityType: 'charge', entityId: 'c1' }),
     );
   });
@@ -97,12 +117,18 @@ describe('decideDispatch', () => {
   });
 
   it('never sends an ambient notice at all', () => {
-    expect(decideDispatch({ ...base, tier: 3 })).toEqual({ action: 'suppress', reason: 'ambient_only' });
+    expect(decideDispatch({ ...base, tier: 3 })).toEqual({
+      action: 'suppress',
+      reason: 'ambient_only',
+    });
   });
 
   it('refuses to notify about a ticket somebody already acknowledged', () => {
     for (const status of ['acked', 'resolved', 'declined', 'expired'] as const) {
-      expect(decideDispatch({ ...base, status })).toEqual({ action: 'suppress', reason: 'not_open' });
+      expect(decideDispatch({ ...base, status })).toEqual({
+        action: 'suppress',
+        reason: 'not_open',
+      });
     }
   });
 
@@ -121,7 +147,9 @@ describe('decideDispatch', () => {
   });
 
   it('does not let a leftover per-tier count block a safety notice', () => {
-    expect(decideDispatch({ ...base, tier: 0, humanSentTodayForTier: 9, humanSentToday: 2 })).toEqual({
+    expect(
+      decideDispatch({ ...base, tier: 0, humanSentTodayForTier: 9, humanSentToday: 2 }),
+    ).toEqual({
       action: 'send',
     });
   });
@@ -196,7 +224,12 @@ describe('decideDispatch invariants (exhaustive over the finite input space)', (
       for (let localHour = 0; localHour < 24; localHour += 1) {
         let previouslySent = false;
         for (const forTier of [0, 1, 2, 3]) {
-          const decision = decideDispatch({ ...base, tier, localHour, humanSentTodayForTier: forTier });
+          const decision = decideDispatch({
+            ...base,
+            tier,
+            localHour,
+            humanSentTodayForTier: forTier,
+          });
           if (previouslySent) expect(decision.action).not.toBe('send');
           if (decision.action !== 'send') previouslySent = true;
         }
@@ -207,20 +240,35 @@ describe('decideDispatch invariants (exhaustive over the finite input space)', (
 
 describe('escalationAction', () => {
   it('waits inside the timeout window', () => {
-    expect(escalationAction({ attempts: 1, maxNotifications: 3, secondsSinceLastNotice: 10, timeoutSeconds: 900 })).toBe(
-      'wait',
-    );
+    expect(
+      escalationAction({
+        attempts: 1,
+        maxNotifications: 3,
+        secondsSinceLastNotice: 10,
+        timeoutSeconds: 900,
+      }),
+    ).toBe('wait');
   });
 
   it('re-notifies once the window elapses', () => {
     expect(
-      escalationAction({ attempts: 1, maxNotifications: 3, secondsSinceLastNotice: 901, timeoutSeconds: 900 }),
+      escalationAction({
+        attempts: 1,
+        maxNotifications: 3,
+        secondsSinceLastNotice: 901,
+        timeoutSeconds: 900,
+      }),
     ).toBe('renotify');
   });
 
   it('expires instead of re-notifying after the attempt budget', () => {
     expect(
-      escalationAction({ attempts: 3, maxNotifications: 3, secondsSinceLastNotice: 9999, timeoutSeconds: 900 }),
+      escalationAction({
+        attempts: 3,
+        maxNotifications: 3,
+        secondsSinceLastNotice: 9999,
+        timeoutSeconds: 900,
+      }),
     ).toBe('expire');
   });
 });

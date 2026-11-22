@@ -32,11 +32,15 @@ export default async function PlansPage({
     <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
       <header style={{ display: 'grid', gap: 'var(--space-1)' }}>
         <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'plan.title')}</h1>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 'var(--text-sm)' }}>{t(m, 'plan.subtitle')}</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 'var(--text-sm)' }}>
+          {t(m, 'plan.subtitle')}
+        </p>
       </header>
 
       {errorKey !== undefined && (
-        <p style={{ color: 'var(--destructive, #b42318)', fontSize: 'var(--text-sm)' }}>{t(m, errorKey)}</p>
+        <p style={{ color: 'var(--destructive, #b42318)', fontSize: 'var(--text-sm)' }}>
+          {t(m, errorKey)}
+        </p>
       )}
       {error !== undefined && errorKey === undefined && (
         <p style={{ color: 'var(--destructive, #b42318)', fontSize: 'var(--text-sm)' }}>{error}</p>
@@ -55,12 +59,21 @@ export default async function PlansPage({
         }}
       >
         <strong style={{ fontSize: 'var(--text-sm)' }}>{t(m, 'plan.upload')}</strong>
-        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'end' }}>
+        <div
+          style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'end' }}
+        >
           <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-xs)' }}>
             {t(m, 'plan.property')}
-            <select name="propertyId" required defaultValue={properties[0]?.id ?? ''} style={{ minWidth: 220 }}>
+            <select
+              name="propertyId"
+              required
+              defaultValue={properties[0]?.id ?? ''}
+              style={{ minWidth: 220 }}
+            >
               {properties.map((property) => (
-                <option key={property.id} value={property.id}>{property.name}</option>
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
               ))}
             </select>
           </label>
@@ -70,7 +83,14 @@ export default async function PlansPage({
           </label>
           <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-xs)' }}>
             {t(m, 'plan.stated')}
-            <input name="stated" type="number" step="0.01" min="0" placeholder="147" style={{ minWidth: 110 }} />
+            <input
+              name="stated"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="147"
+              style={{ minWidth: 110 }}
+            />
           </label>
           <label style={{ display: 'grid', gap: 4, fontSize: 'var(--text-xs)' }}>
             {t(m, 'plan.calibrate')}
@@ -80,11 +100,16 @@ export default async function PlansPage({
             {t(m, 'plan.file')}
             <input name="file" type="file" accept=".dxf,.dwg,.pdf" required />
           </label>
-          <button type="submit" style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)' }}>
+          <button
+            type="submit"
+            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)' }}
+          >
             {t(m, 'plan.submit')}
           </button>
         </div>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: 'var(--text-xs)' }}>{t(m, 'plan.upload.hint')}</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: 'var(--text-xs)' }}>
+          {t(m, 'plan.upload.hint')}
+        </p>
       </form>
 
       {plans.length === 0 ? (
@@ -110,12 +135,18 @@ export default async function PlansPage({
                     <Link href={`/plans/${plan.id}`}>{plan.propertyName}</Link>
                   </td>
                   <td>{plan.level}</td>
-                  <td>{plan.format} · {plan.drawingUnit}</td>
+                  <td>
+                    {plan.format} · {plan.drawingUnit}
+                  </td>
                   <td className="tnum">{plan.rooms}</td>
                   <td className="tnum">{plan.lettableSqm.toFixed(3)} m²</td>
-                  <td className="tnum">{plan.confirmed}/{plan.rooms}</td>
+                  <td className="tnum">
+                    {plan.confirmed}/{plan.rooms}
+                  </td>
                   <td>
-                    <Badge tone={plan.confirmed === plan.rooms && plan.rooms > 0 ? 'ok' : 'neutral'}>
+                    <Badge
+                      tone={plan.confirmed === plan.rooms && plan.rooms > 0 ? 'ok' : 'neutral'}
+                    >
                       {plan.status}
                     </Badge>
                   </td>

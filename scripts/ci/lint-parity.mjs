@@ -12,7 +12,11 @@ import { execFileSync } from 'node:child_process';
 const ESLINT = process.env.ESLINT_REF || 'eslint@9.39.1';
 
 function run(cmd, args) {
-  return execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+  return execFileSync(cmd, args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 function parseEslint(json) {
@@ -35,7 +39,10 @@ function parseOxlint(json) {
     const msgs = d.messages || (d.code ? [d] : []);
     for (const m of msgs) {
       const file = (d.filePath || d.filename || '').replace(process.cwd() + '/', '');
-      const rule = (m.ruleId || d.code || '').replace(/^eslint\(/, '').replace(/\)$/, '').replace(/^@typescript-eslint\//, '');
+      const rule = (m.ruleId || d.code || '')
+        .replace(/^eslint\(/, '')
+        .replace(/\)$/, '')
+        .replace(/^@typescript-eslint\//, '');
       const line = m.line || d.labels?.[0]?.span?.line || 0;
       out.set(`${file}:${line}:${rule}`, true);
     }
@@ -45,14 +52,20 @@ function parseOxlint(json) {
 
 const eslintJson = run('npx', [
   '--yes',
-  '-p', ESLINT,
-  '-p', 'typescript-eslint@8.46.4',
-  '-p', '@eslint/js@9.39.1',
-  '-p', 'globals@16.5.0',
+  '-p',
+  ESLINT,
+  '-p',
+  'typescript-eslint@8.46.4',
+  '-p',
+  '@eslint/js@9.39.1',
+  '-p',
+  'globals@16.5.0',
   'eslint',
-  '-c', 'scripts/ci/eslint-reference.config.mjs',
+  '-c',
+  'scripts/ci/eslint-reference.config.mjs',
   '.',
-  '-f', 'json',
+  '-f',
+  'json',
 ]);
 const oxlintJson = run('node_modules/.bin/oxlint', ['--format=json']);
 
@@ -62,7 +75,9 @@ const oxlintFindings = parseOxlint(oxlintJson);
 const missed = [...eslintFindings.keys()].filter((k) => !oxlintFindings.has(k));
 console.log(`eslint findings: ${eslintFindings.size}   oxlint findings: ${oxlintFindings.size}`);
 if (missed.length > 0) {
-  console.error(`\nCOVERAGE REGRESSION — oxlint misses ${missed.length} finding(s) eslint reports:`);
+  console.error(
+    `\nCOVERAGE REGRESSION — oxlint misses ${missed.length} finding(s) eslint reports:`,
+  );
   for (const m of missed.slice(0, 40)) console.error('  ' + m);
   process.exit(1);
 }

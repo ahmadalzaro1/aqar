@@ -26,34 +26,61 @@ export default async function PortfolioPage() {
       <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'nav.portfolio')}</h1>
       <div className="table-scroll">
         <table>
-          <thead><tr>
-            <th>{t(m, 'nav.portfolio')}</th><th>{t(m, 'pf.district')}</th><th>{t(m, 'pf.buildings')}</th>
-            <th>{t(m, 'pf.units')}</th><th>{t(m, 'pf.occupied')}</th><th>{t(m, 'pf.vacant')}</th>
-            <th>{t(m, 'pf.occupancy')}</th><th>{t(m, 'pf.marketRent')}</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>{t(m, 'nav.portfolio')}</th>
+              <th>{t(m, 'pf.district')}</th>
+              <th>{t(m, 'pf.buildings')}</th>
+              <th>{t(m, 'pf.units')}</th>
+              <th>{t(m, 'pf.occupied')}</th>
+              <th>{t(m, 'pf.vacant')}</th>
+              <th>{t(m, 'pf.occupancy')}</th>
+              <th>{t(m, 'pf.marketRent')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td style={{ fontWeight: 600 }}>{locale === 'ar' ? r.nameAr : r.name}</td>
-                <td>{r.district ?? '—'}{r.city === null ? '' : ` · ${r.city}`}</td>
+                <td>
+                  {r.district ?? '—'}
+                  {r.city === null ? '' : ` · ${r.city}`}
+                </td>
                 <td className="tnum">{r.buildings}</td>
                 <td className="tnum">{r.units}</td>
                 <td className="tnum">{r.occupied}</td>
                 <td className="tnum">{r.units - r.occupied}</td>
-                <td className="tnum">{formatPercentBps(r.units === 0 ? 0 : Math.round((r.occupied / r.units) * 10000), locale)}</td>
-                <td className="tnum"><MoneyText fils={r.marketRentFils} locale={locale} /></td>
+                <td className="tnum">
+                  {formatPercentBps(
+                    r.units === 0 ? 0 : Math.round((r.occupied / r.units) * 10000),
+                    locale,
+                  )}
+                </td>
+                <td className="tnum">
+                  <MoneyText fils={r.marketRentFils} locale={locale} />
+                </td>
               </tr>
             ))}
           </tbody>
-          <tfoot><tr>
-            <th>{t(m, 'ledger.total')}</th><th />
-            <th className="tnum">{rows.reduce((s, r) => s + r.buildings, 0)}</th>
-            <th className="tnum">{totalUnits}</th>
-            <th className="tnum">{totalOccupied}</th>
-            <th className="tnum">{totalNotOccupied}</th>
-            <th className="tnum">{formatPercentBps(totalUnits === 0 ? 0 : Math.round((totalOccupied / totalUnits) * 10000), locale)}</th>
-            <th className="tnum"><MoneyText fils={totalRent} locale={locale} /></th>
-          </tr></tfoot>
+          <tfoot>
+            <tr>
+              <th>{t(m, 'ledger.total')}</th>
+              <th />
+              <th className="tnum">{rows.reduce((s, r) => s + r.buildings, 0)}</th>
+              <th className="tnum">{totalUnits}</th>
+              <th className="tnum">{totalOccupied}</th>
+              <th className="tnum">{totalNotOccupied}</th>
+              <th className="tnum">
+                {formatPercentBps(
+                  totalUnits === 0 ? 0 : Math.round((totalOccupied / totalUnits) * 10000),
+                  locale,
+                )}
+              </th>
+              <th className="tnum">
+                <MoneyText fils={totalRent} locale={locale} />
+              </th>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

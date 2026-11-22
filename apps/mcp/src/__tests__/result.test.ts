@@ -31,7 +31,9 @@ describe('ok', () => {
 
 describe('fail', () => {
   it('marks the result as an error and carries the machine-readable code', () => {
-    const result = fail(new ToolError('not_found', 'No ticket in this organization', 'Check the id.'));
+    const result = fail(
+      new ToolError('not_found', 'No ticket in this organization', 'Check the id.'),
+    );
     expect(result.isError).toBe(true);
     const payload = parse(result) as {
       ok: boolean;

@@ -1,19 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import {
-  computeStatement, distributionDrafts, ownerShareAmount, parseStatementPeriod,
+  computeStatement,
+  distributionDrafts,
+  ownerShareAmount,
+  parseStatementPeriod,
   statementIdempotencyKey,
 } from './lib';
 import type { StatementSource } from './lib';
 import type { OwnerShare } from '@aqar/contracts';
 
 const source = (over: Partial<StatementSource> = {}): StatementSource => ({
-  propertyId: 'prop-1', period: '2026-11',
+  propertyId: 'prop-1',
+  period: '2026-11',
   rentLines: [
     { leaseId: 'l1', unitLabel: '1', tenantName: 'A', billedFils: 600000, collectedFils: 600000 },
     { leaseId: 'l2', unitLabel: '2', tenantName: 'B', billedFils: 400000, collectedFils: 400000 },
   ],
   expenseLines: [{ workOrderId: 'w1', label: 'fix', completedISO: '2026-11-05', costFils: 100000 }],
-  shares: [{ ownerId: 'o1', shareBps: 6000 }, { ownerId: 'o2', shareBps: 4000 }],
+  shares: [
+    { ownerId: 'o1', shareBps: 6000 },
+    { ownerId: 'o2', shareBps: 4000 },
+  ],
   feeBasisBps: 800,
   ...over,
 });
@@ -56,26 +63,47 @@ describe('computeStatement — all money from core', () => {
     expect(d.netFils).toBeNull();
   });
   it('blocks on shortfall — expenses beyond collected never go negative', () => {
-    const d = computeStatement(source({
-      rentLines: [{ leaseId: 'l1', unitLabel: '1', tenantName: 'A', billedFils: 100000, collectedFils: 100000 }],
-      expenseLines: [{ workOrderId: 'w1', label: 'big', completedISO: '2026-11-05', costFils: 200000 }],
-    }));
+    const d = computeStatement(
+      source({
+        rentLines: [
+          {
+            leaseId: 'l1',
+            unitLabel: '1',
+            tenantName: 'A',
+            billedFils: 100000,
+            collectedFils: 100000,
+          },
+        ],
+        expenseLines: [
+          { workOrderId: 'w1', label: 'big', completedISO: '2026-11-05', costFils: 200000 },
+        ],
+      }),
+    );
     expect(d.blocked?.code).toBe('shortfall');
     expect(d.netFils).toBeNull();
   });
   it('largest-remainder split is exact and row-order independent', () => {
     const shares: OwnerShare[] = [
-      { ownerId: 'a', shareBps: 3333 }, { ownerId: 'b', shareBps: 3333 }, { ownerId: 'c', shareBps: 3334 },
+      { ownerId: 'a', shareBps: 3333 },
+      { ownerId: 'b', shareBps: 3333 },
+      { ownerId: 'c', shareBps: 3334 },
     ];
-    const rent = [{ leaseId: 'l1', unitLabel: '1', tenantName: 'A', billedFils: 100001, collectedFils: 100001 }];
-    const d1 = computeStatement(source({ rentLines: rent, expenseLines: [], shares, feeBasisBps: 0 }));
-    const d2 = computeStatement(source({ rentLines: rent, expenseLines: [], shares: [...shares].reverse(), feeBasisBps: 0 }));
+    const rent = [
+      { leaseId: 'l1', unitLabel: '1', tenantName: 'A', billedFils: 100001, collectedFils: 100001 },
+    ];
+    const d1 = computeStatement(
+      source({ rentLines: rent, expenseLines: [], shares, feeBasisBps: 0 }),
+    );
+    const d2 = computeStatement(
+      source({ rentLines: rent, expenseLines: [], shares: [...shares].reverse(), feeBasisBps: 0 }),
+    );
     expect(d1.netFils).toBe(100001);
     const sum = d1.ownerShares.reduce((acc, x) => acc + x.amountFils, 0);
     expect(sum).toBe(100001);
     for (const id of ['a', 'b', 'c']) {
-      expect(d1.ownerShares.find((x) => x.ownerId === id)?.amountFils)
-        .toBe(d2.ownerShares.find((x) => x.ownerId === id)?.amountFils);
+      expect(d1.ownerShares.find((x) => x.ownerId === id)?.amountFils).toBe(
+        d2.ownerShares.find((x) => x.ownerId === id)?.amountFils,
+      );
     }
   });
 });

@@ -92,29 +92,43 @@ export default async function ProposalsPage() {
       requiredSignatures: policy.limits.requiredApprovers,
       // Who, not just how many: a count of two tells an operator a second key
       // exists, not whose it is.
-      signers: splitNames(r[locale === 'ar' ? 'signers_ar' : 'signers_en'], locale === 'ar' ? '، ' : ', '),
+      signers: splitNames(
+        r[locale === 'ar' ? 'signers_ar' : 'signers_en'],
+        locale === 'ar' ? '، ' : ', ',
+      ),
     };
   });
 
   const decided: DecidedProposal[] = decidedRows.map((r) => {
     const decidedAt = asDate(r['decided_at']);
     const result = r['result'];
-    const resultObject = typeof result === 'object' && result !== null && !Array.isArray(result)
-      ? (result as Record<string, unknown>)
-      : undefined;
+    const resultObject =
+      typeof result === 'object' && result !== null && !Array.isArray(result)
+        ? (result as Record<string, unknown>)
+        : undefined;
     const error = resultObject?.['error'];
     // Reversibility is a claim about the database, not about the button: an
     // execution the read-back never confirmed has no effect to undo, and a row
     // that already has a reversal receipt cannot produce a second one.
-    const reversible = String(r['status']) === 'executed'
-      && resultObject?.['confirmed'] === true
-      && r['reversed_at'] === null;
+    const reversible =
+      String(r['status']) === 'executed' &&
+      resultObject?.['confirmed'] === true &&
+      r['reversed_at'] === null;
     const reversalReason = typeof r['reversal_reason'] === 'string' ? r['reversal_reason'] : '';
     const nameEn = r['name_en'];
     const nameAr = r['name_ar'];
-    const name = locale === 'ar'
-      ? (typeof nameAr === 'string' ? nameAr : typeof nameEn === 'string' ? nameEn : null)
-      : (typeof nameEn === 'string' ? nameEn : typeof nameAr === 'string' ? nameAr : null);
+    const name =
+      locale === 'ar'
+        ? typeof nameAr === 'string'
+          ? nameAr
+          : typeof nameEn === 'string'
+            ? nameEn
+            : null
+        : typeof nameEn === 'string'
+          ? nameEn
+          : typeof nameAr === 'string'
+            ? nameAr
+            : null;
     return {
       id: String(r['id']),
       action: String(r['action']),
@@ -134,11 +148,21 @@ export default async function ProposalsPage() {
   return (
     // The chat dock floats over the bottom-left corner of every console page; the
     // trailing space keeps the last row's buttons clear of it.
-    <div style={{ display: 'grid', gap: 'var(--space-4)', paddingBlockEnd: 'calc(var(--space-4) * 4)' }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 'var(--space-4)',
+        paddingBlockEnd: 'calc(var(--space-4) * 4)',
+      }}
+    >
       <div style={{ display: 'grid', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+        >
           <h1 style={{ fontSize: 'var(--text-xl)' }}>{s.title}</h1>
-          <Badge tone={pending.length > 0 ? 'accent' : 'neutral'}>{s.pendingCount(pending.length)}</Badge>
+          <Badge tone={pending.length > 0 ? 'accent' : 'neutral'}>
+            {s.pendingCount(pending.length)}
+          </Badge>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>{s.hint}</p>
       </div>
@@ -170,22 +194,34 @@ export default async function ProposalsPage() {
               <tbody>
                 {decided.map((row) => (
                   <tr key={row.id}>
-                    <td><Badge tone={statusTone(row.status)}>{s.statuses[row.status] ?? row.status}</Badge></td>
+                    <td>
+                      <Badge tone={statusTone(row.status)}>
+                        {s.statuses[row.status] ?? row.status}
+                      </Badge>
+                    </td>
                     <td>
                       {row.summary}
                       {row.note !== '' && (
-                        <div style={{ color: 'var(--danger)', fontSize: 'var(--text-xs)' }} dir="auto">
+                        <div
+                          style={{ color: 'var(--danger)', fontSize: 'var(--text-xs)' }}
+                          dir="auto"
+                        >
                           {s.reason}: {row.note}
                         </div>
                       )}
                       {row.reversalReason !== '' && (
-                        <div style={{ color: 'var(--muted)', fontSize: 'var(--text-xs)' }} dir="auto">
+                        <div
+                          style={{ color: 'var(--muted)', fontSize: 'var(--text-xs)' }}
+                          dir="auto"
+                        >
                           {s.reversedBecause} {row.reversalReason}
                         </div>
                       )}
                     </td>
                     <td>{s.actions[row.action] ?? row.action}</td>
-                    <td className="tnum" title={row.decidedIso}>{row.decidedAt}</td>
+                    <td className="tnum" title={row.decidedIso}>
+                      {row.decidedAt}
+                    </td>
                     <td>{row.decidedBy ?? s.system}</td>
                     <td>
                       <ReversalButton

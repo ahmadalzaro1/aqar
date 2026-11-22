@@ -42,7 +42,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function toOutcome(body: unknown, httpStatus: number, proposal: PendingProposal, locale: Locale): Outcome {
+function toOutcome(
+  body: unknown,
+  httpStatus: number,
+  proposal: PendingProposal,
+  locale: Locale,
+): Outcome {
   if (httpStatus === 200 && isRecord(body)) {
     const status = typeof body['status'] === 'string' ? body['status'] : '';
     if (status === 'executed') {
@@ -52,21 +57,39 @@ function toOutcome(body: unknown, httpStatus: number, proposal: PendingProposal,
         label: argLabel(key, locale),
         value: valueText(key, valueValue, locale),
       }));
-      return { kind: 'executed', message: '', result, summary: proposal.summary, action: proposal.action };
+      return {
+        kind: 'executed',
+        message: '',
+        result,
+        summary: proposal.summary,
+        action: proposal.action,
+      };
     }
     if (status === 'failed') {
-      const reason = typeof body['reason'] === 'string' && body['reason'] !== ''
-        ? body['reason']
-        : 'executor reported failure without a reason';
-      return { kind: 'failed', message: reason, result: [], summary: proposal.summary, action: proposal.action };
+      const reason =
+        typeof body['reason'] === 'string' && body['reason'] !== ''
+          ? body['reason']
+          : 'executor reported failure without a reason';
+      return {
+        kind: 'failed',
+        message: reason,
+        result: [],
+        summary: proposal.summary,
+        action: proposal.action,
+      };
     }
     if (status === 'rejected' || status === 'expired') {
-      return { kind: status, message: '', result: [], summary: proposal.summary, action: proposal.action };
+      return {
+        kind: status,
+        message: '',
+        result: [],
+        summary: proposal.summary,
+        action: proposal.action,
+      };
     }
   }
-  const message = isRecord(body) && typeof body['error'] === 'string'
-    ? body['error']
-    : `HTTP ${httpStatus}`;
+  const message =
+    isRecord(body) && typeof body['error'] === 'string' ? body['error'] : `HTTP ${httpStatus}`;
   return { kind: 'error', message, result: [], summary: proposal.summary, action: proposal.action };
 }
 
@@ -80,7 +103,8 @@ function OutcomeBlock({ outcome, s }: { outcome: Outcome; s: Strings }) {
       : outcome.kind === 'error'
         ? s.errorLabel
         : s.outcome;
-  const statusText = outcome.kind === 'error' ? s.errorLabel : s.statuses[outcome.kind] ?? outcome.kind;
+  const statusText =
+    outcome.kind === 'error' ? s.errorLabel : (s.statuses[outcome.kind] ?? outcome.kind);
   return (
     <div
       role="status"
@@ -99,13 +123,20 @@ function OutcomeBlock({ outcome, s }: { outcome: Outcome; s: Strings }) {
       <strong>{heading}: </strong>
       <span>{statusText}</span>
       {outcome.message !== '' && (
-        <div style={{ marginBlockStart: 4 }} dir="auto">{outcome.message}</div>
+        <div style={{ marginBlockStart: 4 }} dir="auto">
+          {outcome.message}
+        </div>
       )}
       {outcome.result.length > 0 && (
-        <dl style={{
-          display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) minmax(0, 1fr)',
-          gap: '2px var(--space-3)', margin: 0, marginBlockStart: 4,
-        }}>
+        <dl
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(96px, max-content) minmax(0, 1fr)',
+            gap: '2px var(--space-3)',
+            margin: 0,
+            marginBlockStart: 4,
+          }}
+        >
           {outcome.result.map((line) => (
             <Fragment key={line.key}>
               <dt style={{ opacity: 0.8 }}>{line.label}</dt>
@@ -116,7 +147,9 @@ function OutcomeBlock({ outcome, s }: { outcome: Outcome; s: Strings }) {
                 values right-align, which read as a ragged column.
               */}
               <dd style={{ margin: 0, fontWeight: 600 }}>
-                <span dir="auto" style={{ unicodeBidi: 'plaintext', overflowWrap: 'anywhere' }}>{line.value}</span>
+                <span dir="auto" style={{ unicodeBidi: 'plaintext', overflowWrap: 'anywhere' }}>
+                  {line.value}
+                </span>
               </dd>
             </Fragment>
           ))}
@@ -182,51 +215,87 @@ export function ProposalQueue({
         const outcome = outcomes[proposal.id];
         return (
           <Card key={proposal.id}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                flexWrap: 'wrap',
+              }}
+            >
               <Badge tone="accent">{s.actions[proposal.action] ?? proposal.action}</Badge>
-              <code style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }} dir="ltr">{proposal.toolName}</code>
+              <code style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }} dir="ltr">
+                {proposal.toolName}
+              </code>
               {proposal.expired && <Badge tone="warn">{s.pastExpiry}</Badge>}
               {proposal.signatures > 0 && (
-                <Badge tone="warn">{s.signaturesOf(proposal.signatures, proposal.requiredSignatures)}</Badge>
+                <Badge tone="warn">
+                  {s.signaturesOf(proposal.signatures, proposal.requiredSignatures)}
+                </Badge>
               )}
               <span
                 className="tnum"
-                style={{ marginInlineStart: 'auto', color: 'var(--muted)', fontSize: 'var(--text-xs)' }}
+                style={{
+                  marginInlineStart: 'auto',
+                  color: 'var(--muted)',
+                  fontSize: 'var(--text-xs)',
+                }}
                 title={`${proposal.createdIso} → ${proposal.expiresIso}`}
               >
                 {s.created} {proposal.createdAt} · {s.expires} {proposal.expiresAt}
               </span>
             </div>
 
-            <p style={{ fontWeight: 600, marginBlock: 'var(--space-2)' }} dir="auto">{proposal.summary}</p>
+            <p style={{ fontWeight: 600, marginBlock: 'var(--space-2)' }} dir="auto">
+              {proposal.summary}
+            </p>
 
             {proposal.signers.length > 0 && (
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--text-sm)' }} dir="auto">
+              <p
+                style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--text-sm)' }}
+                dir="auto"
+              >
                 {s.signedBy}: {proposal.signers.join('، ')}
               </p>
             )}
 
             {proposal.args.length > 0 && (
-              <dl style={{
-                display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) minmax(0, 1fr)',
-                gap: '2px var(--space-3)', margin: 0, fontSize: 'var(--text-sm)',
-              }}>
+              <dl
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(96px, max-content) minmax(0, 1fr)',
+                  gap: '2px var(--space-3)',
+                  margin: 0,
+                  fontSize: 'var(--text-sm)',
+                }}
+              >
                 {proposal.args.map((arg) => (
                   <Fragment key={arg.key}>
                     <dt style={{ color: 'var(--muted)' }}>{arg.label}</dt>
                     <dd style={{ margin: 0 }}>
-                      <span dir="auto" style={{ unicodeBidi: 'plaintext', overflowWrap: 'anywhere' }}>{arg.value}</span>
+                      <span
+                        dir="auto"
+                        style={{ unicodeBidi: 'plaintext', overflowWrap: 'anywhere' }}
+                      >
+                        {arg.value}
+                      </span>
                     </dd>
                   </Fragment>
                 ))}
               </dl>
             )}
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap',
-              marginBlockStart: 'var(--space-3)', paddingBlockStart: 'var(--space-3)',
-              borderBlockStart: '1px solid var(--border)',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                flexWrap: 'wrap',
+                marginBlockStart: 'var(--space-3)',
+                paddingBlockStart: 'var(--space-3)',
+                borderBlockStart: '1px solid var(--border)',
+              }}
+            >
               <span style={{ color: 'var(--muted)', fontSize: 'var(--text-xs)' }}>
                 {s.model}: <code dir="ltr">{proposal.modelId ?? '—'}</code>
               </span>
@@ -236,7 +305,9 @@ export function ProposalQueue({
                     variant="primary"
                     disabled={busy}
                     aria-busy={busy && inFlight?.decision === 'approve'}
-                    onClick={() => { void decide(proposal, 'approve'); }}
+                    onClick={() => {
+                      void decide(proposal, 'approve');
+                    }}
                   >
                     {busy && inFlight?.decision === 'approve' ? s.approving : s.approve}
                   </Button>
@@ -244,7 +315,9 @@ export function ProposalQueue({
                     variant="danger"
                     disabled={busy}
                     aria-busy={busy && inFlight?.decision === 'reject'}
-                    onClick={() => { void decide(proposal, 'reject'); }}
+                    onClick={() => {
+                      void decide(proposal, 'reject');
+                    }}
                   >
                     {busy && inFlight?.decision === 'reject' ? s.rejecting : s.reject}
                   </Button>
@@ -255,7 +328,13 @@ export function ProposalQueue({
             </div>
 
             {!canDecide && outcome === undefined && (
-              <p style={{ color: 'var(--warn)', fontSize: 'var(--text-xs)', marginBlockStart: 'var(--space-2)' }}>
+              <p
+                style={{
+                  color: 'var(--warn)',
+                  fontSize: 'var(--text-xs)',
+                  marginBlockStart: 'var(--space-2)',
+                }}
+              >
                 {s.cannotDecide}
               </p>
             )}
@@ -267,14 +346,36 @@ export function ProposalQueue({
 
       {justDecided.length > 0 && (
         <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-          <h3 style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', margin: 0 }}>{s.justDecided}</h3>
+          <h3 style={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', margin: 0 }}>
+            {s.justDecided}
+          </h3>
           {justDecided.map(([id, outcome]) => (
-            <div key={id} style={{
-              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-              padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)',
-            }}>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge tone={outcome.kind === 'executed' ? 'ok' : outcome.kind === 'failed' || outcome.kind === 'error' ? 'danger' : 'neutral'}>
+            <div
+              key={id}
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                padding: 'var(--space-2) var(--space-3)',
+                fontSize: 'var(--text-sm)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 'var(--space-2)',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Badge
+                  tone={
+                    outcome.kind === 'executed'
+                      ? 'ok'
+                      : outcome.kind === 'failed' || outcome.kind === 'error'
+                        ? 'danger'
+                        : 'neutral'
+                  }
+                >
                   {s.statuses[outcome.kind] ?? outcome.kind}
                 </Badge>
                 <Badge tone="accent">{s.actions[outcome.action] ?? outcome.action}</Badge>

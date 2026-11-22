@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
-  chargeAsBankLineInput, detectReupload, parseCsv, parseJodToFils, planDedupe,
-  planMatch, remainingCharges, sumPlan,
+  chargeAsBankLineInput,
+  detectReupload,
+  parseCsv,
+  parseJodToFils,
+  planDedupe,
+  planMatch,
+  remainingCharges,
+  sumPlan,
 } from './lib';
 import type { ImportRecord } from './lib';
 import type { Charge } from '@aqar/contracts';
 import type { PayerProfile } from '@aqar/core';
 
-const CSV = 'date,payer,amount,reference\n2026-11-01,Ahmad Ali,125.500,rent nov\n2026-11-02,"Sara, K",0.001,tip';
+const CSV =
+  'date,payer,amount,reference\n2026-11-01,Ahmad Ali,125.500,rent nov\n2026-11-02,"Sara, K",0.001,tip';
 
 describe('parseJodToFils — integer fils, never floats', () => {
   it('converts exactly at 3 decimals', () => {
@@ -48,7 +55,15 @@ describe('parseCsv', () => {
 });
 
 describe('planDedupe — core is the authority', () => {
-  const existing = [chargeAsBankLineInput({ rowNumber: 90, dateISO: '2026-11-01', payerName: 'Ahmad Ali', amountFils: 125500, reference: 'old' })];
+  const existing = [
+    chargeAsBankLineInput({
+      rowNumber: 90,
+      dateISO: '2026-11-01',
+      payerName: 'Ahmad Ali',
+      amountFils: 125500,
+      reference: 'old',
+    }),
+  ];
   it('flags a line already stored for the org', () => {
     const rows = planDedupe(existing, parseCsv(CSV).lines);
     expect(rows[0]?.duplicateKind).toBe('existing');
@@ -64,7 +79,14 @@ describe('planDedupe — core is the authority', () => {
 });
 
 describe('detectReupload', () => {
-  const record: ImportRecord = { id: 'i1', sourceHash: 'abc', fileName: 'f.csv', accountLabel: 'a', lineCount: 2, importedAtISO: '2026-11-01T00:00:00Z' };
+  const record: ImportRecord = {
+    id: 'i1',
+    sourceHash: 'abc',
+    fileName: 'f.csv',
+    accountLabel: 'a',
+    lineCount: 2,
+    importedAtISO: '2026-11-01T00:00:00Z',
+  };
   it('matches on the raw source hash', () => {
     expect(detectReupload([record], 'abc')?.id).toBe('i1');
     expect(detectReupload([record], 'xyz')).toBeNull();
@@ -72,13 +94,31 @@ describe('detectReupload', () => {
 });
 
 const charge = (id: string, amountFils: number, dueDateISO: string): Charge => ({
-  id, leaseId: 'lease-1', period: '2026-11', kind: 'rent', amountFils, dueDateISO, proratedDays: null,
+  id,
+  leaseId: 'lease-1',
+  period: '2026-11',
+  kind: 'rent',
+  amountFils,
+  dueDateISO,
+  proratedDays: null,
 });
-const payer: PayerProfile = { payerId: 'tenant-1', leaseId: 'lease-1', names: ['Ahmad Ali'], accounts: [], confirmed: true };
+const payer: PayerProfile = {
+  payerId: 'tenant-1',
+  leaseId: 'lease-1',
+  names: ['Ahmad Ali'],
+  accounts: [],
+  confirmed: true,
+};
 
 describe('planMatch — suggestion + oldest-first proposal + postable gate', () => {
   it('auto match with exact cover is postable', () => {
-    const line = chargeAsBankLineInput({ rowNumber: 1, dateISO: '2026-11-01', payerName: 'Ahmad Ali', amountFils: 125500, reference: null });
+    const line = chargeAsBankLineInput({
+      rowNumber: 1,
+      dateISO: '2026-11-01',
+      payerName: 'Ahmad Ali',
+      amountFils: 125500,
+      reference: null,
+    });
     const plan = planMatch(line, [payer], { 'lease-1': [charge('c1', 125500, '2026-11-01')] });
     expect(plan.suggestion.kind).toBe('auto');
     expect(plan.postable).toBe(true);
@@ -86,14 +126,28 @@ describe('planMatch — suggestion + oldest-first proposal + postable gate', () 
     expect(plan.suggestion.reason.length).toBeGreaterThan(0);
   });
   it('partial payment proposes oldest-first and stays postable when it covers exactly', () => {
-    const line = chargeAsBankLineInput({ rowNumber: 1, dateISO: '2026-11-01', payerName: 'Ahmad Ali', amountFils: 100000, reference: null });
-    const plan = planMatch(line, [payer], { 'lease-1': [charge('c1', 60000, '2026-10-01'), charge('c2', 60000, '2026-11-01')] });
+    const line = chargeAsBankLineInput({
+      rowNumber: 1,
+      dateISO: '2026-11-01',
+      payerName: 'Ahmad Ali',
+      amountFils: 100000,
+      reference: null,
+    });
+    const plan = planMatch(line, [payer], {
+      'lease-1': [charge('c1', 60000, '2026-10-01'), charge('c2', 60000, '2026-11-01')],
+    });
     expect(plan.suggestion.kind).toBe('partial');
     expect(plan.allocations[0]?.chargeId).toBe('c1');
     expect(plan.postable).toBe(true);
   });
   it('unknown payer is never postable', () => {
-    const line = chargeAsBankLineInput({ rowNumber: 1, dateISO: '2026-11-01', payerName: 'Stranger', amountFils: 1000, reference: null });
+    const line = chargeAsBankLineInput({
+      rowNumber: 1,
+      dateISO: '2026-11-01',
+      payerName: 'Stranger',
+      amountFils: 1000,
+      reference: null,
+    });
     const plan = planMatch(line, [payer], { 'lease-1': [charge('c1', 1000, '2026-11-01')] });
     expect(plan.suggestion.kind).toBe('unknown_payer');
     expect(plan.postable).toBe(false);
@@ -103,9 +157,30 @@ describe('planMatch — suggestion + oldest-first proposal + postable gate', () 
 describe('remainingCharges', () => {
   it('drops settled rows and groups by lease', () => {
     const map = remainingCharges([
-      { id: 'c1', leaseId: 'l1', period: '2026-11', kind: 'rent', dueDateISO: '2026-11-01', remainingFils: 500 },
-      { id: 'c2', leaseId: 'l1', period: '2026-11', kind: 'rent', dueDateISO: '2026-11-01', remainingFils: 0 },
-      { id: 'c3', leaseId: 'l2', period: '2026-11', kind: 'rent', dueDateISO: '2026-11-01', remainingFils: 700 },
+      {
+        id: 'c1',
+        leaseId: 'l1',
+        period: '2026-11',
+        kind: 'rent',
+        dueDateISO: '2026-11-01',
+        remainingFils: 500,
+      },
+      {
+        id: 'c2',
+        leaseId: 'l1',
+        period: '2026-11',
+        kind: 'rent',
+        dueDateISO: '2026-11-01',
+        remainingFils: 0,
+      },
+      {
+        id: 'c3',
+        leaseId: 'l2',
+        period: '2026-11',
+        kind: 'rent',
+        dueDateISO: '2026-11-01',
+        remainingFils: 700,
+      },
     ]);
     expect(map['l1']).toHaveLength(1);
     expect(map['l2']).toHaveLength(1);

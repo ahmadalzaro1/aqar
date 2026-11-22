@@ -17,7 +17,12 @@ import {
   TRIAGE_ACTOR,
   type ProcessorDeps,
 } from '../processor.js';
-import type { PersistTriageInput, PersistTriageOutcome, TicketRecord, TriageStore } from '../store.js';
+import type {
+  PersistTriageInput,
+  PersistTriageOutcome,
+  TicketRecord,
+  TriageStore,
+} from '../store.js';
 import { ammanLocalHour } from '../time.js';
 
 const ORG = '11111111-1111-4111-8111-111111111111';
@@ -97,11 +102,13 @@ interface FakeStore extends TriageStore {
   lastPersist: PersistTriageInput | null;
 }
 
-function fakeStore(opts: {
-  prior?: TriageJobResult | null;
-  ticket?: TicketRecord | null;
-  outcome?: PersistTriageOutcome;
-} = {}): FakeStore {
+function fakeStore(
+  opts: {
+    prior?: TriageJobResult | null;
+    ticket?: TicketRecord | null;
+    outcome?: PersistTriageOutcome;
+  } = {},
+): FakeStore {
   const store: FakeStore = {
     calls: { prior: 0, load: 0, persist: 0 },
     lastPersist: null,
@@ -148,30 +155,34 @@ describe('processTriageJob — payload contract', () => {
     const rest: Record<string, unknown> = { ...job };
     delete rest['idempotencyKey'];
     const store = fakeStore();
-    await expect(processTriageJob(rest, deps(store, vi.fn())))
-      .rejects.toBeInstanceOf(JobValidationError);
+    await expect(processTriageJob(rest, deps(store, vi.fn()))).rejects.toBeInstanceOf(
+      JobValidationError,
+    );
     expect(store.calls.persist).toBe(0);
   });
 
   it('rejects an unknown channel instead of coercing it', async () => {
     const store = fakeStore();
-    await expect(processTriageJob({ ...job, channel: 'sms' }, deps(store, vi.fn())))
-      .rejects.toBeInstanceOf(JobValidationError);
+    await expect(
+      processTriageJob({ ...job, channel: 'sms' }, deps(store, vi.fn())),
+    ).rejects.toBeInstanceOf(JobValidationError);
   });
 });
 
 describe('processTriageJob — scoping and existence', () => {
   it('throws TicketNotFoundError when the ticket does not exist', async () => {
     const store = fakeStore({ ticket: null });
-    await expect(processTriageJob(job, deps(store, vi.fn())))
-      .rejects.toBeInstanceOf(TicketNotFoundError);
+    await expect(processTriageJob(job, deps(store, vi.fn()))).rejects.toBeInstanceOf(
+      TicketNotFoundError,
+    );
     expect(store.calls.persist).toBe(0);
   });
 
   it('refuses a ticket that belongs to another organization', async () => {
     const store = fakeStore({ ticket: ticketRecord({ organizationId: OTHER_ORG }) });
-    await expect(processTriageJob(job, deps(store, vi.fn())))
-      .rejects.toBeInstanceOf(TicketNotFoundError);
+    await expect(processTriageJob(job, deps(store, vi.fn()))).rejects.toBeInstanceOf(
+      TicketNotFoundError,
+    );
     expect(store.calls.persist).toBe(0);
   });
 });
@@ -179,9 +190,14 @@ describe('processTriageJob — scoping and existence', () => {
 describe('processTriageJob — idempotency', () => {
   it('returns the prior result on redelivery without re-running triage', async () => {
     const prior: TriageJobResult = {
-      ticketId: TICKET, emergencyFlag: true, severity: 'emergency', category: 'gas',
-      handedOffToHuman: true, traceId: '77777777-7777-4777-8777-777777777777',
-      proposalCount: 2, idempotencyKey: KEY,
+      ticketId: TICKET,
+      emergencyFlag: true,
+      severity: 'emergency',
+      category: 'gas',
+      handedOffToHuman: true,
+      traceId: '77777777-7777-4777-8777-777777777777',
+      proposalCount: 2,
+      idempotencyKey: KEY,
     };
     const store = fakeStore({ prior });
     const triage = vi.fn();
@@ -193,12 +209,20 @@ describe('processTriageJob — idempotency', () => {
 
   it('returns the concurrent winner when persist reports a dedupe race', async () => {
     const winner: TriageJobResult = {
-      ticketId: TICKET, emergencyFlag: true, severity: 'emergency', category: 'gas',
-      handedOffToHuman: true, traceId: '77777777-7777-4777-8777-777777777777',
-      proposalCount: 1, idempotencyKey: KEY,
+      ticketId: TICKET,
+      emergencyFlag: true,
+      severity: 'emergency',
+      category: 'gas',
+      handedOffToHuman: true,
+      traceId: '77777777-7777-4777-8777-777777777777',
+      proposalCount: 1,
+      idempotencyKey: KEY,
     };
     const store = fakeStore({ outcome: { result: winner, deduped: true } });
-    const out = await processTriageJob(job, deps(store, async () => triageResult()));
+    const out = await processTriageJob(
+      job,
+      deps(store, async () => triageResult()),
+    );
     expect(out).toEqual(winner);
     expect(store.calls.persist).toBe(1);
   });
@@ -228,18 +252,27 @@ describe('processTriageJob — execution contract', () => {
   it('carries the stored emergency flag into triage as priorEmergency', async () => {
     const store = fakeStore({ ticket: ticketRecord({ emergencyFlag: true }) });
     const inputs: TriageInput[] = [];
-    await processTriageJob(job, deps(store, async (input) => {
-      inputs.push(input);
-      return triageResult();
-    }));
+    await processTriageJob(
+      job,
+      deps(store, async (input) => {
+        inputs.push(input);
+        return triageResult();
+      }),
+    );
     expect(inputs[0]?.priorEmergency).toBe(true);
   });
 
   it('LAW-2 floor: a model-raised emergency survives the job boundary', async () => {
     // Ticket not yet flagged; the merged classification says emergency.
     const store = fakeStore({ ticket: ticketRecord({ emergencyFlag: false }) });
-    const out = await processTriageJob(job, deps(store, async () =>
-      triageResult({ merged: merged({ deterministicEmergency: false, modelEmergencyFlag: true }) })));
+    const out = await processTriageJob(
+      job,
+      deps(store, async () =>
+        triageResult({
+          merged: merged({ deterministicEmergency: false, modelEmergencyFlag: true }),
+        }),
+      ),
+    );
     expect(out.emergencyFlag).toBe(true);
     expect(out.severity).toBe('emergency');
     expect(store.lastPersist?.jobResult.emergencyFlag).toBe(true);
@@ -247,12 +280,19 @@ describe('processTriageJob — execution contract', () => {
 
   it('counts proposals from the orchestrator output', async () => {
     const store = fakeStore();
-    const out = await processTriageJob(job, deps(store, async () => triageResult({
-      proposals: [{
-        action: 'dispatch_vendor',
-        decision: { allowed: false, requiresHumanApproval: true, reasons: ['dry_run'] },
-      }],
-    })));
+    const out = await processTriageJob(
+      job,
+      deps(store, async () =>
+        triageResult({
+          proposals: [
+            {
+              action: 'dispatch_vendor',
+              decision: { allowed: false, requiresHumanApproval: true, reasons: ['dry_run'] },
+            },
+          ],
+        }),
+      ),
+    );
     expect(out.proposalCount).toBe(1);
   });
 });

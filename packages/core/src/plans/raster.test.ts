@@ -38,7 +38,10 @@ describe('raster rooms', () => {
   });
 
   it('stores a low-confidence claim but refuses to accept it', () => {
-    const measured = rasterRoomAreas([room('A', rect(0, 0, 600, 300), CONFIDENCE_FLOOR - 0.09)], MPP);
+    const measured = rasterRoomAreas(
+      [room('A', rect(0, 0, 600, 300), CONFIDENCE_FLOOR - 0.09)],
+      MPP,
+    );
     expect(measured[0]?.areaSqm).toBe(18);
     expect(measured[0]?.flags).toContain('low_confidence');
     expect(measured[0]?.accepted).toBe(false);
@@ -66,7 +69,10 @@ describe('raster rooms', () => {
   });
 
   it('flags a claim that leaves the image it was traced in', () => {
-    const measured = rasterRoomAreas([room('A', rect(0, 0, 600, 1000))], MPP, { width: 500, height: 500 });
+    const measured = rasterRoomAreas([room('A', rect(0, 0, 600, 1000))], MPP, {
+      width: 500,
+      height: 500,
+    });
     expect(measured[0]?.flags).toContain('outside_image');
     expect(measured[0]?.accepted).toBe(false);
   });

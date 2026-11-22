@@ -26,8 +26,10 @@ describe('approval tokens', () => {
 
   it('refuses a token signed with another secret', () => {
     const { token } = mintApprovalToken('b'.repeat(48), base);
-    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected }))
-      .toEqual({ ok: false, reason: 'bad_signature' });
+    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected })).toEqual({
+      ok: false,
+      reason: 'bad_signature',
+    });
   });
 
   it('refuses tampering with any single field — the signature covers all of them', () => {
@@ -41,7 +43,12 @@ describe('approval tokens', () => {
       [base.approvedByUserId, '00000000-0000-0000-0000-000000000000'],
     ] as [string, string][]) {
       const forged = Buffer.from(payload.replace(from, to), 'utf8').toString('base64url');
-      const result = verifyApprovalToken({ secret: SECRET, token: `${forged}.${sigB64}`, now: NOW, expected });
+      const result = verifyApprovalToken({
+        secret: SECRET,
+        token: `${forged}.${sigB64}`,
+        now: NOW,
+        expected,
+      });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toBe('bad_signature');
     }
@@ -50,21 +57,28 @@ describe('approval tokens', () => {
   it('refuses an expired token even when the signature is valid', () => {
     const { token } = mintApprovalToken(SECRET, base);
     const later = new Date('2026-11-21T13:00:01Z');
-    expect(verifyApprovalToken({ secret: SECRET, token, now: later, expected }))
-      .toEqual({ ok: false, reason: 'expired' });
+    expect(verifyApprovalToken({ secret: SECRET, token, now: later, expected })).toEqual({
+      ok: false,
+      reason: 'expired',
+    });
   });
 
   it('refuses a valid token presented for different arguments', () => {
     const { token } = mintApprovalToken(SECRET, base);
     const otherArgs = { ...expected, argsHash: 'd'.repeat(64) };
-    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherArgs }))
-      .toEqual({ ok: false, reason: 'args_mismatch' });
+    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherArgs })).toEqual({
+      ok: false,
+      reason: 'args_mismatch',
+    });
     const otherProposal = { ...expected, proposalId: '22222222-3333-4444-5555-666666666666' };
-    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherProposal }))
-      .toEqual({ ok: false, reason: 'proposal_mismatch' });
+    expect(
+      verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherProposal }),
+    ).toEqual({ ok: false, reason: 'proposal_mismatch' });
     const otherTool = { ...expected, toolName: 'propose_charge' };
-    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherTool }))
-      .toEqual({ ok: false, reason: 'tool_mismatch' });
+    expect(verifyApprovalToken({ secret: SECRET, token, now: NOW, expected: otherTool })).toEqual({
+      ok: false,
+      reason: 'tool_mismatch',
+    });
   });
 
   it('rejects structurally broken tokens instead of throwing', () => {
@@ -79,7 +93,9 @@ describe('approval tokens', () => {
   });
 
   it('refuses claims that would make the canonical form ambiguous', () => {
-    expect(() => mintApprovalToken(SECRET, { ...base, toolName: 'propose|payment' })).toThrow(/must not contain/);
+    expect(() => mintApprovalToken(SECRET, { ...base, toolName: 'propose|payment' })).toThrow(
+      /must not contain/,
+    );
     expect(() => mintApprovalToken(SECRET, { ...base, argsHash: '' })).toThrow(/must not be empty/);
   });
 });

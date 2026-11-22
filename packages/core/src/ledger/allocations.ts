@@ -23,7 +23,8 @@ interface Candidate {
 }
 
 function compareCharges(a: Candidate, b: Candidate): number {
-  if (a.charge.dueDateISO !== b.charge.dueDateISO) return a.charge.dueDateISO < b.charge.dueDateISO ? -1 : 1;
+  if (a.charge.dueDateISO !== b.charge.dueDateISO)
+    return a.charge.dueDateISO < b.charge.dueDateISO ? -1 : 1;
   if (a.charge.id !== b.charge.id) return a.charge.id < b.charge.id ? -1 : 1;
   return 0;
 }
@@ -53,7 +54,9 @@ export function allocatePayment(
   }
 
   const appliedByThisPayment = sumFils(
-    existingAllocations.filter((allocation) => allocation.paymentId === payment.id).map((a) => a.amountFils),
+    existingAllocations
+      .filter((allocation) => allocation.paymentId === payment.id)
+      .map((a) => a.amountFils),
   );
   const available = Math.max(0, payment.amountFils - appliedByThisPayment);
 
@@ -67,7 +70,8 @@ export function allocatePayment(
   const referenced: Candidate[] = [];
   const rest: Candidate[] = [];
   for (const candidate of candidates) {
-    if (referencePeriod !== null && candidate.charge.period === referencePeriod) referenced.push(candidate);
+    if (referencePeriod !== null && candidate.charge.period === referencePeriod)
+      referenced.push(candidate);
     else rest.push(candidate);
   }
   referenced.sort(compareCharges);

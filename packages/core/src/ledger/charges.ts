@@ -52,7 +52,8 @@ export function generateMonthlyCharges(
   }
 
   const existingKeys = new Set<string>();
-  for (const charge of existing) existingKeys.add(chargeKey(charge.leaseId, charge.period, charge.kind));
+  for (const charge of existing)
+    existingKeys.add(chargeKey(charge.leaseId, charge.period, charge.kind));
 
   const generated: Charge[] = [];
   for (const lease of uniqueLeases.values()) {

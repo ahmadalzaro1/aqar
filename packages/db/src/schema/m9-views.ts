@@ -1,14 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { boolean, check, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { auditTimestamps, pkId } from './common.js';
 import { users } from './auth.js';
 import { organizations } from './organizations.js';
@@ -27,7 +18,10 @@ export const savedViews = pgTable(
     name: text('name').notNull(),
     /** module key, e.g. 'tickets' | 'arrears' | 'vendors' */
     module: text('module').notNull(),
-    filters: jsonb('filters').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    filters: jsonb('filters')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     isShared: boolean('is_shared').notNull().default(false),
     ...auditTimestamps(),
   },
@@ -52,7 +46,10 @@ export const scheduledReports = pgTable(
     name: text('name').notNull(),
     kind: text('kind').notNull(),
     cron: text('cron').notNull(),
-    recipients: jsonb('recipients').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    recipients: jsonb('recipients')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     isActive: boolean('is_active').notNull().default(true),
     lastRunAt: timestamp('last_run_at', { withTimezone: true }),
     ...auditTimestamps(),

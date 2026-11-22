@@ -96,7 +96,9 @@ describe('allocatePayment properties', () => {
           expect(allocation.amountFils).toBeGreaterThan(0);
           expect(seen.has(allocation.chargeId)).toBe(false);
           seen.add(allocation.chargeId);
-          expect(allocation.amountFils).toBeLessThanOrEqual(outstandingById.get(allocation.chargeId) ?? 0);
+          expect(allocation.amountFils).toBeLessThanOrEqual(
+            outstandingById.get(allocation.chargeId) ?? 0,
+          );
         }
       }),
     );
