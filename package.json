@@ -27,7 +27,9 @@
     "test:select": "node scripts/ci/select-tests.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
     "test:selector": "node scripts/ci/select-tests.selftest.mjs",
-    "shard:verify": "node scripts/ci/shard.mjs --package packages/core --shards 4 --verify"
+    "shard:verify": "node scripts/ci/shard.mjs --package packages/core --shards 4 --verify",
+    "test:inventory": "node scripts/ci/test-inventory.mjs --check",
+    "test:inventory:record": "node scripts/ci/test-inventory.mjs --record"
   },
   "devDependencies": {
     "@node-rs/argon2": "^2.2.2",

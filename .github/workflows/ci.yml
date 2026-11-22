@@ -174,6 +174,12 @@ jobs:
         if: steps.select.outputs.mode == 'all' || contains(steps.select.outputs.packages, 'packages/agents')
         run: pnpm --filter @aqar/agents test
 
+      # main only: a merge must not be able to drop a test quietly. A PR that removes a
+      # test legitimately edits .ci/test-inventory.json, and that edit is reviewed.
+      - name: test inventory (a test that stops running is a check that stopped checking)
+        if: github.event_name == 'push'
+        run: node scripts/ci/test-inventory.mjs --check
+
       - name: budget
         if: always()
         run: node scripts/ci/budget.mjs --job test --budget 45 --start "$JOB_START"
