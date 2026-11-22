@@ -68,7 +68,9 @@ describe('dataset integrity', () => {
         for (const signal of emergencyPrecheck(c.text).signals) covered.add(signal);
       }
       for (const required of REQUIRED_SIGNALS) {
-        expect(covered.has(required), `${locale} dataset does not cover signal ${required}`).toBe(true);
+        expect(covered.has(required), `${locale} dataset does not cover signal ${required}`).toBe(
+          true,
+        );
       }
     }
   });
@@ -98,7 +100,9 @@ describe('deterministic lane (LAW-2 floor)', () => {
     const metrics = computeMetrics(results);
     expect(metrics.benignTrapFalsePositives).toBe(0);
     expect(metrics.falsePositiveRate).toBe(0);
-    for (const c of GOLDEN_CASES.filter((x) => (x.kind === 'benign' || x.kind === 'trap') && !x.expectEmergency)) {
+    for (const c of GOLDEN_CASES.filter(
+      (x) => (x.kind === 'benign' || x.kind === 'trap') && !x.expectEmergency,
+    )) {
       expect(resultFor(c.id).predictedEmergency, `${c.id} must stay quiet`).toBe(false);
     }
   });
@@ -128,7 +132,10 @@ describe('deterministic lane (LAW-2 floor)', () => {
   it('documents that negation does NOT clear a flag', () => {
     for (const c of GOLDEN_CASES.filter((x) => x.kind === 'negation')) {
       const r = resultFor(c.id);
-      expect(r.predictedEmergency, `${c.id} should stay flagged under the conservative design`).toBe(true);
+      expect(
+        r.predictedEmergency,
+        `${c.id} should stay flagged under the conservative design`,
+      ).toBe(true);
       expect(r.deterministicSignals.length).toBeGreaterThan(0);
     }
   });

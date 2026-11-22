@@ -57,7 +57,14 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
           action: 'post_payment',
           propertyId: lease.propertyId,
           amountFils,
-          args: { leaseId, amountFils, receivedDate, method, reference: reference ?? null, note: note ?? null },
+          args: {
+            leaseId,
+            amountFils,
+            receivedDate,
+            method,
+            reference: reference ?? null,
+            note: note ?? null,
+          },
           summary: `Post payment ${formatFils(amountFils)} JOD from ${lease.tenant ?? 'tenant'} (${method}, ${receivedDate})`,
         });
 
@@ -89,7 +96,10 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
         leaseId: z.string().uuid(),
         kind: z.enum(['rent', 'late_fee', 'service', 'deposit', 'other']),
         amountFils: z.number().int().positive(),
-        period: z.string().regex(/^\d{4}-\d{2}$/).describe('Billing period YYYY-MM'),
+        period: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .describe('Billing period YYYY-MM'),
         dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         note: z.string().max(500).optional(),
       },
@@ -152,7 +162,12 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
       inputSchema: {
         ticketId: z.string().uuid(),
         vendorId: z.string().uuid(),
-        amountFils: z.number().int().nonnegative().optional().describe('Quoted cost in fils, if known'),
+        amountFils: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe('Quoted cost in fils, if known'),
         note: z.string().max(500).optional(),
       },
       annotations: { readOnlyHint: false, idempotentHint: true },
@@ -165,7 +180,9 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
       return ctx.sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${ctx.org.id}, true)`;
 
-        const ticketRows = await tx<{ propertyId: string | null; subject: string; emergency: boolean }[]>`
+        const ticketRows = await tx<
+          { propertyId: string | null; subject: string; emergency: boolean }[]
+        >`
           select property_id as "propertyId", subject, emergency_flag as emergency
             from tickets
            where organization_id = ${ctx.org.id} and id = ${ticketId}
@@ -176,7 +193,10 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
           throw new ToolError('ticket_not_found', `No ticket ${ticketId} in this organization`);
         }
         if (ticket.propertyId === null) {
-          throw new ToolError('property_required', 'The ticket has no property, so policy cannot be evaluated');
+          throw new ToolError(
+            'property_required',
+            'The ticket has no property, so policy cannot be evaluated',
+          );
         }
 
         const vendorRows = await tx<{ id: string; name: string; allowListed: boolean }[]>`
@@ -227,16 +247,27 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
       description:
         'Pending (and optionally settled) proposals waiting for a human decision, with what they would do and when they expire.',
       inputSchema: {
-        status: z.enum(['pending', 'approved', 'rejected', 'executed', 'expired', 'failed', 'all']).default('pending'),
+        status: z
+          .enum(['pending', 'approved', 'rejected', 'executed', 'expired', 'failed', 'all'])
+          .default('pending'),
         limit: z.number().int().min(1).max(100).default(25),
       },
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     async ({ status, limit }) => {
-      const rows = await ctx.sql<{
-        id: string; toolName: string; action: string; summary: string; status: string;
-        createdAt: Date; expiresAt: Date; decidedAt: Date | null; requester: unknown;
-      }[]>`
+      const rows = await ctx.sql<
+        {
+          id: string;
+          toolName: string;
+          action: string;
+          summary: string;
+          status: string;
+          createdAt: Date;
+          expiresAt: Date;
+          decidedAt: Date | null;
+          requester: unknown;
+        }[]
+      >`
         select id,
                tool_name as "toolName",
                action,
@@ -274,7 +305,8 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
     'list_vendors',
     {
       title: 'List vendors',
-      description: 'Vendors with their trades, allow-list status, insurance expiry and rating. Use before proposing a dispatch.',
+      description:
+        'Vendors with their trades, allow-list status, insurance expiry and rating. Use before proposing a dispatch.',
       inputSchema: {
         trade: z.string().max(40).optional().describe('Filter by trade, e.g. plumbing, electrical'),
         limit: z.number().int().min(1).max(100).default(25),
@@ -282,10 +314,16 @@ export function registerActionTools(server: McpServer, ctx: ToolContext): void {
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     async ({ trade, limit }) => {
-      const rows = await ctx.sql<{
-        id: string; name: string; trades: unknown; allowListed: boolean;
-        rating: string | null; insuranceExpiry: string | null;
-      }[]>`
+      const rows = await ctx.sql<
+        {
+          id: string;
+          name: string;
+          trades: unknown;
+          allowListed: boolean;
+          rating: string | null;
+          insuranceExpiry: string | null;
+        }[]
+      >`
         select id,
                coalesce(name_en, name_ar) as name,
                trades,

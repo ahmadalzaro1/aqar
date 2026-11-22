@@ -40,7 +40,10 @@ try {
 } catch (error) {
   console.log('FAILED', error.message);
   try {
-    console.log('STDERR:', transport.stderr ? await transport.stderr.read()?.toString() : '(no stream)');
+    console.log(
+      'STDERR:',
+      transport.stderr ? await transport.stderr.read()?.toString() : '(no stream)',
+    );
   } catch (readError) {
     console.log('stderr read failed', readError.message);
   }

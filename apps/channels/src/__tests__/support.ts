@@ -114,13 +114,19 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 
 /** A phone-number-shaped handle unique to this run (avoids collisions across runs). */
 export function uniquePhone(): string {
-  const digits = randomUUID().replace(/[^0-9]/gu, '').padEnd(8, '0').slice(0, 8);
+  const digits = randomUUID()
+    .replace(/[^0-9]/gu, '')
+    .padEnd(8, '0')
+    .slice(0, 8);
   return `96279${digits}`;
 }
 
 export function uniqueTelegramId(): number {
   // Telegram user ids are positive int32-ish; keep well inside that range.
-  const digits = randomUUID().replace(/[^0-9]/gu, '').padEnd(6, '0').slice(0, 6);
+  const digits = randomUUID()
+    .replace(/[^0-9]/gu, '')
+    .padEnd(6, '0')
+    .slice(0, 6);
   return 700_000_000 + Number.parseInt(digits, 10);
 }
 

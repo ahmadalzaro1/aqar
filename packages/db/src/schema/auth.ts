@@ -153,7 +153,10 @@ export const auditEvents = pgTable(
     modelId: text('model_id'),
     promptVersion: text('prompt_version'),
     confidence: numeric('confidence', { precision: 4, scale: 3 }),
-    toolCalls: jsonb('tool_calls').$type<ToolCallTrace[]>().notNull().default(sql`'[]'::jsonb`),
+    toolCalls: jsonb('tool_calls')
+      .$type<ToolCallTrace[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     /** Unique: retries of the same logical action can never double-write. */
     idempotencyKey: text('idempotency_key').notNull(),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
@@ -182,7 +185,10 @@ export const agentTraces = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     /** M5 tickets.id — plain uuid to keep module imports acyclic. */
     ticketId: uuid('ticket_id'),
-    steps: jsonb('steps').$type<AgentTraceStep[]>().notNull().default(sql`'[]'::jsonb`),
+    steps: jsonb('steps')
+      .$type<AgentTraceStep[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     totalTokens: integer('total_tokens').notNull().default(0),
     totalLatencyMs: integer('total_latency_ms').notNull().default(0),
     handedOffToHuman: boolean('handed_off_to_human').notNull().default(false),

@@ -12,14 +12,34 @@ const violations = [];
 const ALLOWED_DEPS = new Set(['@aqar/contracts']);
 const pkg = JSON.parse(readFileSync(join(coreDir, 'package.json'), 'utf8'));
 for (const dep of Object.keys(pkg.dependencies ?? {})) {
-  if (!ALLOWED_DEPS.has(dep)) violations.push(`package.json: runtime dependency not allowlisted: ${dep}`);
+  if (!ALLOWED_DEPS.has(dep))
+    violations.push(`package.json: runtime dependency not allowlisted: ${dep}`);
 }
 
 const FORBIDDEN_IMPORT = /(?:from\s+|require\s*\(\s*|import\s*\(\s*)['"]([^'"]+)['"]/g;
 const FORBIDDEN_PREFIXES = [
-  '@aqar/agents', '@aqar/db', 'openai', '@anthropic', 'drizzle', 'pg', 'postgres',
-  'bullmq', 'ioredis', 'node:fs', 'node:http', 'node:https', 'node:net', 'node:child_process',
-  'fs', 'http', 'https', 'net', 'child_process', 'axios', 'node-fetch', 'undici',
+  '@aqar/agents',
+  '@aqar/db',
+  'openai',
+  '@anthropic',
+  'drizzle',
+  'pg',
+  'postgres',
+  'bullmq',
+  'ioredis',
+  'node:fs',
+  'node:http',
+  'node:https',
+  'node:net',
+  'node:child_process',
+  'fs',
+  'http',
+  'https',
+  'net',
+  'child_process',
+  'axios',
+  'node-fetch',
+  'undici',
 ];
 const FORBIDDEN_CALLS = [
   [/\bfetch\s*\(/, 'fetch() call'],
@@ -32,8 +52,12 @@ const FORBIDDEN_CALLS = [
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) { walk(p); continue; }
-    if (!/\.(ts|mts|js|mjs)$/.test(name) || /\.test\./.test(name) || /\.property\./.test(name)) continue;
+    if (statSync(p).isDirectory()) {
+      walk(p);
+      continue;
+    }
+    if (!/\.(ts|mts|js|mjs)$/.test(name) || /\.test\./.test(name) || /\.property\./.test(name))
+      continue;
     const src = readFileSync(p, 'utf8');
     const rel = relative(root, p);
     for (const m of src.matchAll(FORBIDDEN_IMPORT)) {

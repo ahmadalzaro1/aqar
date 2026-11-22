@@ -98,13 +98,25 @@ export async function runPlanExtractor(
     });
     stdout = result.stdout;
   } catch (error) {
-    const failure = error as { stdout?: string; stderr?: string; code?: number | string; killed?: boolean };
+    const failure = error as {
+      stdout?: string;
+      stderr?: string;
+      code?: number | string;
+      killed?: boolean;
+    };
     if (failure.killed === true) {
-      throw new PlanExtractionError('extractor_timeout', 'the plan extractor exceeded its time budget');
+      throw new PlanExtractionError(
+        'extractor_timeout',
+        'the plan extractor exceeded its time budget',
+      );
     }
     const parsedError = planExtractorErrorSchema.safeParse(parseJson(failure.stdout ?? ''));
     if (parsedError.success) {
-      throw new PlanExtractionError(parsedError.data.error, parsedError.data.detail ?? parsedError.data.error, parsedError.data.detail);
+      throw new PlanExtractionError(
+        parsedError.data.error,
+        parsedError.data.detail ?? parsedError.data.error,
+        parsedError.data.detail,
+      );
     }
     throw new PlanExtractionError(
       'extractor_failed',
@@ -118,7 +130,10 @@ export async function runPlanExtractor(
     throw new PlanExtractionError(
       'extractor_contract_violation',
       'the plan extractor returned output the contract does not describe',
-      parsed.error.issues.slice(0, 5).map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '),
+      parsed.error.issues
+        .slice(0, 5)
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join('; '),
     );
   }
   return parsed.data;

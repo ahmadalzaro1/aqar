@@ -43,14 +43,17 @@ export function parseIsoDate(iso: IsoDate): CivilDate {
 }
 
 export function isIsoDate(value: string): value is IsoDate {
-  return ISO_DATE_RE.test(value) && (() => {
-    try {
-      parseIsoDate(value as IsoDate);
-      return true;
-    } catch {
-      return false;
-    }
-  })();
+  return (
+    ISO_DATE_RE.test(value) &&
+    (() => {
+      try {
+        parseIsoDate(value as IsoDate);
+        return true;
+      } catch {
+        return false;
+      }
+    })()
+  );
 }
 
 function pad(value: number, width: number): string {

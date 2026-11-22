@@ -379,7 +379,8 @@ export async function persistImport(input: PersistInput): Promise<ConfirmResult>
         .map((entry) => ({
           fingerprint: entry.dedupe.fingerprint,
           duplicateKind: entry.dedupe.duplicateKind,
-          duplicateOfDateISO: entry.dedupe.duplicateOf === null ? null : entry.dedupe.duplicateOf.dateISO,
+          duplicateOfDateISO:
+            entry.dedupe.duplicateOf === null ? null : entry.dedupe.duplicateOf.dateISO,
         })),
       suggestions,
       payments: payments.length,

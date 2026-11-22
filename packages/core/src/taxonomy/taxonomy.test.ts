@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CHARGE_KINDS, CHARGE_SEMANTICS, isTrustMoney, needsHumanClassification } from './charges.js';
+import {
+  CHARGE_KINDS,
+  CHARGE_SEMANTICS,
+  isTrustMoney,
+  needsHumanClassification,
+} from './charges.js';
 import {
   BILLING_CYCLES,
   DEFAULT_NOTICE_DAYS,
@@ -49,7 +54,9 @@ describe('space taxonomy', () => {
     expect(missingPublishAttributes('warehouse', { area_sqm: 400, dock_doors: 2 })).toEqual([
       'clear_height_m',
     ]);
-    expect(missingPublishAttributes('warehouse', { area_sqm: 400, dock_doors: 2, clear_height_m: 7.5 })).toEqual([]);
+    expect(
+      missingPublishAttributes('warehouse', { area_sqm: 400, dock_doors: 2, clear_height_m: 7.5 }),
+    ).toEqual([]);
     // Parking needs nothing beyond its number: the bay is the spec.
     expect(missingPublishAttributes('parking', {})).toEqual([]);
   });
@@ -110,7 +117,7 @@ describe('lease taxonomy', () => {
 });
 
 describe('charge taxonomy', () => {
-  it('treats deposits as somebody else\'s money', () => {
+  it("treats deposits as somebody else's money", () => {
     expect(isTrustMoney('deposit')).toBe(true);
     expect(isTrustMoney('fit_out_deposit')).toBe(true);
     expect(isTrustMoney('rent')).toBe(false);
@@ -156,8 +163,21 @@ describe('trade taxonomy', () => {
   });
 
   it('marks exactly the safety categories as emergency-capable', () => {
-    const capable = TICKET_CATEGORIES.filter((category) => CATEGORY_PROFILES[category].emergencyCapable);
-    expect(capable).toEqual(['gas', 'fire', 'electrical', 'plumbing', 'sewage', 'water', 'structural', 'lock', 'elevator', 'generator']);
+    const capable = TICKET_CATEGORIES.filter(
+      (category) => CATEGORY_PROFILES[category].emergencyCapable,
+    );
+    expect(capable).toEqual([
+      'gas',
+      'fire',
+      'electrical',
+      'plumbing',
+      'sewage',
+      'water',
+      'structural',
+      'lock',
+      'elevator',
+      'generator',
+    ]);
     for (const category of capable) {
       expect(CATEGORY_PROFILES[category].safetyInstruction).not.toBeNull();
     }

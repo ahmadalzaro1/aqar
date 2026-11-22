@@ -43,7 +43,9 @@ async function main(): Promise<void> {
   const worker = createTriageWorker(
     async (job) => {
       const result = await processTriageJob(job.data, deps);
-      console.info(`[worker] completed job ${String(job.id)} ${describeResult(result.ticketId, result)}`);
+      console.info(
+        `[worker] completed job ${String(job.id)} ${describeResult(result.ticketId, result)}`,
+      );
       return result;
     },
     { concurrency: 2 },

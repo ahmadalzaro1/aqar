@@ -9,7 +9,12 @@
  */
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { isToolFailure, rawShape, type ToolContext as CoreToolContext, type ToolDef } from '@aqar/tools';
+import {
+  isToolFailure,
+  rawShape,
+  type ToolContext as CoreToolContext,
+  type ToolDef,
+} from '@aqar/tools';
 import type { ToolContext } from '../context.js';
 import { ToolError } from '../errors.js';
 import { ok } from '../result.js';
@@ -35,7 +40,10 @@ export function coreContext(ctx: ToolContext): CoreToolContext {
 }
 
 /** One core handler as an MCP tool callback: same envelope, same failure text. */
-export function readTool(tool: ToolDef, core: CoreToolContext): (args: unknown) => Promise<CallToolResult> {
+export function readTool(
+  tool: ToolDef,
+  core: CoreToolContext,
+): (args: unknown) => Promise<CallToolResult> {
   return async (args: unknown): Promise<CallToolResult> => {
     try {
       return ok(await tool.run(core, args));

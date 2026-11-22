@@ -174,7 +174,9 @@ describe('channels ingress (real Postgres + real Redis)', () => {
 
     const response = await postWhatsApp(harness, raw, { signature: null });
     expect(response.status).toBe(401);
-    expect((await response.json()) as { error: string }).toMatchObject({ error: 'missing_signature' });
+    expect((await response.json()) as { error: string }).toMatchObject({
+      error: 'missing_signature',
+    });
     expect(await readTicket(harness.sql, harness.org.id, ticketId)).toBeNull();
     expect(await harness.queue.getJob(ticketId)).toBeUndefined();
   });
@@ -189,7 +191,9 @@ describe('channels ingress (real Postgres + real Redis)', () => {
 
     const response = await postWhatsApp(harness, tampered, { signature });
     expect(response.status).toBe(403);
-    expect((await response.json()) as { error: string }).toMatchObject({ error: 'invalid_signature' });
+    expect((await response.json()) as { error: string }).toMatchObject({
+      error: 'invalid_signature',
+    });
     expect(await readTicket(harness.sql, harness.org.id, ticketId)).toBeNull();
     expect(await harness.queue.getJob(ticketId)).toBeUndefined();
   });
@@ -219,7 +223,9 @@ describe('channels ingress (real Postgres + real Redis)', () => {
               value: {
                 messaging_product: 'whatsapp',
                 metadata: { phone_number_id: 'pn-test-0001' },
-                messages: [{ from, id: `wamid.IMG-${randomUUID()}`, type: 'image', image: { id: 'x' } }],
+                messages: [
+                  { from, id: `wamid.IMG-${randomUUID()}`, type: 'image', image: { id: 'x' } },
+                ],
               },
             },
           ],
@@ -236,7 +242,8 @@ describe('channels ingress (real Postgres + real Redis)', () => {
   it('truncates a long English body to a 60-character subject and detects en', async () => {
     const from = uniquePhone();
     const messageId = `wamid.TEST-${randomUUID()}`;
-    const body = `${'The bathroom exhaust fan stopped working and the wall is damp. '.repeat(3)}`.trim();
+    const body =
+      `${'The bathroom exhaust fan stopped working and the wall is damp. '.repeat(3)}`.trim();
     harness.externalIds.push(from);
     expect(body.length).toBeGreaterThan(60);
 

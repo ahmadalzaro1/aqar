@@ -77,12 +77,22 @@ try {
   console.log(`TOOLS (${tools.length}): ${tools.map((tool) => tool.name).join(', ')}`);
 
   const context = await call('aqar_context', {});
-  console.log('CONTEXT', JSON.stringify(context.organization), 'mode=' + context.mode, 'mayMoveMoney=' + context.mayMoveMoney);
+  console.log(
+    'CONTEXT',
+    JSON.stringify(context.organization),
+    'mode=' + context.mode,
+    'mayMoveMoney=' + context.mayMoveMoney,
+  );
   console.log('COUNTS', JSON.stringify(context.counts));
 
   const portfolio = await call('portfolio_summary', {});
   console.log('PORTFOLIO totals', JSON.stringify(portfolio.totals));
-  console.log('PORTFOLIO properties', portfolio.properties.length, 'first=', JSON.stringify(portfolio.properties[0]));
+  console.log(
+    'PORTFOLIO properties',
+    portfolio.properties.length,
+    'first=',
+    JSON.stringify(portfolio.properties[0]),
+  );
 
   const vacant = await call('list_vacant_units', { limit: 5 });
   console.log('VACANT count=' + vacant.count, 'first=' + JSON.stringify(vacant.units[0]));
@@ -91,7 +101,11 @@ try {
   console.log('EXPIRING count=' + expiring.count, 'first=' + JSON.stringify(expiring.leases[0]));
 
   const arrears = await call('list_arrears', { limit: 3 });
-  console.log('ARREARS count=' + arrears.count, 'total=' + arrears.totalOutstandingJod, 'top=' + JSON.stringify(arrears.tenants[0]));
+  console.log(
+    'ARREARS count=' + arrears.count,
+    'total=' + arrears.totalOutstandingJod,
+    'top=' + JSON.stringify(arrears.tenants[0]),
+  );
 
   const tickets = await call('list_open_tickets', { limit: 2 });
   console.log('OPEN_TICKETS count=' + tickets.count, 'first=' + JSON.stringify(tickets.tickets[0]));
@@ -117,7 +131,14 @@ try {
   console.log('CREATE_TICKET_REPEAT duplicate=' + repeat.duplicate);
 
   const detail = await call('get_ticket', { ticketId: created.ticketId });
-  console.log('GET_TICKET emergency=' + detail.ticket.emergency + ' status=' + detail.ticket.status + ' attachments=' + detail.attachmentCount);
+  console.log(
+    'GET_TICKET emergency=' +
+      detail.ticket.emergency +
+      ' status=' +
+      detail.ticket.status +
+      ' attachments=' +
+      detail.attachmentCount,
+  );
 
   // The real proof: the worker consumes the job this tool queued and writes a
   // classification. Poll instead of assuming.
@@ -127,8 +148,10 @@ try {
     classified = await call('get_ticket', { ticketId: created.ticketId });
   }
   console.log(
-    'TRIAGE status=' + classified.ticket.status +
-      ' classification=' + JSON.stringify(classified.classification),
+    'TRIAGE status=' +
+      classified.ticket.status +
+      ' classification=' +
+      JSON.stringify(classified.classification),
   );
   if (classified.classification === null) {
     console.log('TRIAGE_PENDING (worker did not classify within 30s)');
@@ -155,14 +178,29 @@ try {
   const leaseId = expiring.leases[0]?.leaseId;
   if (leaseId === undefined) throw new Error('no lease available to propose a payment against');
 
-  const paymentArgs = { leaseId, amountFils: 250000, receivedDate: '2026-11-20', method: 'cliq', reference: 'SMOKE-1' };
+  const paymentArgs = {
+    leaseId,
+    amountFils: 250000,
+    receivedDate: '2026-11-20',
+    method: 'cliq',
+    reference: 'SMOKE-1',
+  };
   const payment = await call('propose_payment', paymentArgs);
   console.log('PROPOSE_PAYMENT', JSON.stringify(payment));
 
   const again = await call('propose_payment', paymentArgs);
-  console.log('PROPOSE_PAYMENT_REPEAT duplicate=' + again.duplicate + ' sameId=' + (again.proposalId === payment.proposalId));
+  console.log(
+    'PROPOSE_PAYMENT_REPEAT duplicate=' +
+      again.duplicate +
+      ' sameId=' +
+      (again.proposalId === payment.proposalId),
+  );
 
-  const reply = await call('propose_tenant_reply', { ticketId: created.ticketId, body: 'نرسل فنيا الآن', locale: 'ar' });
+  const reply = await call('propose_tenant_reply', {
+    ticketId: created.ticketId,
+    body: 'نرسل فنيا الآن',
+    locale: 'ar',
+  });
   console.log('PROPOSE_REPLY', JSON.stringify(reply));
 
   const dispatch = await call('propose_vendor_dispatch', {
@@ -173,14 +211,22 @@ try {
   console.log('PROPOSE_DISPATCH', JSON.stringify(dispatch));
 
   const proposals = await call('list_proposals', { status: 'pending', limit: 10 });
-  console.log('PENDING_PROPOSALS count=' + proposals.count, JSON.stringify(proposals.proposals.map((p) => p.action)));
+  console.log(
+    'PENDING_PROPOSALS count=' + proposals.count,
+    JSON.stringify(proposals.proposals.map((p) => p.action)),
+  );
 
   // Structured failure, not a crash: unknown id must come back as isError.
   const missing = await client.callTool({
     name: 'get_ticket',
     arguments: { ticketId: '00000000-0000-0000-0000-000000000000' },
   });
-  console.log('MISSING_TICKET isError=' + missing.isError + ' body=' + text(missing).replace(/\s+/g, ' ').slice(0, 160));
+  console.log(
+    'MISSING_TICKET isError=' +
+      missing.isError +
+      ' body=' +
+      text(missing).replace(/\s+/g, ' ').slice(0, 160),
+  );
 
   console.log('SMOKE_OK');
 } catch (error) {

@@ -7,10 +7,19 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { computeStatement, distributionDrafts, parseStatementPeriod, statementIdempotencyKey } from './lib';
 import {
-  existingDistributionOwnerIds, existingStatement, expenseLines, feeBasisBps,
-  propertyShares, rentLines,
+  computeStatement,
+  distributionDrafts,
+  parseStatementPeriod,
+  statementIdempotencyKey,
+} from './lib';
+import {
+  existingDistributionOwnerIds,
+  existingStatement,
+  expenseLines,
+  feeBasisBps,
+  propertyShares,
+  rentLines,
 } from './queries';
 
 export type IssueResult =
@@ -33,7 +42,14 @@ export async function issueStatement(propertyId: string, rawPeriod: string): Pro
     propertyShares(orgId, propertyId),
     feeBasisBps(orgId, propertyId),
   ]);
-  const draft = computeStatement({ propertyId, period, rentLines: rent, expenseLines: expenses, shares, feeBasisBps: fee.bps });
+  const draft = computeStatement({
+    propertyId,
+    period,
+    rentLines: rent,
+    expenseLines: expenses,
+    shares,
+    feeBasisBps: fee.bps,
+  });
   if (draft.blocked !== null || draft.netFils === null) {
     return { status: 'blocked', detail: draft.blocked?.detail ?? 'blocked' };
   }

@@ -1,5 +1,10 @@
 import type { EscalationRule, LeaseMoneyTerms, Period } from '@aqar/contracts';
-import { assertNonNegativeInteger, assertPositiveInteger, mulDivFloor, parseIsoDate } from './internal.js';
+import {
+  assertNonNegativeInteger,
+  assertPositiveInteger,
+  mulDivFloor,
+  parseIsoDate,
+} from './internal.js';
 
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
 const MAX_BASIS_POINTS = 10000;

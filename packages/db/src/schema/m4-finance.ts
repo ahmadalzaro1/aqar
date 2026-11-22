@@ -25,7 +25,8 @@ import { organizations } from './organizations.js';
 import { leases, tenants } from './m3-leases.js';
 
 /** Billing period guard used by charges/payments/journal_lines. */
-const periodFormat = (column: string) => sql`${sql.raw(`"${column}"`)} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`;
+const periodFormat = (column: string) =>
+  sql`${sql.raw(`"${column}"`)} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`;
 
 /**
  * M4 — a charge on a lease for a billing period.
@@ -192,7 +193,10 @@ export const matchSuggestions = pgTable(
       .references(() => bankLines.id, { onDelete: 'cascade' }),
     kind: matchKindEnum('kind').notNull(),
     /** candidate lease ids, best first; empty for unknown_payer */
-    leaseIds: jsonb('lease_ids').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    leaseIds: jsonb('lease_ids')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     payerId: uuid('payer_id').references(() => tenants.id, { onDelete: 'set null' }),
     amountFils: integer('amount_fils').notNull(),
     confidence: numeric('confidence', { precision: 4, scale: 3 }).notNull(),
@@ -204,10 +208,7 @@ export const matchSuggestions = pgTable(
     index('match_suggestions_org_idx').on(t.organizationId),
     index('match_suggestions_bank_line_idx').on(t.bankLineId),
     check('match_suggestions_amount_ck', sql`${t.amountFils} >= 0`),
-    check(
-      'match_suggestions_confidence_ck',
-      sql`${t.confidence} >= 0 AND ${t.confidence} <= 1`,
-    ),
+    check('match_suggestions_confidence_ck', sql`${t.confidence} >= 0 AND ${t.confidence} <= 1`),
     check('match_suggestions_reason_ck', sql`length(btrim(${t.reason})) > 0`),
   ],
 );
@@ -233,7 +234,10 @@ export const lateFees = pgTable(
     index('late_fees_org_idx').on(t.organizationId),
     index('late_fees_charge_idx').on(t.chargeId),
     check('late_fees_computed_ck', sql`${t.computedFils} >= 0`),
-    check('late_fees_waived_ck', sql`${t.waivedFils} >= 0 AND ${t.waivedFils} <= ${t.computedFils}`),
+    check(
+      'late_fees_waived_ck',
+      sql`${t.waivedFils} >= 0 AND ${t.waivedFils} <= ${t.computedFils}`,
+    ),
   ],
 );
 

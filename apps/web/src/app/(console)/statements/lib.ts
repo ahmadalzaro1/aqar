@@ -206,5 +206,9 @@ export function distributionDrafts(draft: StatementDraft): DistributionDraftRow[
   if (draft.blocked !== null) return [];
   return draft.ownerShares
     .filter((share) => share.amountFils > 0)
-    .map((share) => ({ ownerId: share.ownerId, amountFils: share.amountFils, status: 'draft' as const }));
+    .map((share) => ({
+      ownerId: share.ownerId,
+      amountFils: share.amountFils,
+      status: 'draft' as const,
+    }));
 }

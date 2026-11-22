@@ -53,7 +53,9 @@ export async function createProposal(
     propertyId: request.propertyId,
     ...(request.amountFils === undefined ? {} : { amountFils: request.amountFils }),
     ...(request.vendorId === undefined ? {} : { vendorId: request.vendorId }),
-    ...(request.vendorOnAllowList === undefined ? {} : { vendorOnAllowList: request.vendorOnAllowList }),
+    ...(request.vendorOnAllowList === undefined
+      ? {}
+      : { vendorOnAllowList: request.vendorOnAllowList }),
   });
 
   // Refuse to file a draft the executor could never run. The alternative is a
@@ -88,7 +90,12 @@ export async function createProposal(
 
   const created = rows[0];
   if (created !== undefined) {
-    return { proposalId: created.id, duplicate: false, expiresAt: created.expires_at.toISOString(), policy };
+    return {
+      proposalId: created.id,
+      duplicate: false,
+      expiresAt: created.expires_at.toISOString(),
+      policy,
+    };
   }
 
   const existing = await tx<{ id: string; expires_at: Date }[]>`
@@ -103,5 +110,10 @@ export async function createProposal(
   if (found === undefined) {
     throw new Error('proposal insert conflicted but no pending row was found');
   }
-  return { proposalId: found.id, duplicate: true, expiresAt: found.expires_at.toISOString(), policy };
+  return {
+    proposalId: found.id,
+    duplicate: true,
+    expiresAt: found.expires_at.toISOString(),
+    policy,
+  };
 }

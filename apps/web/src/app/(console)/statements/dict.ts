@@ -74,7 +74,8 @@ const EN: StatementStrings = {
   nextPeriod: 'Next period',
   refresh: 'Reload statement',
   rentSection: 'Rent collected in the period',
-  rentHint: 'Rent charged per lease for this period, and the payment allocations received against each charge.',
+  rentHint:
+    'Rent charged per lease for this period, and the payment allocations received against each charge.',
   colUnit: 'Unit',
   colBilled: 'Billed',
   colCollected: 'Collected',
@@ -99,13 +100,16 @@ const EN: StatementStrings = {
   shareAmount: 'Share of net',
   shareTotal: 'All owners',
   distributionPreview: 'Distribution drafts (not approved)',
-  distributionHint: 'Issuing creates these rows as drafts only — approving and paying them is a separate human step.',
+  distributionHint:
+    'Issuing creates these rows as drafts only — approving and paying them is a separate human step.',
   totalRow: 'Total',
-  ownerNoShare: 'This owner holds no share in the selected property, so the statement shows no share.',
+  ownerNoShare:
+    'This owner holds no share in the selected property, so the statement shows no share.',
   issuedBadge: 'Issued',
   issuedOn: 'Issued on',
   issueTitle: 'Issue statement',
-  issueHint: 'Previewing is read-only. Issuing writes the statement, its draft distributions and an append-only audit event.',
+  issueHint:
+    'Previewing is read-only. Issuing writes the statement, its draft distributions and an append-only audit event.',
   issueButton: 'Issue statement',
   issuePending: 'Issuing…',
   issueDone: 'Statement issued and audited.',
@@ -114,10 +118,14 @@ const EN: StatementStrings = {
   issueError: 'The statement was not issued.',
   issueDrafts: 'Draft distributions created',
   blockedTitle: 'This statement cannot be issued',
-  blockedShortfall: 'Collections do not cover the management fee plus expenses. The owner must fund the shortfall, or the fee/expense inputs must be corrected — the waterfall never pays a negative amount.',
-  blockedNoOwners: 'No ownership shares are recorded for this property, so no net can be attributed.',
-  blockedInvalidShares: 'The ownership shares do not sum to exactly 10000 basis points, so the net cannot be split without losing fils.',
-  footnote: 'Computed from the ledger: collected rent − management fee − expenses − reserve = net, then the net is split across the ownership shares by largest remainder in whole fils. Nothing on this page is stored until a human issues it.',
+  blockedShortfall:
+    'Collections do not cover the management fee plus expenses. The owner must fund the shortfall, or the fee/expense inputs must be corrected — the waterfall never pays a negative amount.',
+  blockedNoOwners:
+    'No ownership shares are recorded for this property, so no net can be attributed.',
+  blockedInvalidShares:
+    'The ownership shares do not sum to exactly 10000 basis points, so the net cannot be split without losing fils.',
+  footnote:
+    'Computed from the ledger: collected rent − management fee − expenses − reserve = net, then the net is split across the ownership shares by largest remainder in whole fils. Nothing on this page is stored until a human issues it.',
   readOnly: 'Preview — read-only',
 };
 
@@ -173,10 +181,13 @@ const AR: StatementStrings = {
   issueError: 'لم يتم إصدار الكشف.',
   issueDrafts: 'مسودات التوزيع المنشأة',
   blockedTitle: 'لا يمكن إصدار هذا الكشف',
-  blockedShortfall: 'المحصّل لا يغطي رسوم الإدارة والمصاريف. على المالك تغطية العجز أو تصحيح مدخلات الرسوم والمصاريف — لا يصرف النظام مبلغاً سالباً.',
+  blockedShortfall:
+    'المحصّل لا يغطي رسوم الإدارة والمصاريف. على المالك تغطية العجز أو تصحيح مدخلات الرسوم والمصاريف — لا يصرف النظام مبلغاً سالباً.',
   blockedNoOwners: 'لا توجد حصص ملكية مسجَّلة لهذا العقار، لذلك لا يمكن نسبة صافٍ لأي مالك.',
-  blockedInvalidShares: 'مجموع حصص الملكية لا يساوي 10000 نقطة أساس بالضبط، لذلك لا يمكن توزيع الصافي دون فقدان فلوس.',
-  footnote: 'يُحسب من دفتر الأستاذ: الإيجار المحصّل − رسوم الإدارة − المصاريف − الاحتياطي = الصافي، ثم يُوزَّع الصافي على حصص الملكية بأكبر باقٍ وبالفلس الكامل. لا يُخزَّن أي شيء في هذه الصفحة قبل أن يصدره إنسان.',
+  blockedInvalidShares:
+    'مجموع حصص الملكية لا يساوي 10000 نقطة أساس بالضبط، لذلك لا يمكن توزيع الصافي دون فقدان فلوس.',
+  footnote:
+    'يُحسب من دفتر الأستاذ: الإيجار المحصّل − رسوم الإدارة − المصاريف − الاحتياطي = الصافي، ثم يُوزَّع الصافي على حصص الملكية بأكبر باقٍ وبالفلس الكامل. لا يُخزَّن أي شيء في هذه الصفحة قبل أن يصدره إنسان.',
   readOnly: 'معاينة — للقراءة فقط',
 };
 

@@ -21,8 +21,14 @@ const DENIAL_REASONS: ReadonlySet<string> = new Set([
   'spend_cap',
 ]);
 
-const MONEY_MOVING: ReadonlySet<PolicyAction> = new Set<PolicyAction>(['move_money', 'post_payment']);
-const VENDOR_COMMITTING: ReadonlySet<PolicyAction> = new Set<PolicyAction>(['dispatch_vendor', 'award_work']);
+const MONEY_MOVING: ReadonlySet<PolicyAction> = new Set<PolicyAction>([
+  'move_money',
+  'post_payment',
+]);
+const VENDOR_COMMITTING: ReadonlySet<PolicyAction> = new Set<PolicyAction>([
+  'dispatch_vendor',
+  'award_work',
+]);
 const TENANT_CONTACT: ReadonlySet<PolicyAction> = new Set<PolicyAction>(['send_tenant_message']);
 
 /**
@@ -81,7 +87,11 @@ export function evaluatePolicy(input: PolicyInput): PolicyDecision {
   }
 
   // 4. Not-to-exceed: above the property limit is allowed only with a human.
-  if (input.amountFils !== null && input.nteLimitFils !== null && input.amountFils > input.nteLimitFils) {
+  if (
+    input.amountFils !== null &&
+    input.nteLimitFils !== null &&
+    input.amountFils > input.nteLimitFils
+  ) {
     reasons.push('nte_exceeded');
     requiresHumanApproval = true;
   }

@@ -78,14 +78,18 @@ describe('generateMonthlyCharges properties', () => {
 
   it('is invariant under lease input reordering', () => {
     fc.assert(
-      fc.property(scenarioArb, fc.array(fc.integer(), { minLength: 6, maxLength: 6 }), (spec, keys) => {
-        const { period, leases } = buildScenario(spec);
-        const forward = generateMonthlyCharges(leases, period, []);
-        const shuffled = generateMonthlyCharges(permute(leases, keys), period, []);
-        const reversed = generateMonthlyCharges([...leases].reverse(), period, []);
-        expect(shuffled).toEqual(forward);
-        expect(reversed).toEqual(forward);
-      }),
+      fc.property(
+        scenarioArb,
+        fc.array(fc.integer(), { minLength: 6, maxLength: 6 }),
+        (spec, keys) => {
+          const { period, leases } = buildScenario(spec);
+          const forward = generateMonthlyCharges(leases, period, []);
+          const shuffled = generateMonthlyCharges(permute(leases, keys), period, []);
+          const reversed = generateMonthlyCharges([...leases].reverse(), period, []);
+          expect(shuffled).toEqual(forward);
+          expect(reversed).toEqual(forward);
+        },
+      ),
     );
   });
 
@@ -133,7 +137,8 @@ describe('generateMonthlyCharges properties', () => {
         for (const lease of leases) {
           if (lease.status !== 'active' && lease.status !== 'upcoming') continue;
           const intersects =
-            toDayNumber(lease.endISO) >= bounds.firstDay && toDayNumber(lease.startISO) <= bounds.lastDay;
+            toDayNumber(lease.endISO) >= bounds.firstDay &&
+            toDayNumber(lease.startISO) <= bounds.lastDay;
           expect(seen.has(lease.leaseId)).toBe(intersects);
         }
       }),
@@ -145,7 +150,10 @@ describe('generateMonthlyCharges properties', () => {
       fc.property(scenarioArb, (spec) => {
         const { period, leases } = buildScenario(spec);
         const generated = generateMonthlyCharges(leases, period, []);
-        const union = [...generated, ...generated.map((charge) => ({ ...charge, id: `legacy-${charge.id}` }))];
+        const union = [
+          ...generated,
+          ...generated.map((charge) => ({ ...charge, id: `legacy-${charge.id}` })),
+        ];
         expect(generateMonthlyCharges(leases, period, union)).toEqual([]);
       }),
     );

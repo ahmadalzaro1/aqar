@@ -48,7 +48,11 @@ export async function findOrganization(sql: Sql, slug: string): Promise<OrgRef |
  * is unreachable: leaving a ticket with no job would also make the provider's
  * retry look like a duplicate, silently dropping the message forever.
  */
-export async function deleteTicket(sql: Sql, organizationId: string, ticketId: string): Promise<void> {
+export async function deleteTicket(
+  sql: Sql,
+  organizationId: string,
+  ticketId: string,
+): Promise<void> {
   await sql.begin(async (tx) => {
     await tx`select set_config('app.organization_id', ${organizationId}, true)`;
     await tx`delete from tickets where id = ${ticketId} and organization_id = ${organizationId}`;
@@ -89,7 +93,9 @@ export async function ensureChannelIdentity(
       limit 1
     `;
     const row = existing[0];
-    return row === undefined ? { id: null, tenantId: null } : { id: row.id, tenantId: row.tenant_id };
+    return row === undefined
+      ? { id: null, tenantId: null }
+      : { id: row.id, tenantId: row.tenant_id };
   }) as Promise<IdentityResult>;
 }
 
@@ -175,7 +181,11 @@ export async function insertOutboundMessage(
   }) as Promise<string>;
 }
 
-export type TicketLookup = { readonly id: string; readonly organizationId: string; readonly locale: 'ar' | 'en' };
+export type TicketLookup = {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly locale: 'ar' | 'en';
+};
 /** Reads a ticket back (used by tests and by outbound callers that need the locale). */
 export async function findTicket(
   sql: Sql,

@@ -12,7 +12,10 @@ function isBalancedSide(line: JournalLine): boolean {
  * Validates and copies a journal batch. Errors carry machine-greppable tokens:
  * 'unbalanced', 'one-sided', 'period locked'.
  */
-export function postJournal(lines: readonly JournalLine[], lockedPeriods: readonly Period[]): JournalLine[] {
+export function postJournal(
+  lines: readonly JournalLine[],
+  lockedPeriods: readonly Period[],
+): JournalLine[] {
   if (lines.length < 2) {
     throw new Error(`unbalanced: a journal entry needs at least 2 lines, got ${lines.length}`);
   }
@@ -26,7 +29,9 @@ export function postJournal(lines: readonly JournalLine[], lockedPeriods: readon
   const locked = new Set<string>(lockedPeriods);
   for (const line of lines) {
     if (locked.has(line.period)) {
-      throw new Error(`period locked: cannot post to ${line.period} (${line.sourceType}/${line.sourceId})`);
+      throw new Error(
+        `period locked: cannot post to ${line.period} (${line.sourceType}/${line.sourceId})`,
+      );
     }
   }
   const debits = sumFils(lines.map((line) => line.debitFils));
@@ -48,7 +53,9 @@ export function reverseJournalLines(lines: readonly JournalLine[]): JournalLine[
 }
 
 /** Net debit (debits minus credits) per account; negative means a net credit balance. */
-export function balanceByAccount(lines: readonly JournalLine[]): Partial<Record<AccountCode, number>> {
+export function balanceByAccount(
+  lines: readonly JournalLine[],
+): Partial<Record<AccountCode, number>> {
   const balances: Partial<Record<AccountCode, number>> = {};
   for (const line of lines) {
     const current = balances[line.accountCode] ?? 0;

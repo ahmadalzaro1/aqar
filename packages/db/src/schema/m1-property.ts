@@ -62,14 +62,8 @@ export const properties = pgTable(
   (t) => [
     index('properties_org_idx').on(t.organizationId),
     index('properties_city_district_idx').on(t.city, t.district),
-    check(
-      'properties_lat_ck',
-      sql`${t.lat} IS NULL OR (${t.lat} >= -90 AND ${t.lat} <= 90)`,
-    ),
-    check(
-      'properties_lng_ck',
-      sql`${t.lng} IS NULL OR (${t.lng} >= -180 AND ${t.lng} <= 180)`,
-    ),
+    check('properties_lat_ck', sql`${t.lat} IS NULL OR (${t.lat} >= -90 AND ${t.lat} <= 90)`),
+    check('properties_lng_ck', sql`${t.lng} IS NULL OR (${t.lng} >= -180 AND ${t.lng} <= 180)`),
   ],
 );
 
@@ -209,7 +203,10 @@ export const meters = pgTable(
     lastReading: integer('last_reading'),
     lastReadingAt: isoDate('last_reading_at'),
     /** tariff shape is provider-specific; kept as jsonb rather than guessed columns. */
-    tariff: jsonb('tariff').$type<Record<string, number>>().notNull().default(sql`'{}'::jsonb`),
+    tariff: jsonb('tariff')
+      .$type<Record<string, number>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     ...auditTimestamps(),
   },
   (t) => [

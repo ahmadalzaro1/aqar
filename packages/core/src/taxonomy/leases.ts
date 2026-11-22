@@ -21,7 +21,13 @@ export const LEASE_KINDS = [
 
 export type LeaseKind = (typeof LEASE_KINDS)[number];
 
-export const BILLING_CYCLES = ['monthly', 'quarterly', 'semi_annual', 'annual', 'upfront_single'] as const;
+export const BILLING_CYCLES = [
+  'monthly',
+  'quarterly',
+  'semi_annual',
+  'annual',
+  'upfront_single',
+] as const;
 export type BillingCycle = (typeof BILLING_CYCLES)[number];
 
 /** Months between invoices; `upfront_single` is 0 because it bills once. */

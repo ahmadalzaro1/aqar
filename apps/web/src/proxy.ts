@@ -4,7 +4,19 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PROTECTED = ['/dashboard', '/portfolio', '/leasing', '/leases', '/ledger', '/tickets', '/vendors', '/owners', '/documents', '/reports', '/settings'];
+const PROTECTED = [
+  '/dashboard',
+  '/portfolio',
+  '/leasing',
+  '/leases',
+  '/ledger',
+  '/tickets',
+  '/vendors',
+  '/owners',
+  '/documents',
+  '/reports',
+  '/settings',
+];
 
 export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;

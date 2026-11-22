@@ -181,10 +181,7 @@ export const classifications = pgTable(
   (t) => [
     index('classifications_ticket_idx').on(t.ticketId),
     index('classifications_org_created_idx').on(t.organizationId, t.createdAt),
-    check(
-      'classifications_confidence_ck',
-      sql`${t.confidence} >= 0 AND ${t.confidence} <= 1`,
-    ),
+    check('classifications_confidence_ck', sql`${t.confidence} >= 0 AND ${t.confidence} <= 1`),
     check('classifications_rationale_ck', sql`length(btrim(${t.rationale})) > 0`),
   ],
 );
@@ -287,7 +284,10 @@ export const completions = pgTable(
     costFils: integer('cost_fils').notNull(),
     notes: text('notes'),
     tenantConfirmed: boolean('tenant_confirmed').notNull().default(false),
-    photos: jsonb('photos').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    photos: jsonb('photos')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     ...auditTimestamps(),
   },
   (t) => [
@@ -318,10 +318,7 @@ export const slaClocks = pgTable(
   (t) => [
     uniqueIndex('sla_clocks_ticket_uq').on(t.ticketId),
     index('sla_clocks_org_idx').on(t.organizationId),
-    check(
-      'sla_clocks_order_ck',
-      sql`${t.resolutionDueAt} >= ${t.responseDueAt}`,
-    ),
+    check('sla_clocks_order_ck', sql`${t.resolutionDueAt} >= ${t.responseDueAt}`),
   ],
 );
 

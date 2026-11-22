@@ -2,15 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { ToolContext } from '../context.js';
 import { registry, toolDefs } from '../index.js';
-import { makeRegistry, rawShape, toParameters, ToolNotFoundError, type ToolDef } from '../registry.js';
+import {
+  makeRegistry,
+  rawShape,
+  toParameters,
+  ToolNotFoundError,
+  type ToolDef,
+} from '../registry.js';
 
 /** A context that must never be used: these tests stop at the validation layer. */
 const unreachable: ToolContext = {
   sql: new Proxy({} as ToolContext['sql'], {
-    apply() { throw new Error('SQL must not run in a registry unit test'); },
-    get() { throw new Error('SQL must not run in a registry unit test'); },
+    apply() {
+      throw new Error('SQL must not run in a registry unit test');
+    },
+    get() {
+      throw new Error('SQL must not run in a registry unit test');
+    },
   }),
-  org: { id: '00000000-0000-0000-0000-000000000000', slug: 'test', name: 'Test', timezone: 'Asia/Amman', currency: 'JOD' },
+  org: {
+    id: '00000000-0000-0000-0000-000000000000',
+    slug: 'test',
+    name: 'Test',
+    timezone: 'Asia/Amman',
+    currency: 'JOD',
+  },
   now: () => new Date('2026-01-01T00:00:00Z'),
 };
 
@@ -30,8 +46,15 @@ describe('tool registry', () => {
   it('exposes the read tools the chat panel depends on', () => {
     const read = registry.list('read').map((t) => t.name);
     for (const expected of [
-      'aqar_context', 'portfolio_summary', 'list_vacant_units', 'list_expiring_leases',
-      'search_tenants', 'list_arrears', 'tenant_statement', 'list_open_tickets', 'get_ticket',
+      'aqar_context',
+      'portfolio_summary',
+      'list_vacant_units',
+      'list_expiring_leases',
+      'search_tenants',
+      'list_arrears',
+      'tenant_statement',
+      'list_open_tickets',
+      'get_ticket',
     ]) {
       expect(read).toContain(expected);
     }
@@ -55,22 +78,31 @@ describe('tool registry', () => {
   });
 
   it('an unknown tool is refused, not guessed at', async () => {
-    await expect(registry.run('no_such_tool', {}, unreachable)).rejects.toBeInstanceOf(ToolNotFoundError);
+    await expect(registry.run('no_such_tool', {}, unreachable)).rejects.toBeInstanceOf(
+      ToolNotFoundError,
+    );
     expect(() => registry.get('no_such_tool')).toThrow(ToolNotFoundError);
   });
 
   it('arguments are validated before any SQL runs', async () => {
-    await expect(registry.run('list_vacant_units', { propertyId: 'not-a-uuid' }, unreachable))
-      .rejects.toThrow(/uuid/i);
-    await expect(registry.run('list_open_tickets', { olderThanHours: -5 }, unreachable))
-      .rejects.toThrow();
+    await expect(
+      registry.run('list_vacant_units', { propertyId: 'not-a-uuid' }, unreachable),
+    ).rejects.toThrow(/uuid/i);
+    await expect(
+      registry.run('list_open_tickets', { olderThanHours: -5 }, unreachable),
+    ).rejects.toThrow();
   });
 
   it('a registry can be built from an arbitrary subset', async () => {
     const probe: ToolDef = {
-      name: 'probe', kind: 'read', title: 'Probe', description: 'A tool used only by this test.',
+      name: 'probe',
+      kind: 'read',
+      title: 'Probe',
+      description: 'A tool used only by this test.',
       schema: z.object({ n: z.number().int().default(1) }),
-      async run(_ctx, raw) { return { n: (raw as { n: number }).n }; },
+      async run(_ctx, raw) {
+        return { n: (raw as { n: number }).n };
+      },
     };
     const small = makeRegistry([probe]);
     await expect(small.run('probe', { n: 7 }, unreachable)).resolves.toEqual({ n: 7 });

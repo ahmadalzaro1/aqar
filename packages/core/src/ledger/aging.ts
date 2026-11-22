@@ -3,7 +3,13 @@ import type { AgingBucket, Allocation, Charge, IsoDate, Period } from '@aqar/con
 import { daysBetween } from './iso.js';
 import { outstandingFils } from './allocations.js';
 
-export const AGING_BUCKETS: readonly AgingBucket[] = ['current', 'd0_30', 'd31_60', 'd61_90', 'd90_plus'];
+export const AGING_BUCKETS: readonly AgingBucket[] = [
+  'current',
+  'd0_30',
+  'd31_60',
+  'd61_90',
+  'd90_plus',
+];
 
 export interface AgingRow {
   readonly chargeId: string;

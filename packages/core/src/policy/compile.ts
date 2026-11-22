@@ -31,7 +31,10 @@ import type { PolicyDecision, PolicyLimits, PolicyRule, PolicyVerdict } from './
 import { DEFAULT_POLICY_LIMITS, evaluateProposal } from './limits.js';
 
 /** Actions this codebase knows how to undo. Must cover every reverser in the web app. */
-export const REVERSIBLE_ACTIONS: readonly string[] = Object.freeze(['post_payment', 'dispatch_vendor']);
+export const REVERSIBLE_ACTIONS: readonly string[] = Object.freeze([
+  'post_payment',
+  'dispatch_vendor',
+]);
 
 /** Who filed the proposal, when that is a human. An agent has no duty to separate from. */
 export interface Requester {
@@ -169,29 +172,127 @@ function probes(limits: PolicyLimits): readonly PolicyFacts[] {
   const threshold = limits.dualControlAboveFils;
   return Object.freeze([
     { kind: 'proposal', action: 'unheard_of', args: {}, role: 'accountant' },
-    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cliq' }, role: 'accountant' },
-    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cheque' }, role: 'accountant' },
-    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cheque', chequeStatus: 'deposited' }, role: 'accountant' },
-    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: 100_000, method: 'cash', allocations: [{ chargeId: 'c', amountFils: 200_000 }] }, role: 'accountant' },
-    { kind: 'proposal', action: 'post_payment', args: { ...base, amountFils: limits.nteCeilingFils + 1, method: 'cash' }, role: 'accountant' },
+    {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: { ...base, amountFils: 100_000, method: 'cliq' },
+      role: 'accountant',
+    },
+    {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: { ...base, amountFils: 100_000, method: 'cheque' },
+      role: 'accountant',
+    },
+    {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: { ...base, amountFils: 100_000, method: 'cheque', chequeStatus: 'deposited' },
+      role: 'accountant',
+    },
+    {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: {
+        ...base,
+        amountFils: 100_000,
+        method: 'cash',
+        allocations: [{ chargeId: 'c', amountFils: 200_000 }],
+      },
+      role: 'accountant',
+    },
+    {
+      kind: 'proposal',
+      action: 'post_payment',
+      args: { ...base, amountFils: limits.nteCeilingFils + 1, method: 'cash' },
+      role: 'accountant',
+    },
     // On the dual-control band, with and without the second key: this is the pair
     // that catches a threshold comparison changing direction or inclusivity.
-    ...(threshold === null ? [] : [
-      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold + 1, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [] },
-      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold + 1, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [{ userId: 'u-2' }, { userId: 'u-3' }] },
-      { kind: 'proposal' as const, action: 'post_payment', args: { ...base, amountFils: threshold, method: 'cash' }, role: 'accountant', actorId: 'u-1', approvals: [] },
-    ]),
-    { kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'property_manager', actorId: 'u-1', requester: { kind: 'human', userId: 'u-1' } },
-    { kind: 'proposal', action: 'dispatch_vendor', args: { ticketId: 't', vendorId: 'v' }, role: 'property_manager', actorId: 'u-1', requester: { kind: 'agent' } },
-    { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt, now: at },
-    { kind: 'reversal', action: 'post_payment', role: 'accountant', actorId: 'u-1', executedAt: '2025-01-01T00:00:00.000Z', now: at },
-    { kind: 'reversal', action: 'post_payment', role: 'viewer', actorId: 'u-1', executedAt, now: at },
-    { kind: 'reversal', action: 'unheard_of', role: 'accountant', actorId: 'u-1', executedAt, now: at },
+    ...(threshold === null
+      ? []
+      : [
+          {
+            kind: 'proposal' as const,
+            action: 'post_payment',
+            args: { ...base, amountFils: threshold + 1, method: 'cash' },
+            role: 'accountant',
+            actorId: 'u-1',
+            approvals: [],
+          },
+          {
+            kind: 'proposal' as const,
+            action: 'post_payment',
+            args: { ...base, amountFils: threshold + 1, method: 'cash' },
+            role: 'accountant',
+            actorId: 'u-1',
+            approvals: [{ userId: 'u-2' }, { userId: 'u-3' }],
+          },
+          {
+            kind: 'proposal' as const,
+            action: 'post_payment',
+            args: { ...base, amountFils: threshold, method: 'cash' },
+            role: 'accountant',
+            actorId: 'u-1',
+            approvals: [],
+          },
+        ]),
+    {
+      kind: 'proposal',
+      action: 'dispatch_vendor',
+      args: { ticketId: 't', vendorId: 'v' },
+      role: 'property_manager',
+      actorId: 'u-1',
+      requester: { kind: 'human', userId: 'u-1' },
+    },
+    {
+      kind: 'proposal',
+      action: 'dispatch_vendor',
+      args: { ticketId: 't', vendorId: 'v' },
+      role: 'property_manager',
+      actorId: 'u-1',
+      requester: { kind: 'agent' },
+    },
+    {
+      kind: 'reversal',
+      action: 'post_payment',
+      role: 'accountant',
+      actorId: 'u-1',
+      executedAt,
+      now: at,
+    },
+    {
+      kind: 'reversal',
+      action: 'post_payment',
+      role: 'accountant',
+      actorId: 'u-1',
+      executedAt: '2025-01-01T00:00:00.000Z',
+      now: at,
+    },
+    {
+      kind: 'reversal',
+      action: 'post_payment',
+      role: 'viewer',
+      actorId: 'u-1',
+      executedAt,
+      now: at,
+    },
+    {
+      kind: 'reversal',
+      action: 'unheard_of',
+      role: 'accountant',
+      actorId: 'u-1',
+      executedAt,
+      now: at,
+    },
   ]);
 }
 
 /** hash(verdict, rule ids) over every probe — details are wording, not policy. */
-function behaviourFingerprint(limits: PolicyLimits, decide: (facts: PolicyFacts) => PolicyDecision): string {
+function behaviourFingerprint(
+  limits: PolicyLimits,
+  decide: (facts: PolicyFacts) => PolicyDecision,
+): string {
   const observed = probes(limits).map((facts) => {
     const decision = decide(facts);
     return `${decision.verdict}|${decision.rules.map((r) => r.rule).join(',')}`;
@@ -210,7 +311,10 @@ const BEHAVIOUR_UNMEASURED = 'unmeasured';
  * the identity of a compiled policy — `compilePolicy` always passes the measured
  * fingerprint.
  */
-export function policyVersion(limits: PolicyLimits, behaviour: string = BEHAVIOUR_UNMEASURED): string {
+export function policyVersion(
+  limits: PolicyLimits,
+  behaviour: string = BEHAVIOUR_UNMEASURED,
+): string {
   return cyrb53(stableStringify({ limits, rules: RULE_CATALOGUE, behaviour })).slice(0, 12);
 }
 
@@ -218,7 +322,8 @@ function combine(rules: readonly PolicyRule[]): PolicyDecision {
   const denied = rules.filter((r) => r.verdict === 'deny');
   const needHuman = rules.filter((r) => r.verdict === 'approve_required');
   // Forbid overrides: a satisfied deny wins outright; nothing accumulates past it.
-  const verdict: PolicyVerdict = denied.length > 0 ? 'deny' : needHuman.length > 0 ? 'approve_required' : 'allow';
+  const verdict: PolicyVerdict =
+    denied.length > 0 ? 'deny' : needHuman.length > 0 ? 'approve_required' : 'allow';
   const decisive = verdict === 'deny' ? denied : verdict === 'approve_required' ? needHuman : [];
   return Object.freeze({ verdict, rules: Object.freeze(rules), decisive: Object.freeze(decisive) });
 }
@@ -227,10 +332,20 @@ function decideProposal(facts: ProposalFacts, limits: PolicyLimits): PolicyDecis
   // The shape/authority/limit rules are the existing predicate's job; this adds
   // the rules that need facts a bare call does not carry (who filed it, who has
   // already signed) and then applies the same precedence.
-  const base = evaluateProposal({ action: facts.action, args: facts.args, role: facts.role, limits });
+  const base = evaluateProposal({
+    action: facts.action,
+    args: facts.args,
+    role: facts.role,
+    limits,
+  });
   const extra: PolicyRule[] = [];
 
-  if (facts.actorId !== undefined && facts.requester !== undefined && facts.requester.kind === 'human' && facts.requester.userId === facts.actorId) {
+  if (
+    facts.actorId !== undefined &&
+    facts.requester !== undefined &&
+    facts.requester.kind === 'human' &&
+    facts.requester.userId === facts.actorId
+  ) {
     extra.push({
       rule: 'sod.requester_not_approver',
       verdict: 'deny',
@@ -240,7 +355,10 @@ function decideProposal(facts: ProposalFacts, limits: PolicyLimits): PolicyDecis
     extra.push({
       rule: 'sod.requester_not_approver',
       verdict: 'allow',
-      detail: facts.requester.kind === 'agent' ? 'filed by an agent — no human duty to separate from' : 'approver is not the filer',
+      detail:
+        facts.requester.kind === 'agent'
+          ? 'filed by an agent — no human duty to separate from'
+          : 'approver is not the filer',
     });
   }
 
@@ -250,8 +368,16 @@ function decideProposal(facts: ProposalFacts, limits: PolicyLimits): PolicyDecis
   const amount = facts.args['amountFils'];
   const approvals = facts.approvals?.length ?? 0;
   if (limits.dualControlAboveFils === null) {
-    extra.push({ rule: 'concurrence.dual_control', verdict: 'allow', detail: 'no dual-control threshold configured' });
-  } else if (typeof amount === 'number' && Number.isInteger(amount) && amount > limits.dualControlAboveFils) {
+    extra.push({
+      rule: 'concurrence.dual_control',
+      verdict: 'allow',
+      detail: 'no dual-control threshold configured',
+    });
+  } else if (
+    typeof amount === 'number' &&
+    Number.isInteger(amount) &&
+    amount > limits.dualControlAboveFils
+  ) {
     const enough = approvals >= limits.requiredApprovers;
     extra.push({
       rule: 'concurrence.distinct_approvers',
@@ -268,23 +394,49 @@ function decideProposal(facts: ProposalFacts, limits: PolicyLimits): PolicyDecis
 function decideReversal(facts: ReversalFacts, limits: PolicyLimits): PolicyDecision {
   const rules: PolicyRule[] = [];
 
-  rules.push(REVERSIBLE_ACTIONS.includes(facts.action)
-    ? { rule: 'reversal.action_known', verdict: 'allow', detail: `${facts.action} can be undone` }
-    : { rule: 'reversal.action_known', verdict: 'deny', detail: `no reversal exists for action "${facts.action}"` });
+  rules.push(
+    REVERSIBLE_ACTIONS.includes(facts.action)
+      ? { rule: 'reversal.action_known', verdict: 'allow', detail: `${facts.action} can be undone` }
+      : {
+          rule: 'reversal.action_known',
+          verdict: 'deny',
+          detail: `no reversal exists for action "${facts.action}"`,
+        },
+  );
 
-  rules.push(limits.approverRoles.includes(facts.role)
-    ? { rule: 'role.approver', verdict: 'allow', detail: `${facts.role} may reverse` }
-    : { rule: 'role.approver', verdict: 'deny', detail: `${facts.role} is not an approver, so it cannot undo one` });
+  rules.push(
+    limits.approverRoles.includes(facts.role)
+      ? { rule: 'role.approver', verdict: 'allow', detail: `${facts.role} may reverse` }
+      : {
+          rule: 'role.approver',
+          verdict: 'deny',
+          detail: `${facts.role} is not an approver, so it cannot undo one`,
+        },
+  );
 
   const executedAt = Date.parse(facts.executedAt);
   const now = Date.parse(facts.now);
   if (Number.isNaN(executedAt) || Number.isNaN(now)) {
-    rules.push({ rule: 'reversal.window', verdict: 'deny', detail: 'executedAt and now must both be ISO 8601 timestamps' });
+    rules.push({
+      rule: 'reversal.window',
+      verdict: 'deny',
+      detail: 'executedAt and now must both be ISO 8601 timestamps',
+    });
   } else {
     const ageHours = (now - executedAt) / HOUR_MS;
-    rules.push(ageHours <= limits.reversalWindowHours
-      ? { rule: 'reversal.window', verdict: 'allow', detail: `${ageHours.toFixed(1)}h after execution, inside the ${limits.reversalWindowHours}h window` }
-      : { rule: 'reversal.window', verdict: 'deny', detail: `${ageHours.toFixed(1)}h after execution is outside the ${limits.reversalWindowHours}h window — correct it with a journal entry instead` });
+    rules.push(
+      ageHours <= limits.reversalWindowHours
+        ? {
+            rule: 'reversal.window',
+            verdict: 'allow',
+            detail: `${ageHours.toFixed(1)}h after execution, inside the ${limits.reversalWindowHours}h window`,
+          }
+        : {
+            rule: 'reversal.window',
+            verdict: 'deny',
+            detail: `${ageHours.toFixed(1)}h after execution is outside the ${limits.reversalWindowHours}h window — correct it with a journal entry instead`,
+          },
+    );
   }
 
   // Deliberately allowed: the accountant who misposted is usually the one who
@@ -307,7 +459,9 @@ export class PolicyDeniedError extends Error {
   /** The compiled policy's version, so a 403 can name the rules *and* the policy. */
   readonly version: string;
   constructor(scope: string, decision: PolicyDecision, version: string) {
-    super(`policy denied ${scope}: ${decision.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ')}`);
+    super(
+      `policy denied ${scope}: ${decision.decisive.map((r) => `${r.rule} (${r.detail})`).join('; ')}`,
+    );
     this.name = 'PolicyDeniedError';
     this.decision = decision;
     this.version = version;

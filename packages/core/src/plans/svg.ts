@@ -1,4 +1,11 @@
-import { type DrawingUnit, type Point, type Ring, areaSqm, openRing, selfIntersects } from './geometry.js';
+import {
+  type DrawingUnit,
+  type Point,
+  type Ring,
+  areaSqm,
+  openRing,
+  selfIntersects,
+} from './geometry.js';
 
 /**
  * A bounded vector reader for the subset of SVG an architectural exporter
@@ -39,7 +46,8 @@ export interface SvgParseResult {
 }
 
 const TAG_RE = /<(rect|polygon|polyline|path)\b([^>]*?)\/?>/gi;
-const ATTR_RE = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*"([^"]*)"|([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*'([^']*)'/g;
+const ATTR_RE =
+  /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*"([^"]*)"|([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*'([^']*)'/g;
 
 function attributesOf(raw: string): Record<string, string> {
   const attrs: Record<string, string> = {};
@@ -182,7 +190,8 @@ export function parseSvgPlan(svg: string, unit: DrawingUnit): SvgParseResult {
   for (const match of svg.matchAll(TAG_RE)) {
     const element = (match[1] ?? '').toLowerCase() as PlanShape['sourceElement'];
     const attrs = attributesOf(match[2] ?? '');
-    const code = attrs['id'] ?? attrs['data-code'] ?? `${element}-${shapes.length + skipped.length + 1}`;
+    const code =
+      attrs['id'] ?? attrs['data-code'] ?? `${element}-${shapes.length + skipped.length + 1}`;
     const label = attrs['data-label'] ?? attrs['aria-label'] ?? null;
 
     // Every branch below either assigns a ring or `continue`s, so an initial value
@@ -211,7 +220,10 @@ export function parseSvgPlan(svg: string, unit: DrawingUnit): SvgParseResult {
         continue;
       }
       const points = pairs(values);
-      const closed = element === 'polygon' || (points[0]?.[0] === points[points.length - 1]?.[0] && points[0]?.[1] === points[points.length - 1]?.[1]);
+      const closed =
+        element === 'polygon' ||
+        (points[0]?.[0] === points[points.length - 1]?.[0] &&
+          points[0]?.[1] === points[points.length - 1]?.[1]);
       if (!closed) {
         skipped.push({ code, sourceElement: element, reason: 'unclosed_polyline' });
         continue;

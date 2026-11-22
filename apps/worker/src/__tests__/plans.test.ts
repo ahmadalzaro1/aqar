@@ -62,16 +62,26 @@ maybe('a schematic becomes reviewed geometry, not a charge', () => {
     return id;
   }
 
-  async function insertRoom(planId: string, code: string, fields: {
-    area: number; source: string; confidence?: number | null;
-  }): Promise<void> {
+  async function insertRoom(
+    planId: string,
+    code: string,
+    fields: {
+      area: number;
+      source: string;
+      confidence?: number | null;
+    },
+  ): Promise<void> {
     await sql.begin(async (tx) => {
       await tx`select set_config('app.organization_id', ${orgId}, true)`;
       await tx`
         insert into plan_rooms (organization_id, floor_plan_id, code, label, room_kind, area_sqm,
                                 polygon, source, confidence)
         values (${orgId}::uuid, ${planId}::uuid, ${code}, ${code}, 'unit', ${fields.area},
-                ${JSON.stringify([[0, 0], [1, 0], [1, 1]])}::jsonb, ${fields.source},
+                ${JSON.stringify([
+                  [0, 0],
+                  [1, 0],
+                  [1, 1],
+                ])}::jsonb, ${fields.source},
                 ${fields.confidence ?? null})`;
     });
   }
@@ -89,7 +99,9 @@ maybe('a schematic becomes reviewed geometry, not a charge', () => {
     const reconciliation = reconcileAreas(parsed.shapes, 123);
     expect(reconciliation).toMatchObject({ sumSqm: 123, verdict: 'within' });
 
-    const stored = await sql<{ code: string; area_sqm: string; source: string; confidence: string | null }[]>`
+    const stored = await sql<
+      { code: string; area_sqm: string; source: string; confidence: string | null }[]
+    >`
       select code, area_sqm::text, source, confidence::text
         from plan_rooms where floor_plan_id = ${planId}::uuid order by code`;
     expect(stored.map((row) => row.code)).toEqual(['101', '102', '103']);
@@ -103,7 +115,9 @@ maybe('a schematic becomes reviewed geometry, not a charge', () => {
     await expect(insertRoom(planId, 'R1', { area: 40, source: 'raster_model' })).rejects.toThrow(
       /plan_rooms_confidence_ck/,
     );
-    await expect(insertRoom(planId, 'R2', { area: 40, source: 'raster_model', confidence: 0.62 })).resolves.toBeUndefined();
+    await expect(
+      insertRoom(planId, 'R2', { area: 40, source: 'raster_model', confidence: 0.62 }),
+    ).resolves.toBeUndefined();
   });
 
   it('refuses a confidence on a vector room, which has none', async () => {

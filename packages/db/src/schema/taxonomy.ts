@@ -91,7 +91,10 @@ export const unitCommercialDetail = pgTable(
     ...auditTimestamps(),
   },
   (t) => [
-    check('unit_commercial_fit_out_ck', sql`${t.fitOut} IS NULL OR ${t.fitOut} IN ('shell','semi_fitted','fitted','turnkey')`),
+    check(
+      'unit_commercial_fit_out_ck',
+      sql`${t.fitOut} IS NULL OR ${t.fitOut} IN ('shell','semi_fitted','fitted','turnkey')`,
+    ),
     check('unit_commercial_windows_ck', sql`${t.displayWindows} >= 0`),
   ],
 );

@@ -25,7 +25,11 @@ const variants: Record<Variant, React.CSSProperties> = {
 };
 export function Button({ variant = 'secondary', children, className, style, ...rest }: Props) {
   return (
-    <button className={cn('aqar-btn', className)} style={{ ...base, ...variants[variant], ...style }} {...rest}>
+    <button
+      className={cn('aqar-btn', className)}
+      style={{ ...base, ...variants[variant], ...style }}
+      {...rest}
+    >
       {children}
     </button>
   );

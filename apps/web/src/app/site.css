@@ -4,14 +4,16 @@
   /* colour: ink, paper, two greys, one accent */
   --paper: #faf7f2;
   --ink: #1a1712;
-  --grey: #575147;      /* quiet text, >= 7:1 on paper */
-  --rule: #d9d2c4;      /* hairlines only, never text */
-  --accent: #9a2c12;    /* owed / live only, >= 4.5:1 on paper */
+  --grey: #575147; /* quiet text, >= 7:1 on paper */
+  --rule: #d9d2c4; /* hairlines only, never text */
+  --accent: #9a2c12; /* owed / live only, >= 4.5:1 on paper */
 
   /* type */
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --font-text: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
   --size-h1: clamp(2.75rem, 6vw, 4.25rem);
   --size-h2: clamp(1.6rem, 3vw, 2.25rem);
@@ -21,7 +23,7 @@
   --size-table: 0.9375rem;
 
   /* rhythm and grid */
-  --measure: 29em;      /* 66ch read as ~89 characters in this face; 29em is ~66 */
+  --measure: 29em; /* 66ch read as ~89 characters in this face; 29em is ~66 */
   --wrap-max: 68rem;
   --pad-inline: clamp(1.25rem, 5vw, 3rem);
   --space-1: 0.5rem;
@@ -30,7 +32,9 @@
   --space-4: 3rem;
   --leading: 1.65;
 }
-.site * { box-sizing: border-box; }
+.site * {
+  box-sizing: border-box;
+}
 .site {
   scroll-behavior: smooth;
   scroll-padding-top: var(--space-3);
@@ -58,18 +62,29 @@
   border-top: 1px solid var(--rule);
 }
 @supports (min-height: 100svh) {
-.site section { min-height: 100svh; }
+  .site section {
+    min-height: 100svh;
+  }
 }
-.site section.hero { border-top: 0; }
-.site h1, .site h2, .site h3 {
+.site section.hero {
+  border-top: 0;
+}
+.site h1,
+.site h2,
+.site h3 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.15;
   margin: 0 0 var(--space-3);
   text-wrap: balance;
 }
-.site h1 { font-size: var(--size-h1); letter-spacing: -0.01em; }
-.site h2 { font-size: var(--size-h2); }
+.site h1 {
+  font-size: var(--size-h1);
+  letter-spacing: -0.01em;
+}
+.site h2 {
+  font-size: var(--size-h2);
+}
 .site h3 {
   font-size: var(--size-h3);
   margin-top: var(--space-3);
@@ -95,9 +110,15 @@
   margin: 0 0 var(--space-2);
   max-width: var(--measure);
 }
-.site .lede { font-size: 1.1875rem; }
-.site .label { font-weight: 600; }
-.site .modules { color: var(--ink); }
+.site .lede {
+  font-size: 1.1875rem;
+}
+.site .label {
+  font-weight: 600;
+}
+.site .modules {
+  color: var(--ink);
+}
 .site .meta-line {
   font-size: var(--size-small);
   color: var(--grey);
@@ -107,8 +128,14 @@
   font-family: var(--font-mono);
   font-size: 0.9em;
 }
-.site a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-.site a:hover { color: var(--ink); }
+.site a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.site a:hover {
+  color: var(--ink);
+}
 .site .actions {
   display: flex;
   flex-wrap: wrap;
@@ -128,10 +155,18 @@
 }
 /* One primary action. Same rule language, heavier stroke and weight, so the
    page still has a single thing to do without introducing a second colour. */
-.site .btn--primary { font-weight: 700; border-bottom-width: 3px; }
-.site .btn--quiet { font-weight: 500; border-bottom-width: 1px; }
+.site .btn--primary {
+  font-weight: 700;
+  border-bottom-width: 3px;
+}
+.site .btn--quiet {
+  font-weight: 500;
+  border-bottom-width: 1px;
+}
 
-.site .btn:hover { transform: translateY(-2px); }
+.site .btn:hover {
+  transform: translateY(-2px);
+}
 .site :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
@@ -194,36 +229,64 @@
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
-.site .ledger th + th, .site .ledger td + td { padding-left: 0.75rem; }
-.site .ledger th.num, .site .ledger td.num { text-align: right; padding-right: 0; }
+.site .ledger th + th,
+.site .ledger td + td {
+  padding-left: 0.75rem;
+}
+.site .ledger th.num,
+.site .ledger td.num {
+  text-align: right;
+  padding-right: 0;
+}
 .site .tenant {
   display: block;
   font-size: 0.75rem;
   color: var(--grey);
 }
-.site .period { color: var(--grey); white-space: nowrap; }
-.site .state { color: var(--grey); white-space: nowrap; }
+.site .period {
+  color: var(--grey);
+  white-space: nowrap;
+}
+.site .state {
+  color: var(--grey);
+  white-space: nowrap;
+}
 .site .amt {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.site .fils { color: var(--grey); }
-.site .amt.total { font-weight: 700; }
-.site .owed .amt, .site .owed .amt .fils, .site .owed .state { color: var(--accent); }
-.site .owed .state { font-weight: 600; }
+.site .fils {
+  color: var(--grey);
+}
+.site .amt.total {
+  font-weight: 700;
+}
+.site .owed .amt,
+.site .owed .amt .fils,
+.site .owed .state {
+  color: var(--accent);
+}
+.site .owed .state {
+  font-weight: 600;
+}
 .site .ledger tfoot td {
   border-bottom: 0;
   border-top: 2px solid var(--ink);
   padding-top: var(--space-1);
 }
-.site .total-label { font-weight: 600; }
+.site .total-label {
+  font-weight: 600;
+}
 .site .ledger-footer {
   font-size: var(--size-small);
   color: var(--grey);
   margin-top: var(--space-1);
 }
-.site .live { color: var(--accent); font-weight: 600; }
+.site .live {
+  color: var(--accent);
+  font-weight: 600;
+}
 .site .record {
   margin: 0 0 var(--space-3);
   max-width: 56rem;
@@ -243,21 +306,32 @@
   text-transform: uppercase;
   color: var(--grey);
 }
-.site .record dd { margin: 0; max-width: var(--measure); }
+.site .record dd {
+  margin: 0;
+  max-width: var(--measure);
+}
 .site .ar-report {
   display: block;
   font-size: 1.125rem;
   text-align: right;
 }
-.site .en-report { display: block; color: var(--grey); }
+.site .en-report {
+  display: block;
+  color: var(--grey);
+}
 .site ul.plain {
   list-style: none;
   margin: 0;
   padding: 0;
   max-width: var(--measure);
 }
-.site ul.plain li { padding-block: 0.2rem; }
-.site ul.ruled li { border-bottom: 1px solid var(--rule); padding-block: 0.45rem; }
+.site ul.plain li {
+  padding-block: 0.2rem;
+}
+.site ul.ruled li {
+  border-bottom: 1px solid var(--rule);
+  padding-block: 0.45rem;
+}
 .site .audit {
   max-width: 56rem;
   margin-bottom: var(--space-3);
@@ -271,8 +345,12 @@
   font-weight: 600;
   cursor: pointer;
 }
-.site .audit[open] summary { border-bottom: 1px solid var(--rule); }
-.site .audit ul { padding-block: var(--space-1); }
+.site .audit[open] summary {
+  border-bottom: 1px solid var(--rule);
+}
+.site .audit ul {
+  padding-block: var(--space-1);
+}
 .site .pipeline {
   list-style: none;
   margin: var(--space-2) 0 0;
@@ -288,7 +366,9 @@
   padding-block: var(--space-2);
   border-bottom: 1px solid var(--rule);
 }
-.site .pipeline li > span:last-child { max-width: var(--measure); }
+.site .pipeline li > span:last-child {
+  max-width: var(--measure);
+}
 .site .step-no {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -306,7 +386,10 @@
   flex: 1 1 10rem;
   padding: var(--space-2) var(--space-2) var(--space-2) 0;
 }
-.site .stat + .stat { border-left: 1px solid var(--rule); padding-left: var(--space-2); }
+.site .stat + .stat {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-2);
+}
 .site .stat dt {
   font-size: var(--size-small);
   font-weight: 600;
@@ -330,52 +413,121 @@
   color: var(--grey);
   max-width: none;
 }
-.site .colophon a { color: var(--grey); }
+.site .colophon a {
+  color: var(--grey);
+}
 @media (max-width: 640px) {
-.site .actions { flex-direction: column; gap: var(--space-2); }
-.site .btn { width: 100%; justify-content: center; }
-.site .ledger table { font-size: 0.8125rem; }
-.site .ledger th, .site .ledger td { padding-right: 0.4rem; }
-.site .ledger th { font-size: 0.75rem; }
-.site .tenant { font-size: 0.6875rem; }
-.site .record .row { grid-template-columns: 1fr; gap: 0.15rem; }
-.site .pipeline li { grid-template-columns: 2.5rem 1fr; }
-.site .stats { flex-direction: column; }
-.site .stat + .stat {
+  .site .actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .site .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .site .ledger table {
+    font-size: 0.8125rem;
+  }
+  .site .ledger th,
+  .site .ledger td {
+    padding-right: 0.4rem;
+  }
+  .site .ledger th {
+    font-size: 0.75rem;
+  }
+  .site .tenant {
+    font-size: 0.6875rem;
+  }
+  .site .record .row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .site .pipeline li {
+    grid-template-columns: 2.5rem 1fr;
+  }
+  .site .stats {
+    flex-direction: column;
+  }
+  .site .stat + .stat {
     border-left: 0;
     border-top: 1px solid var(--rule);
     padding-left: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-.site { scroll-behavior: auto; }
-.site .btn { transition: none; }
-.site .btn:hover { transform: none; }
+  .site {
+    scroll-behavior: auto;
+  }
+  .site .btn {
+    transition: none;
+  }
+  .site .btn:hover {
+    transform: none;
+  }
 }
 @media print {
-.site { background: #fff; color: #000; font-size: 11pt; }
-.site section {
+  .site {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+  .site section {
     min-height: auto;
     display: block;
     padding-block: 1.2rem;
     break-inside: avoid-page;
   }
-.site .skip { display: none; }
-.site .btn { border-bottom: 1px solid #000; transform: none; }
-.site a { color: #000; }
-.site a[href^="https"]::after { content: " (" attr(href) ")"; font-size: 0.85em; }
-.site .audit { break-inside: avoid-page; }
-.site .audit:not([open]) ul { display: block; }
-.site .ledger, .site .record, .site .pipeline, .site .stats { break-inside: avoid-page; }
-.site .owed .amt, .site .owed .amt .fils, .site .owed .state, .site .live { color: #000; font-weight: 700; }
+  .site .skip {
+    display: none;
+  }
+  .site .btn {
+    border-bottom: 1px solid #000;
+    transform: none;
+  }
+  .site a {
+    color: #000;
+  }
+  .site a[href^='https']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+  }
+  .site .audit {
+    break-inside: avoid-page;
+  }
+  .site .audit:not([open]) ul {
+    display: block;
+  }
+  .site .ledger,
+  .site .record,
+  .site .pipeline,
+  .site .stats {
+    break-inside: avoid-page;
+  }
+  .site .owed .amt,
+  .site .owed .amt .fils,
+  .site .owed .state,
+  .site .live {
+    color: #000;
+    font-weight: 700;
+  }
 }
 
 /* Below 360px the ledger's five columns cannot fit: the period is the same for
    every row and already stated above the table, so it is the one column that
    goes. Money stays right-aligned and the decimals stay unbroken. */
 @media (max-width: 380px) {
-  .site { --pad-inline: 16px; }
-  .site .ledger th:nth-child(2), .site .ledger td:nth-child(2) { display: none; }
-  .site .ledger table { font-size: 0.75rem; }
-  .site .ledger th + th, .site .ledger td + td { padding-left: 0.5rem; }
+  .site {
+    --pad-inline: 16px;
+  }
+  .site .ledger th:nth-child(2),
+  .site .ledger td:nth-child(2) {
+    display: none;
+  }
+  .site .ledger table {
+    font-size: 0.75rem;
+  }
+  .site .ledger th + th,
+  .site .ledger td + td {
+    padding-left: 0.5rem;
+  }
 }

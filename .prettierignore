@@ -1,0 +1,13 @@
+# oxfmt reads this file (it is configured to honour .prettierignore).
+# Excluded on purpose, not by accident:
+#   *.md                prose: rewriting paragraphs for a column limit is churn, not formatting
+#   packages/db/drizzle SQL migrations are an audit trail; their bytes are the record
+#   **/fixtures/**      captured data, including generated geometry — reformat at capture time
+*.md
+#   *.json             oxfmt escapes non-ASCII in JSON (— becomes \u2014); this repo's
+#                      copy is Arabic-first, so JSON stays byte-identical
+*.json
+packages/db/drizzle/**
+**/fixtures/**
+.ci/**
+pnpm-lock.yaml

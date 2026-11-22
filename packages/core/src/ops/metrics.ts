@@ -110,10 +110,7 @@ function ageDays(openedAtISO: string, nowISO: string): number {
  * Open work orders bucketed by age in whole days at `nowISO`.
  * Closed tickets are not aging and are excluded from every bucket.
  */
-export function workOrderAging(
-  tickets: readonly AgingWorkOrder[],
-  nowISO: string,
-): WorkOrderAging {
+export function workOrderAging(tickets: readonly AgingWorkOrder[], nowISO: string): WorkOrderAging {
   let d0_7 = 0;
   let d8_30 = 0;
   let d31_90 = 0;
@@ -236,7 +233,7 @@ export function vendorSpendFils(invoices: readonly VendorInvoice[]): readonly Ve
   }
   return [...totals.entries()]
     .map(([vendorId, spendFils]) => ({ vendorId, spendFils }))
-    .sort((a, b) => (b.spendFils - a.spendFils) || a.vendorId.localeCompare(b.vendorId));
+    .sort((a, b) => b.spendFils - a.spendFils || a.vendorId.localeCompare(b.vendorId));
 }
 
 // ----------------------------------------------------------- property P&L ----

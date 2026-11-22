@@ -87,7 +87,9 @@ maybe('a segmentation result becomes testimony, not a charge', () => {
       select code, source, confidence from plan_rooms
        where floor_plan_id = ${result.floorPlanId}::uuid order by code`;
     expect(rooms.map((room) => room.code)).toEqual(['R-101', 'R-102', 'R-103', 'R-104']);
-    expect(rooms.every((room) => room.source === 'raster_model' && room.confidence !== null)).toBe(true);
+    expect(rooms.every((room) => room.source === 'raster_model' && room.confidence !== null)).toBe(
+      true,
+    );
   });
 
   it('refuses to replace a plan whose room a person confirmed', async () => {
@@ -133,7 +135,14 @@ maybe('a segmentation result becomes testimony, not a charge', () => {
         insert into plan_rooms (organization_id, floor_plan_id, code, room_kind, area_sqm,
                                 polygon, source)
         values (${orgId}::uuid, ${plan.id}::uuid, 'R-999', 'unit', 12,
-                ${JSON.stringify({ frame: 'pixels', ring: [[0, 0], [10, 0], [10, 10]] })}::jsonb,
+                ${JSON.stringify({
+                  frame: 'pixels',
+                  ring: [
+                    [0, 0],
+                    [10, 0],
+                    [10, 10],
+                  ],
+                })}::jsonb,
                 'raster_model')`,
     ).rejects.toThrow(/plan_rooms_confidence_ck/);
   });

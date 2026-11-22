@@ -13,13 +13,17 @@ export function formatMoney(fils: number, locale: Locale): string {
 export function formatDate(iso: string, locale: Locale): string {
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-JO' : 'en-GB', {
-    year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
   }).format(d);
 }
 
 export function formatPercentBps(bps: number, locale: Locale): string {
   return new Intl.NumberFormat(locale === 'ar' ? 'ar-JO' : 'en-JO', {
-    style: 'percent', maximumFractionDigits: 1,
+    style: 'percent',
+    maximumFractionDigits: 1,
   }).format(bps / 10000);
 }
 

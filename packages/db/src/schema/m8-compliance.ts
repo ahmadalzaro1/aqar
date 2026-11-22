@@ -71,7 +71,10 @@ export const inspections = pgTable(
     conductedAt: timestamp('conducted_at', { withTimezone: true }).notNull(),
     inspectorName: text('inspector_name').notNull(),
     findingsMd: text('findings_md'),
-    photos: jsonb('photos').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    photos: jsonb('photos')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
     ...auditTimestamps(),
   },

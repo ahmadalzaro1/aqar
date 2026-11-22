@@ -10,11 +10,21 @@
 //    idempotencyKey in audit_events.
 import { randomUUID } from 'node:crypto';
 import { providersFromEnv, runTriage, type ModelProvider, type TriageResult } from '@aqar/agents';
-import { triageJobResultSchema, ticketIngestJobSchema, type TicketIngestJob, type TriageJobResult } from '@aqar/contracts';
+import {
+  triageJobResultSchema,
+  ticketIngestJobSchema,
+  type TicketIngestJob,
+  type TriageJobResult,
+} from '@aqar/contracts';
 import type { AgentContext } from '@aqar/agents';
 import type { TriageInput } from '@aqar/agents';
 import { createDb, type Db } from '@aqar/db';
-import { createDrizzleTriageStore, TRIAGE_ACTOR, type TicketRecord, type TriageStore } from './store.js';
+import {
+  createDrizzleTriageStore,
+  TRIAGE_ACTOR,
+  type TicketRecord,
+  type TriageStore,
+} from './store.js';
 import { ammanLocalHour } from './time.js';
 
 export { TRIAGE_ACTOR };
@@ -29,7 +39,10 @@ export class JobValidationError extends Error {
 
 /** Raised when the ticket does not exist inside the job's organization. */
 export class TicketNotFoundError extends Error {
-  constructor(readonly ticketId: string, readonly orgId: string) {
+  constructor(
+    readonly ticketId: string,
+    readonly orgId: string,
+  ) {
     super(`ticket ${ticketId} not found in organization ${orgId}`);
     this.name = 'TicketNotFoundError';
   }
@@ -97,7 +110,11 @@ export function createProcessorDeps(options: ProcessorDepsOptions = {}): Process
  * mode is hard-wired to 'dry_run': nothing in this worker can dispatch a vendor
  * or move money, whatever the payload says.
  */
-export function buildTriageInput(job: TicketIngestJob, ticket: TicketRecord, now: Date): TriageInput {
+export function buildTriageInput(
+  job: TicketIngestJob,
+  ticket: TicketRecord,
+  now: Date,
+): TriageInput {
   return {
     ticketId: job.ticketId,
     text: job.text,
@@ -140,7 +157,10 @@ function parseJob(raw: unknown): TicketIngestJob {
  * Process one triage job. Returns the persisted result; throws on invalid
  * payloads and on unresolvable tickets (BullMQ then retries / marks it failed).
  */
-export async function processTriageJob(raw: unknown, deps: ProcessorDeps): Promise<TriageJobResult> {
+export async function processTriageJob(
+  raw: unknown,
+  deps: ProcessorDeps,
+): Promise<TriageJobResult> {
   const job = parseJob(raw);
 
   // (1) Idempotency pre-check: a redelivery never re-runs the model.

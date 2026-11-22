@@ -24,18 +24,29 @@ export default async function DocumentsPage() {
       <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'nav.documents')}</h1>
       <div className="table-scroll">
         <table>
-          <thead><tr>
-            <th>{t(m, 'ven.name')}</th><th>{t(m, 'doc.entity')}</th><th>{t(m, 'doc.version')}</th>
-            <th>{t(m, 'doc.size')}</th><th>{t(m, 'doc.status')}</th><th>{t(m, 'doc.uploaded')}</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>{t(m, 'ven.name')}</th>
+              <th>{t(m, 'doc.entity')}</th>
+              <th>{t(m, 'doc.version')}</th>
+              <th>{t(m, 'doc.size')}</th>
+              <th>{t(m, 'doc.status')}</th>
+              <th>{t(m, 'doc.uploaded')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td style={{ fontWeight: 600 }}>{r.title}</td>
                 <td>{r.entityType}</td>
-                <td className="tnum">v{r.version}{r.isLatest ? ' ✓' : ''}</td>
+                <td className="tnum">
+                  v{r.version}
+                  {r.isLatest ? ' ✓' : ''}
+                </td>
                 <td className="tnum">{kb(r.bytes)}</td>
-                <td><Badge tone="neutral">{r.status}</Badge></td>
+                <td>
+                  <Badge tone="neutral">{r.status}</Badge>
+                </td>
                 <td className="tnum">{r.createdAt}</td>
               </tr>
             ))}

@@ -167,7 +167,13 @@ export const ownerShareSchema = z.object({
 });
 export type OwnerShare = z.infer<typeof ownerShareSchema>;
 
-export const sharedAllocationModeSchema = z.enum(['per_unit', 'by_area', 'by_headcount', 'by_ampere', 'flat']);
+export const sharedAllocationModeSchema = z.enum([
+  'per_unit',
+  'by_area',
+  'by_headcount',
+  'by_ampere',
+  'flat',
+]);
 export type SharedAllocationMode = z.infer<typeof sharedAllocationModeSchema>;
 
 export const agingBucketSchema = z.enum(['current', 'd0_30', 'd31_60', 'd61_90', 'd90_plus']);

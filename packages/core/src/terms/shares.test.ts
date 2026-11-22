@@ -28,7 +28,12 @@ describe('splitByShares', () => {
       share('heir-3', 2500),
       share('heir-4', 2500),
     ]);
-    expect(result).toEqual({ 'heir-1': 250_001, 'heir-2': 250_000, 'heir-3': 250_000, 'heir-4': 250_000 });
+    expect(result).toEqual({
+      'heir-1': 250_001,
+      'heir-2': 250_000,
+      'heir-3': 250_000,
+      'heir-4': 250_000,
+    });
     expect(total(Object.values(result))).toBe(1_000_001);
   });
 

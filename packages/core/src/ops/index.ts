@@ -1,20 +1,12 @@
 // Public surface of the pure ops engine (LAW 1: no I/O, no LLM, no wall clock).
-export {
-  emergencyPrecheck,
-  hazardSignalCategory,
-  HAZARD_SIGNALS,
-} from './emergency.js';
+export { emergencyPrecheck, hazardSignalCategory, HAZARD_SIGNALS } from './emergency.js';
 export type { HazardSignal, HazardSignalId } from './emergency.js';
 
 export { normalizeText } from './normalize.js';
 
 export { mergeClassification } from './merge.js';
 
-export {
-  safetyInstructions,
-  SAFETY_INSTRUCTIONS,
-  JORDAN_EMERGENCY_NUMBER,
-} from './safety.js';
+export { safetyInstructions, SAFETY_INSTRUCTIONS, JORDAN_EMERGENCY_NUMBER } from './safety.js';
 export type { SafetyInstructionSet, SafetyLocale } from './safety.js';
 
 export { defaultServiceStandard, slaDueDates, slaState } from './sla.js';

@@ -29,7 +29,9 @@ export default async function setup(): Promise<void> {
   const testUrl = resolveTestUrl();
   const dbName = new URL(testUrl).pathname.replace(/^\//, '');
   if (!dbName.endsWith('_test')) {
-    throw new Error(`refusing to run the destructive integration suite against "${dbName}" — it must end in _test`);
+    throw new Error(
+      `refusing to run the destructive integration suite against "${dbName}" — it must end in _test`,
+    );
   }
 
   const admin = new URL(testUrl);

@@ -20,17 +20,25 @@ export default async function SettingsPage() {
       <Card title={t(m, 'set.users')}>
         <div className="table-scroll">
           <table>
-            <thead><tr>
-              <th>{t(m, 'set.name')}</th><th>{t(m, 'set.email')}</th>
-              <th>{t(m, 'set.role')}</th><th>{t(m, 'set.status')}</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>{t(m, 'set.name')}</th>
+                <th>{t(m, 'set.email')}</th>
+                <th>{t(m, 'set.role')}</th>
+                <th>{t(m, 'set.status')}</th>
+              </tr>
+            </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
                   <td style={{ fontWeight: 600 }}>{locale === 'ar' ? u.nameAr : u.nameEn}</td>
                   <td dir="ltr">{u.email}</td>
                   <td>{t(m, `role.${u.role}`)}</td>
-                  <td><Badge tone={u.isActive ? 'ok' : 'neutral'}>{u.isActive ? t(m, 'set.active') : t(m, 'set.inactive')}</Badge></td>
+                  <td>
+                    <Badge tone={u.isActive ? 'ok' : 'neutral'}>
+                      {u.isActive ? t(m, 'set.active') : t(m, 'set.inactive')}
+                    </Badge>
+                  </td>
                 </tr>
               ))}
             </tbody>

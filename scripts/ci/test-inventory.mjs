@@ -28,7 +28,8 @@ const ROOTS = ['packages', 'apps'];
 // cannot run without Postgres, Redis and Mailpit.
 const DEFAULT_PACKAGES = ['packages/core', 'packages/ui', 'apps/web', 'packages/agents'];
 const onlyIx = process.argv.indexOf('--packages');
-const packages = onlyIx === -1 ? DEFAULT_PACKAGES : process.argv[onlyIx + 1].split(',').filter(Boolean);
+const packages =
+  onlyIx === -1 ? DEFAULT_PACKAGES : process.argv[onlyIx + 1].split(',').filter(Boolean);
 for (const dir of packages) {
   if (!existsSync(`${dir}/package.json`)) {
     console.error(`inventory: no package at ${dir}`);
@@ -63,7 +64,9 @@ try {
   // No git (a bare extract, a tarball). Nothing can be known to be untracked, so say so:
   // a silently unfiltered inventory is how a local baseline records a test the runner
   // will never see.
-  console.error('inventory: no git repository — cannot tell tracked from untracked files; recording everything');
+  console.error(
+    'inventory: no git repository — cannot tell tracked from untracked files; recording everything',
+  );
   tracked = null;
 }
 const untrackedSeen = new Set();
@@ -76,7 +79,15 @@ for (const dir of packages) {
   try {
     execFileSync(
       'pnpm',
-      ['--filter', `./${dir}`, 'exec', 'vitest', 'run', '--reporter=json', `--outputFile=${resolve(tmp)}`],
+      [
+        '--filter',
+        `./${dir}`,
+        'exec',
+        'vitest',
+        'run',
+        '--reporter=json',
+        `--outputFile=${resolve(tmp)}`,
+      ],
       { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, CI: '1' } },
     );
   } catch (error) {
@@ -108,12 +119,15 @@ for (const rel of untrackedSeen) {
 }
 const unique = [...new Set(out)].sort();
 const record = out.length - unique.length;
-if (record > 0) console.error(`inventory: ${record} duplicate test name(s) — names must be unique per file`);
+if (record > 0)
+  console.error(`inventory: ${record} duplicate test name(s) — names must be unique per file`);
 
 if (process.argv.includes('--record')) {
   mkdirSync('.ci', { recursive: true });
   writeFileSync(INVENTORY, `${JSON.stringify({ count: unique.length, tests: unique }, null, 2)}\n`);
-  console.log(`inventory recorded — ${unique.length} tests across ${packages.length} packages → ${INVENTORY}`);
+  console.log(
+    `inventory recorded — ${unique.length} tests across ${packages.length} packages → ${INVENTORY}`,
+  );
   process.exit(record > 0 ? 1 : 0);
 }
 
@@ -128,7 +142,9 @@ const lost = [...known].filter((t) => !now.has(t));
 const added = [...now].filter((t) => !known.has(t));
 
 if (added.length > 0) {
-  console.log(`inventory: ${added.length} new test(s) — record them: node scripts/ci/test-inventory.mjs --record`);
+  console.log(
+    `inventory: ${added.length} new test(s) — record them: node scripts/ci/test-inventory.mjs --record`,
+  );
 }
 if (lost.length > 0) {
   console.error(`\ninventory: ${lost.length} test(s) no longer run:\n`);

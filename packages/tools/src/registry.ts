@@ -63,7 +63,11 @@ export function makeRegistry(tools: readonly ToolDef[]) {
       return tools
         .filter((t) => kind === undefined || t.kind === kind)
         .map((t) => ({
-          name: t.name, kind: t.kind, title: t.title, description: t.description, parameters: toParameters(t),
+          name: t.name,
+          kind: t.kind,
+          title: t.title,
+          description: t.description,
+          parameters: toParameters(t),
         }));
     },
     get(name: string): ToolDef {

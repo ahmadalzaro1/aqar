@@ -6,8 +6,10 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ['arabic'], weight: ['400', '500', '600', '700'],
-  variable: '--font-plex-arabic', display: 'swap',
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-arabic',
+  display: 'swap',
 });
 
 export const metadata = { title: 'Aqar — Property operations ledger' };
@@ -20,8 +22,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const store = await cookies();
   const theme = store.get('aqar_theme')?.value === 'dark' ? 'dark' : 'light';
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-theme={theme}
-      className={`${inter.variable} ${plexArabic.variable}`}>
+    <html
+      lang={locale}
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      data-theme={theme}
+      className={`${inter.variable} ${plexArabic.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

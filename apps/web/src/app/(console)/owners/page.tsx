@@ -19,10 +19,14 @@ export default async function OwnersPage() {
       <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'nav.owners')}</h1>
       <div className="table-scroll">
         <table>
-          <thead><tr>
-            <th>{t(m, 'own.name')}</th><th>{t(m, 'own.properties')}</th>
-            <th>{t(m, 'own.share')}</th><th>{t(m, 'own.contact')}</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>{t(m, 'own.name')}</th>
+              <th>{t(m, 'own.properties')}</th>
+              <th>{t(m, 'own.share')}</th>
+              <th>{t(m, 'own.contact')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>

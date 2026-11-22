@@ -33,7 +33,13 @@ export const SPACE_KINDS = [
 
 export type SpaceKind = (typeof SPACE_KINDS)[number];
 
-export type DetailFamily = 'residential' | 'commercial' | 'industrial' | 'land' | 'farm' | 'rooftop';
+export type DetailFamily =
+  | 'residential'
+  | 'commercial'
+  | 'industrial'
+  | 'land'
+  | 'farm'
+  | 'rooftop';
 
 const RESIDENTIAL: readonly SpaceKind[] = ['flat', 'villa', 'staff_housing', 'labour_camp'];
 const COMMERCIAL: readonly SpaceKind[] = ['office', 'shop', 'showroom', 'workshop'];
@@ -124,7 +130,17 @@ export function missingPublishAttributes(
  * A lease kind is a claim about what the space is; a mismatch is a data-entry
  * error that produces the wrong billing cycle downstream.
  */
-export function spaceAllowsLeaseKind(kind: SpaceKind, lease: 'residential' | 'commercial' | 'industrial' | 'agricultural' | 'short_term' | 'parking' | 'bare_land'): boolean {
+export function spaceAllowsLeaseKind(
+  kind: SpaceKind,
+  lease:
+    | 'residential'
+    | 'commercial'
+    | 'industrial'
+    | 'agricultural'
+    | 'short_term'
+    | 'parking'
+    | 'bare_land',
+): boolean {
   if (kind === 'parking') return lease === 'parking' || lease === 'short_term';
   if (kind === 'land' || kind === 'signage') return lease === 'bare_land';
   if (kind === 'farm') return lease === 'agricultural';

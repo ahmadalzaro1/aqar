@@ -75,7 +75,9 @@ const waPayloadSchema = z
 export function normalizeWhatsApp(payload: unknown): NormalizedInbound[] {
   const parsed = waPayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    throw new PayloadError(`unrecognized WhatsApp webhook envelope: ${parsed.error.issues[0]?.message ?? 'invalid'}`);
+    throw new PayloadError(
+      `unrecognized WhatsApp webhook envelope: ${parsed.error.issues[0]?.message ?? 'invalid'}`,
+    );
   }
   const out: NormalizedInbound[] = [];
   for (const entry of parsed.data.entry) {
@@ -141,7 +143,9 @@ const tgPayloadSchema = z
 export function normalizeTelegram(payload: unknown): NormalizedInbound[] {
   const parsed = tgPayloadSchema.safeParse(payload);
   if (!parsed.success) {
-    throw new PayloadError(`unrecognized Telegram webhook envelope: ${parsed.error.issues[0]?.message ?? 'invalid'}`);
+    throw new PayloadError(
+      `unrecognized Telegram webhook envelope: ${parsed.error.issues[0]?.message ?? 'invalid'}`,
+    );
   }
   const message = parsed.data.message;
   if (message === undefined) return [];

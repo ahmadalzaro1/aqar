@@ -11,7 +11,12 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { providersFromEnv, type ChatMessage, type ChatResponse, type ModelTool } from '@aqar/agents';
+import {
+  providersFromEnv,
+  type ChatMessage,
+  type ChatResponse,
+  type ModelTool,
+} from '@aqar/agents';
 import { registry, type ToolContext } from '@aqar/tools';
 import type { Sql } from '@aqar/db';
 import { getSessionUser } from '@/lib/auth';
@@ -26,10 +31,15 @@ const MAX_TOOL_CHARS = 6_000;
 
 const bodySchema = z.object({
   lane: z.enum(['local', 'strong']).default('local'),
-  messages: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string().min(1).max(4_000),
-  })).min(1).max(30),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().min(1).max(4_000),
+      }),
+    )
+    .min(1)
+    .max(30),
 });
 
 const SYSTEM = [
@@ -41,7 +51,11 @@ const SYSTEM = [
   'Be brief: two or three sentences, with the figures that matter.',
 ].join(' ');
 
-interface ToolTrace { name: string; ms: number; ok: boolean }
+interface ToolTrace {
+  name: string;
+  ms: number;
+  ok: boolean;
+}
 
 export async function POST(req: Request): Promise<NextResponse> {
   const session = await getSessionUser();
@@ -51,17 +65,25 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: 'bad request', detail: parsed.error.message }, { status: 400 });
+    return NextResponse.json(
+      { error: 'bad request', detail: parsed.error.message },
+      { status: 400 },
+    );
   }
   const { lane, messages } = parsed.data;
 
   const providers = providersFromEnv(process.env);
   const provider = lane === 'strong' ? providers.strong : providers.local;
   if (provider === null) {
-    return NextResponse.json({ error: 'that lane is not configured (CLOUD_BASE_URL)' }, { status: 409 });
+    return NextResponse.json(
+      { error: 'that lane is not configured (CLOUD_BASE_URL)' },
+      { status: 409 },
+    );
   }
 
-  const orgRows = await sql<{ id: string; slug: string; name: string; timezone: string; currency: string }[]>`
+  const orgRows = await sql<
+    { id: string; slug: string; name: string; timezone: string; currency: string }[]
+  >`
     select id, slug, name, timezone, currency from organizations where id = ${session.orgId} limit 1`;
   const org = orgRows[0];
   if (org === undefined) {
@@ -70,7 +92,13 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const ctx: ToolContext = {
     sql: sql as unknown as Sql,
-    org: { id: org.id, slug: org.slug, name: org.name, timezone: org.timezone, currency: org.currency },
+    org: {
+      id: org.id,
+      slug: org.slug,
+      name: org.name,
+      timezone: org.timezone,
+      currency: org.currency,
+    },
     now: () => new Date(),
   };
 
@@ -81,9 +109,11 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const transcript: ChatMessage[] = [
     { role: 'system', content: SYSTEM },
-    ...messages.map((m) => (m.role === 'user'
-      ? { role: 'user' as const, content: m.content }
-      : { role: 'assistant' as const, content: m.content })),
+    ...messages.map((m) =>
+      m.role === 'user'
+        ? { role: 'user' as const, content: m.content }
+        : { role: 'assistant' as const, content: m.content },
+    ),
   ];
 
   const trace: ToolTrace[] = [];
@@ -94,13 +124,14 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
-      const ask = () => provider.chat({
-        messages: transcript,
-        maxTokens: 700,
-        temperature: 0.1,
-        timeoutMs: 60_000,
-        tools: chatTools,
-      });
+      const ask = () =>
+        provider.chat({
+          messages: transcript,
+          maxTokens: 700,
+          temperature: 0.1,
+          timeoutMs: 60_000,
+          tools: chatTools,
+        });
       let res: ChatResponse;
       try {
         res = await ask();
@@ -121,14 +152,21 @@ export async function POST(req: Request): Promise<NextResponse> {
         break;
       }
 
-      transcript.push({ role: 'assistant', content: res.content.length > 0 ? res.content : null, toolCalls: res.toolCalls });
+      transcript.push({
+        role: 'assistant',
+        content: res.content.length > 0 ? res.content : null,
+        toolCalls: res.toolCalls,
+      });
 
       for (const call of res.toolCalls.slice(0, MAX_CALLS)) {
         const started = Date.now();
         let ok = true;
         let body: string;
         try {
-          const args: unknown = call.argumentsJson.trim().length === 0 ? {} : (JSON.parse(call.argumentsJson) as unknown);
+          const args: unknown =
+            call.argumentsJson.trim().length === 0
+              ? {}
+              : (JSON.parse(call.argumentsJson) as unknown);
           const result = await registry.run(call.name, args, ctx);
           body = JSON.stringify(result).slice(0, MAX_TOOL_CHARS);
         } catch (err) {
@@ -152,7 +190,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       const res = await provider.chat({
         messages: [
           ...transcript,
-          { role: 'system', content: 'Answer the user now in one to three sentences, using only the tool results above. Do not call a tool. If they do not answer it, say what is missing.' },
+          {
+            role: 'system',
+            content:
+              'Answer the user now in one to three sentences, using only the tool results above. Do not call a tool. If they do not answer it, say what is missing.',
+          },
         ],
         maxTokens: 400,
         temperature: 0.1,

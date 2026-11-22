@@ -33,7 +33,10 @@ const isoDateArb = fc
     fc.integer({ min: 1, max: 12 }),
     fc.integer({ min: 1, max: 28 }),
   )
-  .map(([year, month, day]) => `${String(year)}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+  .map(
+    ([year, month, day]) =>
+      `${String(year)}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+  );
 
 const arabicNameArb = fc
   .tuple(
@@ -58,31 +61,54 @@ function bankLine(overrides: Partial<BankLine> = {}): BankLine {
 describe('fingerprintBankLine (properties)', () => {
   it('is stable and identical across Arabic spelling variants', () => {
     fc.assert(
-      fc.property(isoDateArb, fc.nat({ max: 5_000_000 }), arabicNameArb, fc.integer({ min: 0, max: 50 }), (dateISO, amountFils, payerName, seed) => {
-        const plain = bankLine({ dateISO, amountFils, payerName });
-        const variant = bankLine({
-          dateISO,
-          amountFils,
-          payerName: arabicVariant(payerName, seed),
-          payerAccount: 'JO12 0001 2345',
-          reference: '0000',
-        });
-        const fingerprints = fingerprintBankLine(plain);
-        expect(fingerprints).toMatch(/^[0-9a-f]{8}$/);
-        expect(fingerprintBankLine(plain)).toBe(fingerprints);
-        expect(fingerprintBankLine(variant)).toBe(fingerprints);
-      }),
+      fc.property(
+        isoDateArb,
+        fc.nat({ max: 5_000_000 }),
+        arabicNameArb,
+        fc.integer({ min: 0, max: 50 }),
+        (dateISO, amountFils, payerName, seed) => {
+          const plain = bankLine({ dateISO, amountFils, payerName });
+          const variant = bankLine({
+            dateISO,
+            amountFils,
+            payerName: arabicVariant(payerName, seed),
+            payerAccount: 'JO12 0001 2345',
+            reference: '0000',
+          });
+          const fingerprints = fingerprintBankLine(plain);
+          expect(fingerprints).toMatch(/^[0-9a-f]{8}$/);
+          expect(fingerprintBankLine(plain)).toBe(fingerprints);
+          expect(fingerprintBankLine(variant)).toBe(fingerprints);
+        },
+      ),
       { numRuns: 1200 },
     );
   });
 
   it('is identical for null and empty optional fields', () => {
     fc.assert(
-      fc.property(isoDateArb, fc.nat({ max: 5_000_000 }), arabicNameArb, (dateISO, amountFils, payerName) => {
-        const withNulls = bankLine({ dateISO, amountFils, payerName, payerAccount: null, reference: null });
-        const withEmpties = bankLine({ dateISO, amountFils, payerName, payerAccount: '', reference: '' });
-        expect(fingerprintBankLine(withEmpties)).toBe(fingerprintBankLine(withNulls));
-      }),
+      fc.property(
+        isoDateArb,
+        fc.nat({ max: 5_000_000 }),
+        arabicNameArb,
+        (dateISO, amountFils, payerName) => {
+          const withNulls = bankLine({
+            dateISO,
+            amountFils,
+            payerName,
+            payerAccount: null,
+            reference: null,
+          });
+          const withEmpties = bankLine({
+            dateISO,
+            amountFils,
+            payerName,
+            payerAccount: '',
+            reference: '',
+          });
+          expect(fingerprintBankLine(withEmpties)).toBe(fingerprintBankLine(withNulls));
+        },
+      ),
       { numRuns: 500 },
     );
   });

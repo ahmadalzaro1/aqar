@@ -80,7 +80,11 @@ export function makePayment(input: PaymentInput = {}): Payment {
   };
 }
 
-export function makeAllocation(paymentId: string, chargeId: string, amountFils: number): Allocation {
+export function makeAllocation(
+  paymentId: string,
+  chargeId: string,
+  amountFils: number,
+): Allocation {
   return { paymentId, chargeId, amountFils };
 }
 

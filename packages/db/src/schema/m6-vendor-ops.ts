@@ -11,11 +11,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { auditTimestamps, isoDate, pkId } from './common.js';
-import {
-  invoiceStatusEnum,
-  quoteStatusEnum,
-  vendorJobStatusEnum,
-} from './enums.js';
+import { invoiceStatusEnum, quoteStatusEnum, vendorJobStatusEnum } from './enums.js';
 import { organizations } from './organizations.js';
 import { tickets } from './m5-maintenance.js';
 import { vendors } from './vendors.js';

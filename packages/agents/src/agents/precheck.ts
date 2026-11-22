@@ -20,12 +20,21 @@ export const precheckAgent: IAgent<In, EmergencyPrecheck> = {
     return {
       output,
       trace: {
-        step: 'precheck', agent: 'emergency-precheck', promptVersion: 'det-1.0.0',
-        model: null, promptHash: null,
-        inputHash: sha256(parsedIn.text), outputHash: sha256(JSON.stringify(output)),
-        tokens: 0, latencyMs: Math.round(performance.now() - started), estimatedCostUsd: 0,
-        confidence: 1, ok: true,
-        detail: output.emergency ? `deterministic hazard signals: ${output.signals.join(', ')}` : 'no deterministic hazard signal',
+        step: 'precheck',
+        agent: 'emergency-precheck',
+        promptVersion: 'det-1.0.0',
+        model: null,
+        promptHash: null,
+        inputHash: sha256(parsedIn.text),
+        outputHash: sha256(JSON.stringify(output)),
+        tokens: 0,
+        latencyMs: Math.round(performance.now() - started),
+        estimatedCostUsd: 0,
+        confidence: 1,
+        ok: true,
+        detail: output.emergency
+          ? `deterministic hazard signals: ${output.signals.join(', ')}`
+          : 'no deterministic hazard signal',
       },
     };
   },

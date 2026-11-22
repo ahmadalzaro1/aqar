@@ -56,7 +56,19 @@ export function allowedSpaceKinds(asset: AssetKind, zoning: Zoning | null): read
       return ['farm', 'land', 'warehouse', 'staff_housing'];
     case 'tower':
     case 'building':
-      return ['flat', 'villa', 'office', 'shop', 'showroom', 'workshop', 'warehouse', 'parking', 'rooftop', 'staff_housing', 'signage'];
+      return [
+        'flat',
+        'villa',
+        'office',
+        'shop',
+        'showroom',
+        'workshop',
+        'warehouse',
+        'parking',
+        'rooftop',
+        'staff_housing',
+        'signage',
+      ];
     case 'compound':
       return ['villa', 'flat', 'staff_housing', 'labour_camp', 'parking', 'rooftop'];
     case 'mixed_use':

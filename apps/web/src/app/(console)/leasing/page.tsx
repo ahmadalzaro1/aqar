@@ -20,11 +20,17 @@ export default async function LeasingPage() {
       <Card title={`${t(m, 'nav.leasing')} · ${rows.length}`}>
         <div className="table-scroll">
           <table>
-            <thead><tr>
-              <th>{t(m, 'nav.portfolio')}</th><th>{t(m, 'ls.unit')}</th><th>{t(m, 'ls.floor')}</th>
-              <th>{t(m, 'ls.bedrooms')}</th><th>{t(m, 'ls.area')}</th>
-              <th>{t(m, 'ls.rent')}</th><th>{t(m, 'tickets.status')}</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>{t(m, 'nav.portfolio')}</th>
+                <th>{t(m, 'ls.unit')}</th>
+                <th>{t(m, 'ls.floor')}</th>
+                <th>{t(m, 'ls.bedrooms')}</th>
+                <th>{t(m, 'ls.area')}</th>
+                <th>{t(m, 'ls.rent')}</th>
+                <th>{t(m, 'tickets.status')}</th>
+              </tr>
+            </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
@@ -33,8 +39,14 @@ export default async function LeasingPage() {
                   <td className="tnum">{r.floor ?? '—'}</td>
                   <td className="tnum">{r.bedrooms ?? '—'}</td>
                   <td className="tnum">{r.areaSqm === null ? '—' : r.areaSqm.toFixed(0)}</td>
-                  <td className="tnum"><MoneyText fils={r.marketRentFils} locale={locale} /></td>
-                  <td><Badge tone={r.status === 'turnover' ? 'warn' : 'neutral'}>{t(m, `unitStatus.${r.status}`)}</Badge></td>
+                  <td className="tnum">
+                    <MoneyText fils={r.marketRentFils} locale={locale} />
+                  </td>
+                  <td>
+                    <Badge tone={r.status === 'turnover' ? 'warn' : 'neutral'}>
+                      {t(m, `unitStatus.${r.status}`)}
+                    </Badge>
+                  </td>
                 </tr>
               ))}
             </tbody>

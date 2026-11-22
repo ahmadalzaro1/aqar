@@ -16,7 +16,15 @@ function line(overrides: Partial<BankLine> = {}): BankLine {
 }
 
 function charge(id: string, leaseId: string, amountFils: number, dueDateISO: string): Charge {
-  return { id, leaseId, period: dueDateISO.slice(0, 7), kind: 'rent', amountFils, dueDateISO, proratedDays: null };
+  return {
+    id,
+    leaseId,
+    period: dueDateISO.slice(0, 7),
+    kind: 'rent',
+    amountFils,
+    dueDateISO,
+    proratedDays: null,
+  };
 }
 
 function payer(overrides: Partial<PayerProfile> = {}): PayerProfile {
@@ -91,7 +99,9 @@ describe('suggestMatch', () => {
   });
 
   it('sends an unconfirmed payer to review instead of auto', () => {
-    const suggestion = suggestMatch(line(), [payer({ confirmed: false })], { 'lease-1': openCharge });
+    const suggestion = suggestMatch(line(), [payer({ confirmed: false })], {
+      'lease-1': openCharge,
+    });
     expect(suggestion.kind).toBe('review');
     expect(suggestion.payerId).toBe('payer-1');
     expect(suggestion.confidence).toBeLessThan(0.95);

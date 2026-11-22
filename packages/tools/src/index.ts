@@ -20,7 +20,12 @@ export const toolDefs: readonly ToolDef[] = [
 export const registry = makeRegistry(toolDefs);
 
 export { aqarContext, systemTools } from './system.js';
-export { portfolioSummary, listVacantUnits, listExpiringLeases, portfolioTools } from './portfolio.js';
+export {
+  portfolioSummary,
+  listVacantUnits,
+  listExpiringLeases,
+  portfolioTools,
+} from './portfolio.js';
 export { searchTenants, listArrears, tenantStatement, tenantsTools } from './tenants.js';
 export { listOpenTickets, getTicket, ticketsTools } from './tickets.js';
 export { makeRegistry } from './registry.js';

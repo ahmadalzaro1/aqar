@@ -118,17 +118,23 @@ type Handler = (
   ctx: { organizationId: string; userId: string; now: Date },
 ) => Promise<HandlerOutcome>;
 
-function need<T>(args: Record<string, unknown>, key: string, check: (v: unknown) => v is T, what: string): T {
+function need<T>(
+  args: Record<string, unknown>,
+  key: string,
+  check: (v: unknown) => v is T,
+  what: string,
+): T {
   const value = args[key];
-  if (value === undefined || value === null) throw new Error(`proposal args are missing "${key}" (${what})`);
+  if (value === undefined || value === null)
+    throw new Error(`proposal args are missing "${key}" (${what})`);
   if (!check(value)) throw new Error(`proposal args "${key}" is not a valid ${what}`);
   return value;
 }
 
 const isString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 const isFils = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
-const isIsoDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
-
+const isIsoDate = (v: unknown): v is string =>
+  typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 const handlers: Record<string, Handler> = {
   async post_payment(tx, args, ctx) {
@@ -156,7 +162,8 @@ const handlers: Record<string, Handler> = {
        limit 1
     `;
     const lease = payers[0];
-    if (lease === undefined) throw new Error('the lease in this proposal no longer exists, or has no tenant');
+    if (lease === undefined)
+      throw new Error('the lease in this proposal no longer exists, or has no tenant');
 
     const reference = typeof args['reference'] === 'string' ? args['reference'] : null;
     const note = typeof args['note'] === 'string' ? args['note'] : null;
@@ -175,9 +182,11 @@ const handlers: Record<string, Handler> = {
     let allocated = 0;
     if (Array.isArray(rawAllocations)) {
       for (const entry of rawAllocations) {
-        if (entry === null || typeof entry !== 'object') throw new Error('allocation entries must be objects');
+        if (entry === null || typeof entry !== 'object')
+          throw new Error('allocation entries must be objects');
         const { chargeId, amountFils: part } = entry as Record<string, unknown>;
-        if (!isString(chargeId) || !isFils(part)) throw new Error('each allocation needs chargeId and positive amountFils');
+        if (!isString(chargeId) || !isFils(part))
+          throw new Error('each allocation needs chargeId and positive amountFils');
         await tx`
           insert into payment_allocations (organization_id, payment_id, charge_id, amount_fils)
           values (${ctx.organizationId}, ${paymentId}, ${chargeId}, ${part})
@@ -192,7 +201,12 @@ const handlers: Record<string, Handler> = {
       verify: {
         table: 'payments',
         id: paymentId,
-        expect: { amount_fils: amountFils, method, received_date: receivedDate, payer_id: lease.tenant_id },
+        expect: {
+          amount_fils: amountFils,
+          method,
+          received_date: receivedDate,
+          payer_id: lease.tenant_id,
+        },
       },
     };
   },
@@ -201,7 +215,8 @@ const handlers: Record<string, Handler> = {
     const ticketId = need(args, 'ticketId', isString, 'ticket id');
     const vendorId = need(args, 'vendorId', isString, 'vendor id');
     const nteFils = isFils(args['amountFils']) ? args['amountFils'] : null;
-    const note = typeof args['note'] === 'string' ? args['note'] : 'Dispatched from an approved proposal';
+    const note =
+      typeof args['note'] === 'string' ? args['note'] : 'Dispatched from an approved proposal';
 
     const tickets = await tx<{ id: string }[]>`
       select id from tickets where id = ${ticketId} and organization_id = ${ctx.organizationId}
@@ -225,7 +240,11 @@ const handlers: Record<string, Handler> = {
     if (workOrderId === undefined) throw new Error('work order insert returned no row');
     return {
       result: { workOrderId, ticketId, vendorId, nteFils, status: 'dispatched' },
-      verify: { table: 'work_orders', id: workOrderId, expect: { ticket_id: ticketId, vendor_id: vendorId, status: 'dispatched' } },
+      verify: {
+        table: 'work_orders',
+        id: workOrderId,
+        expect: { ticket_id: ticketId, vendor_id: vendorId, status: 'dispatched' },
+      },
     };
   },
 };
@@ -264,7 +283,9 @@ type TxOutcome =
 export async function decideProposal(input: DecisionInput): Promise<DecisionOutcome> {
   const secret = process.env['AQAR_APPROVAL_SECRET'];
   if (secret === undefined || secret.length < 32) {
-    throw new Error('AQAR_APPROVAL_SECRET is not set (min 32 chars) — refusing to approve anything unsigned');
+    throw new Error(
+      'AQAR_APPROVAL_SECRET is not set (min 32 chars) — refusing to approve anything unsigned',
+    );
   }
 
   const outcome = await sql.begin(async (tx): Promise<TxOutcome> => {
@@ -300,7 +321,9 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     // the agent filed the proposal, this is where it stops.
     const recomputed = argsHash({ action: row.action, ...row.args });
     if (recomputed !== row.args_hash) {
-      throw new Error('proposal arguments do not match the hash that was filed — refusing to execute');
+      throw new Error(
+        'proposal arguments do not match the hash that was filed — refusing to execute',
+      );
     }
 
     // Dual control: record this signature first, then let the policy judge the
@@ -338,7 +361,9 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
 
     // Below the threshold the concurrence rule reports `allow` and never appears
     // in `decisive`, so this cannot fire for an ordinary proposal.
-    const shortOfSignatures = decision.decisive.find((r) => r.rule === 'concurrence.distinct_approvers');
+    const shortOfSignatures = decision.decisive.find(
+      (r) => r.rule === 'concurrence.distinct_approvers',
+    );
     if (shortOfSignatures !== undefined) {
       return {
         kind: 'awaiting_approval',
@@ -395,14 +420,22 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     }
 
     try {
-      const outcome = await handler(tx, row.args, { organizationId: input.organizationId, userId: input.userId, now });
+      const outcome = await handler(tx, row.args, {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        now,
+      });
       await tx`
         update action_proposals
            set status = 'executed', decided_by_user_id = ${input.userId}, decided_at = ${now},
                executed_at = ${now}, result = ${tx.json({ ...outcome.result, confirmed: null })}
          where id = ${row.id}
       `;
-      await audit(tx, row, input, 'proposal.executed', { ...outcome.result, claims, policy: policyRecord });
+      await audit(tx, row, input, 'proposal.executed', {
+        ...outcome.result,
+        claims,
+        policy: policyRecord,
+      });
       return {
         kind: 'executed',
         proposalId: row.id,
@@ -437,7 +470,8 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
   }
   if (outcome.kind === 'rejected') return { status: 'rejected', proposalId: outcome.proposalId };
   if (outcome.kind === 'expired') return { status: 'expired', proposalId: outcome.proposalId };
-  if (outcome.kind === 'failed') return { status: 'failed', proposalId: outcome.proposalId, reason: outcome.reason };
+  if (outcome.kind === 'failed')
+    return { status: 'failed', proposalId: outcome.proposalId, reason: outcome.reason };
 
   // The write is committed. Now go and look at it: a committed insert is not the
   // same claim as "the row is there, with the values we said" — a trigger, a
@@ -475,7 +509,12 @@ export async function decideProposal(input: DecisionInput): Promise<DecisionOutc
     )
   `;
 
-  return { status: 'executed', proposalId: outcome.proposalId, result, confirmed: readBack.confirmed };
+  return {
+    status: 'executed',
+    proposalId: outcome.proposalId,
+    result,
+    confirmed: readBack.confirmed,
+  };
 }
 
 interface ReadBackReport {
@@ -502,7 +541,8 @@ async function confirmWrite(spec: VerifySpec, organizationId: string): Promise<R
         `;
 
   const row = rows[0];
-  if (row === undefined) return { confirmed: false, observed: {}, misses: ['the row is not in the table after commit'] };
+  if (row === undefined)
+    return { confirmed: false, observed: {}, misses: ['the row is not in the table after commit'] };
 
   const observed: Record<string, unknown> = {};
   const misses: string[] = [];

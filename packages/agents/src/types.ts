@@ -46,7 +46,10 @@ export interface IAgent<TIn, TOut> {
 }
 
 export class EscalationError extends Error {
-  constructor(message: string, readonly reason: 'schema' | 'budget' | 'provider' | 'policy') {
+  constructor(
+    message: string,
+    readonly reason: 'schema' | 'budget' | 'provider' | 'policy',
+  ) {
     super(message);
     this.name = 'EscalationError';
   }

@@ -23,7 +23,13 @@ describe('agingReport', () => {
   it('keeps a not-yet-due balance in current', () => {
     const report = agingReport([charge], [], '2026-03-05');
     expect(report.totalFils).toBe(100000);
-    expect(report.buckets).toEqual({ current: 100000, d0_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 });
+    expect(report.buckets).toEqual({
+      current: 100000,
+      d0_30: 0,
+      d31_60: 0,
+      d61_90: 0,
+      d90_plus: 0,
+    });
     expect(report.rows).toHaveLength(1);
     expect(report.rows[0]).toEqual({
       chargeId: 'c1',
@@ -55,10 +61,7 @@ describe('agingReport', () => {
 
   it('omits settled charges and reduces partially paid balances', () => {
     const paid = makeCharge({ id: 'paid', amountFils: 50000, dueDateISO: '2026-03-01' });
-    const allocations = [
-      makeAllocation('p1', 'paid', 50000),
-      makeAllocation('p2', 'c1', 40000),
-    ];
+    const allocations = [makeAllocation('p1', 'paid', 50000), makeAllocation('p2', 'c1', 40000)];
     const report = agingReport([charge, paid], allocations, '2026-04-05');
     expect(report.rows.map((r) => r.chargeId)).toEqual(['c1']);
     expect(report.rows[0]?.balanceFils).toBe(60000);

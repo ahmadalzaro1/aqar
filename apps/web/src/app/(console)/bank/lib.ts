@@ -198,7 +198,12 @@ export function parseCsv(text: string): CsvParseResult {
   for (const entry of rows.slice(1)) {
     const cells = splitCsvRow(entry.row);
     if (cells === null) {
-      issues.push({ rowNumber: entry.rowNumber, code: 'malformedRow', field: 'row', value: entry.row });
+      issues.push({
+        rowNumber: entry.rowNumber,
+        code: 'malformedRow',
+        field: 'row',
+        value: entry.row,
+      });
       continue;
     }
     if (cells.length < requiredWidth) {
@@ -226,7 +231,12 @@ export function parseCsv(text: string): CsvParseResult {
     }
     const amount = parseJodToFils(rawAmount);
     if (!amount.ok) {
-      issues.push({ rowNumber: entry.rowNumber, code: amount.code, field: 'amount', value: rawAmount });
+      issues.push({
+        rowNumber: entry.rowNumber,
+        code: amount.code,
+        field: 'amount',
+        value: rawAmount,
+      });
       rowFailed = true;
     }
     if (rowFailed || !amount.ok) continue;
@@ -414,7 +424,14 @@ export function chargeAsBankLineInput(line: ParsedLine): BankLine {
 }
 
 export function remainingCharges(
-  rows: readonly { id: string; leaseId: string; period: string; kind: string; dueDateISO: string; remainingFils: number }[],
+  rows: readonly {
+    id: string;
+    leaseId: string;
+    period: string;
+    kind: string;
+    dueDateISO: string;
+    remainingFils: number;
+  }[],
 ): ChargesByLease {
   const byLease: Record<string, Charge[]> = {};
   for (const row of rows) {

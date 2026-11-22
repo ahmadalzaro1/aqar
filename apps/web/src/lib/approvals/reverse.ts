@@ -30,7 +30,13 @@ import { loadPolicy } from './policy.js';
 // proposal, and the refusal names that policy's version.
 
 export type ReversalOutcome =
-  | { readonly status: 'reversed'; readonly proposalId: string; readonly effect: Record<string, unknown>; readonly confirmed: boolean; readonly policy: PolicyRecord }
+  | {
+      readonly status: 'reversed';
+      readonly proposalId: string;
+      readonly effect: Record<string, unknown>;
+      readonly confirmed: boolean;
+      readonly policy: PolicyRecord;
+    }
   | { readonly status: 'refused'; readonly proposalId: string; readonly reason: string };
 
 export interface ReversalInput {
@@ -68,7 +74,11 @@ interface ReversalEffect {
   readonly readback: () => Promise<boolean>;
 }
 
-type Reverser = (tx: TransactionSql, row: ProposalRow, ctx: ReversalContext) => Promise<ReversalEffect>;
+type Reverser = (
+  tx: TransactionSql,
+  row: ProposalRow,
+  ctx: ReversalContext,
+) => Promise<ReversalEffect>;
 
 function idFrom(row: ProposalRow, key: string): string {
   const value = row.result?.[key];
@@ -87,7 +97,8 @@ const reversers: Record<string, Reverser> = {
        where id = ${paymentId} and organization_id = ${ctx.organizationId} and voided_at is null
        returning id
     `;
-    if (voided.length === 0) throw new Error('that receipt is already voided, or it is not there any more');
+    if (voided.length === 0)
+      throw new Error('that receipt is already voided, or it is not there any more');
     return {
       effect: { kind: 'payment_voided', paymentId, voidedAt: ctx.now.toISOString() },
       readback: async () => {
@@ -108,7 +119,8 @@ const reversers: Record<string, Reverser> = {
        where id = ${workOrderId} and organization_id = ${ctx.organizationId} and status <> 'cancelled'
        returning id
     `;
-    if (cancelled.length === 0) throw new Error('that work order is already cancelled, or it is not there any more');
+    if (cancelled.length === 0)
+      throw new Error('that work order is already cancelled, or it is not there any more');
     return {
       effect: { kind: 'work_order_cancelled', workOrderId, reason: ctx.reason },
       readback: async () => {
@@ -124,7 +136,9 @@ const reversers: Record<string, Reverser> = {
 
 export async function reverseProposal(input: ReversalInput): Promise<ReversalOutcome> {
   if (input.reason.trim().length < 10) {
-    throw new Error('a reversal needs a reason of at least 10 characters — it becomes part of the audit trail');
+    throw new Error(
+      'a reversal needs a reason of at least 10 characters — it becomes part of the audit trail',
+    );
   }
   // Set inside the transaction, called after it commits. A holder object rather
   // than a `let`: TypeScript narrows a `let` assigned only inside a closure to
@@ -141,10 +155,15 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
     const row = rows[0];
     if (row === undefined) throw new Error('proposal not found in this organization');
     if (row.status === 'reversed') throw new Error('this proposal has already been reversed');
-    if (row.status !== 'executed') throw new Error(`only an executed proposal can be reversed; this one is ${row.status}`);
+    if (row.status !== 'executed')
+      throw new Error(`only an executed proposal can be reversed; this one is ${row.status}`);
 
     if (row.executed_at === null) {
-      return { status: 'refused', proposalId: row.id, reason: 'this proposal has no execution timestamp, so its reversal window cannot be judged' };
+      return {
+        status: 'refused',
+        proposalId: row.id,
+        reason: 'this proposal has no execution timestamp, so its reversal window cannot be judged',
+      };
     }
 
     // The policy is compiled: the limits are closed over, so this gate cannot be
@@ -161,17 +180,26 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
       executedAt: row.executed_at.toISOString(),
       now: now.toISOString(),
     });
-    if (decision.verdict === 'deny') throw new PolicyDeniedError('the reversal', decision, policy.version);
+    if (decision.verdict === 'deny')
+      throw new PolicyDeniedError('the reversal', decision, policy.version);
     const record = policy.record(decision);
 
     // Rule 1: a reversal of an unconfirmed write would be an invention.
     if (row.result?.['confirmed'] !== true) {
-      return { status: 'refused', proposalId: row.id, reason: 'the execution was never confirmed by read-back, so there is no effect to reverse' };
+      return {
+        status: 'refused',
+        proposalId: row.id,
+        reason: 'the execution was never confirmed by read-back, so there is no effect to reverse',
+      };
     }
 
     const reverser = reversers[row.action];
     if (reverser === undefined) {
-      return { status: 'refused', proposalId: row.id, reason: `no reversal exists for action "${row.action}"` };
+      return {
+        status: 'refused',
+        proposalId: row.id,
+        reason: `no reversal exists for action "${row.action}"`,
+      };
     }
 
     const ctx: ReversalContext = {
@@ -226,7 +254,8 @@ export async function reverseProposal(input: ReversalInput): Promise<ReversalOut
   });
 
   if (outcome.status !== 'reversed') return outcome;
-  if (pending.readback === null) throw new Error('reversal committed without a read-back — refusing to report success');
+  if (pending.readback === null)
+    throw new Error('reversal committed without a read-back — refusing to report success');
 
   // Read the reversal back, exactly like the executor does for the forward write.
   const confirmed = await pending.readback();

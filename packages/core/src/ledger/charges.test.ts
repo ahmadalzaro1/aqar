@@ -74,20 +74,31 @@ describe('generateMonthlyCharges', () => {
   });
 
   it('skips lease+period+kind already present, regardless of its id', () => {
-    const existing = [makeCharge({ id: 'legacy-id', leaseId: 'lease-a', period: '2026-03', kind: 'rent' })];
+    const existing = [
+      makeCharge({ id: 'legacy-id', leaseId: 'lease-a', period: '2026-03', kind: 'rent' }),
+    ];
     expect(generateMonthlyCharges([makeLease()], '2026-03', existing)).toEqual([]);
   });
 
   it('does not let a non-rent charge block the rent charge', () => {
     const existing = [
-      makeCharge({ id: 'svc', leaseId: 'lease-a', period: '2026-03', kind: 'service', amountFils: 5000 }),
+      makeCharge({
+        id: 'svc',
+        leaseId: 'lease-a',
+        period: '2026-03',
+        kind: 'service',
+        amountFils: 5000,
+      }),
     ];
     const charges = generateMonthlyCharges([makeLease()], '2026-03', existing);
     expect(charges.map((c) => c.id)).toEqual(['lease-a:2026-03:rent']);
   });
 
   it('is idempotent when its own output is fed back as existing', () => {
-    const leases = [makeLease({ leaseId: 'a' }), makeLease({ leaseId: 'b', startISO: '2026-03-20' })];
+    const leases = [
+      makeLease({ leaseId: 'a' }),
+      makeLease({ leaseId: 'b', startISO: '2026-03-20' }),
+    ];
     const first = generateMonthlyCharges(leases, '2026-03', []);
     expect(first).toHaveLength(2);
     expect(generateMonthlyCharges(leases, '2026-03', first)).toEqual([]);
@@ -104,7 +115,11 @@ describe('generateMonthlyCharges', () => {
     const forward = generateMonthlyCharges(leases, '2026-03', []);
     const reversed = generateMonthlyCharges([...leases].reverse(), '2026-03', []);
     expect(reversed).toEqual(forward);
-    expect(forward.map((c) => c.id)).toEqual(['a:2026-03:rent', 'b:2026-03:rent', 'c:2026-03:rent']);
+    expect(forward.map((c) => c.id)).toEqual([
+      'a:2026-03:rent',
+      'b:2026-03:rent',
+      'c:2026-03:rent',
+    ]);
   });
 
   it('places the due date on the lease dueDay within the period month', () => {

@@ -69,7 +69,9 @@ describe('postJournal properties', () => {
         const lines = toLines([a, b]);
         const debits = a.debitFils + b.debitFils;
         const credits = a.creditFils + b.creditFils;
-        const everyLineSingleSided = [a, b].every((line) => (line.debitFils > 0) !== (line.creditFils > 0));
+        const everyLineSingleSided = [a, b].every(
+          (line) => line.debitFils > 0 !== line.creditFils > 0,
+        );
         if (!everyLineSingleSided) {
           expect(() => postJournal(lines, [])).toThrow(/one-sided/);
           return;

@@ -1,13 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  date,
-  integer,
-  jsonb,
-  numeric,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { date, integer, jsonb, numeric, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 /**
  * MONEY: every monetary column is `INTEGER` fils (1 JOD = 1000 fils).
@@ -36,17 +28,22 @@ export const periodRegexCheck = (name: string, column: string) =>
 export const periodCheckName = (table: string) => `${table}_period_format_ck`;
 
 /** Fixed-precision decimals used only for rates/scores/area, never for money. */
-export const rate = (name: string, precision = 6, scale = 4) =>
-  numeric(name, { precision, scale });
+export const rate = (name: string, precision = 6, scale = 4) => numeric(name, { precision, scale });
 
 export const areaSqm = (name = 'area_sqm') => numeric(name, { precision: 8, scale: 2 });
 
 /** jsonb helper with an explicit TS type and a literal SQL default. */
 export const jsonbArray = <T>(name: string) =>
-  jsonb(name).$type<T[]>().notNull().default(sql`'[]'::jsonb`);
+  jsonb(name)
+    .$type<T[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`);
 
 export const jsonbObject = <T extends Record<string, unknown>>(name: string) =>
-  jsonb(name).$type<T>().notNull().default(sql`'{}'::jsonb`);
+  jsonb(name)
+    .$type<T>()
+    .notNull()
+    .default(sql`'{}'::jsonb`);
 
 /** Small helper for non-negative money CHECK constraints. */
 export const nonNegative = (column: string) => sql`${sql.raw(`"${column}"`)} >= 0`;

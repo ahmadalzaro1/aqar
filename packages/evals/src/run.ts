@@ -141,7 +141,8 @@ function timePrecheckMs(text: string): number {
 function describeFailure(c: CaseResult): string | null {
   const parts: string[] = [];
   if (c.expectEmergency && !c.predictedEmergency) parts.push('FALSE NEGATIVE: hazard missed');
-  if (!c.expectEmergency && c.predictedEmergency) parts.push('false positive: benign traffic flagged');
+  if (!c.expectEmergency && c.predictedEmergency)
+    parts.push('false positive: benign traffic flagged');
   if (c.expectedCategory !== null && c.predictedCategory !== c.expectedCategory) {
     parts.push(`category: expected ${c.expectedCategory}, got ${c.predictedCategory ?? 'none'}`);
   }
@@ -333,12 +334,16 @@ export function computeMetrics(results: readonly CaseResult[]): LaneMetrics {
   const benignTrapFalsePositives = benignTrapNegatives.filter((r) => r.predictedEmergency).length;
 
   const categoryCases = results.filter((r) => r.expectedCategory !== null);
-  const categoryCorrect = categoryCases.filter((r) => r.predictedCategory === r.expectedCategory).length;
+  const categoryCorrect = categoryCases.filter(
+    (r) => r.predictedCategory === r.expectedCategory,
+  ).length;
 
   // Model lane diagnostic: the raw model category, before the deterministic
   // hazard override can mask it. Null offline (no model output at all).
   const modelCategoryCases = categoryCases.filter((r) => r.modelCategory !== null);
-  const modelCategoryCorrect = modelCategoryCases.filter((r) => r.modelCategory === r.expectedCategory).length;
+  const modelCategoryCorrect = modelCategoryCases.filter(
+    (r) => r.modelCategory === r.expectedCategory,
+  ).length;
 
   const latencies = results.map((r) => r.latencyMs).sort((a, b) => a - b);
   const totalLatencyMs = results.reduce((sum, r) => sum + r.latencyMs, 0);
@@ -352,7 +357,8 @@ export function computeMetrics(results: readonly CaseResult[]): LaneMetrics {
     falseNegatives,
     trueNegatives,
     falsePositives,
-    emergencyRecall: positives.length === 0 ? 0 : round(truePositives / positives.length, ROUND_RATE),
+    emergencyRecall:
+      positives.length === 0 ? 0 : round(truePositives / positives.length, ROUND_RATE),
     benignTrapNegatives: benignTrapNegatives.length,
     benignTrapFalsePositives,
     falsePositiveRate:
@@ -404,7 +410,9 @@ function coverageTable(): string {
     rows.push(`| ${kind} | ${ar} | ${en} | ${subset.length} |`);
   }
   const arAll = GOLDEN_CASES.filter((c) => c.locale === 'ar').length;
-  rows.push(`| **all** | **${arAll}** | **${GOLDEN_CASES.length - arAll}** | **${GOLDEN_CASES.length}** |`);
+  rows.push(
+    `| **all** | **${arAll}** | **${GOLDEN_CASES.length - arAll}** | **${GOLDEN_CASES.length}** |`,
+  );
   return rows.join('\n');
 }
 
@@ -427,9 +435,13 @@ export function renderMarkdown(report: LaneReport): string {
   lines.push('| --- | --- |');
   lines.push(`| Cases | ${m.totalCases} |`);
   lines.push(`| Emergency cases (expect=true) | ${m.positives} |`);
-  lines.push(`| **Emergency recall (LAW-2 gate)** | **${m.emergencyRecall.toFixed(4)} (${gateMark})** |`);
+  lines.push(
+    `| **Emergency recall (LAW-2 gate)** | **${m.emergencyRecall.toFixed(4)} (${gateMark})** |`,
+  );
   lines.push(`| Missed emergencies (FN) | ${m.falseNegatives} |`);
-  lines.push(`| Benign+trap false positives | ${m.benignTrapFalsePositives} / ${m.benignTrapNegatives} |`);
+  lines.push(
+    `| Benign+trap false positives | ${m.benignTrapFalsePositives} / ${m.benignTrapNegatives} |`,
+  );
   lines.push(`| False-positive rate (benign+trap) | ${m.falsePositiveRate.toFixed(4)} |`);
   lines.push(
     `| Category accuracy | ${
@@ -438,7 +450,9 @@ export function renderMarkdown(report: LaneReport): string {
         : `${m.categoryCorrect}/${m.categoryEvaluated} (${m.categoryAccuracy.toFixed(4)})`
     } |`,
   );
-  lines.push(`| Latency p50 / p95 | ${m.latencyP50Ms.toFixed(3)} ms / ${m.latencyP95Ms.toFixed(3)} ms |`);
+  lines.push(
+    `| Latency p50 / p95 | ${m.latencyP50Ms.toFixed(3)} ms / ${m.latencyP95Ms.toFixed(3)} ms |`,
+  );
   lines.push(`| Total tokens | ${m.totalTokens} |`);
   if (report.lane === 'model') {
     lines.push(`| Cases handed off to a human | ${m.handedOffCases} |`);
@@ -498,7 +512,9 @@ export function renderMarkdown(report: LaneReport): string {
     lines.push('| Case | Signals | Why it is accepted |');
     lines.push('| --- | --- | --- |');
     for (const c of conservative) {
-      lines.push(`| ${c.id} | ${c.deterministicSignals.join(',')} | Documented safety bias: cheap false positive over a missed hazard. |`);
+      lines.push(
+        `| ${c.id} | ${c.deterministicSignals.join(',')} | Documented safety bias: cheap false positive over a missed hazard. |`,
+      );
     }
     lines.push('');
   }
@@ -619,7 +635,7 @@ if (isDirectRun) {
       process.exitCode = code;
     })
     .catch((err: unknown) => {
-      process.stderr.write(`${err instanceof Error ? err.stack ?? err.message : String(err)}\n`);
+      process.stderr.write(`${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`);
       process.exitCode = 1;
     });
 }

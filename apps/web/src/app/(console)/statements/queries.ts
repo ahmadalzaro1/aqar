@@ -6,14 +6,25 @@ import type { OwnerShare } from '@aqar/contracts';
 import { DEFAULT_MANAGEMENT_FEE_BPS } from './lib';
 import type { ExpenseLine, RentLine } from './lib';
 
-export interface OwnerOption { readonly id: string; readonly nameEn: string; readonly nameAr: string }
-export interface PropertyOption { readonly id: string; readonly name: string }
+export interface OwnerOption {
+  readonly id: string;
+  readonly nameEn: string;
+  readonly nameAr: string;
+}
+export interface PropertyOption {
+  readonly id: string;
+  readonly name: string;
+}
 
 export async function listOwners(orgId: string): Promise<OwnerOption[]> {
   const rows = await sql`
     SELECT id, full_name_en, full_name_ar FROM owners
     WHERE organization_id = ${orgId} ORDER BY full_name_en`;
-  return rows.map((r) => ({ id: String(r['id']), nameEn: String(r['full_name_en']), nameAr: String(r['full_name_ar']) }));
+  return rows.map((r) => ({
+    id: String(r['id']),
+    nameEn: String(r['full_name_en']),
+    nameAr: String(r['full_name_ar']),
+  }));
 }
 
 export async function listProperties(orgId: string): Promise<PropertyOption[]> {
@@ -29,7 +40,11 @@ export async function latestDataPeriod(orgId: string): Promise<string | null> {
   return typeof p === 'string' ? p : null;
 }
 
-export async function rentLines(orgId: string, propertyId: string, period: string): Promise<RentLine[]> {
+export async function rentLines(
+  orgId: string,
+  propertyId: string,
+  period: string,
+): Promise<RentLine[]> {
   const rows = await sql`
     SELECT l.id AS lease_id, u.unit_number,
       COALESCE(tn.full_name_ar, tn.full_name_en, '—') AS tenant_name,
@@ -49,14 +64,20 @@ export async function rentLines(orgId: string, propertyId: string, period: strin
       AND c.period = ${period} AND c.kind = 'rent'
     ORDER BY u.unit_number, c.id`;
   return rows.map((r) => ({
-    leaseId: String(r['lease_id']), unitLabel: String(r['unit_number']),
-    tenantName: String(r['tenant_name']), billedFils: Number(r['billed']),
+    leaseId: String(r['lease_id']),
+    unitLabel: String(r['unit_number']),
+    tenantName: String(r['tenant_name']),
+    billedFils: Number(r['billed']),
     collectedFils: Number(r['collected']),
   }));
 }
 
 /** Real completed-work costs only. Empty completions => zero expenses, shown honestly. */
-export async function expenseLines(orgId: string, propertyId: string, period: string): Promise<ExpenseLine[]> {
+export async function expenseLines(
+  orgId: string,
+  propertyId: string,
+  period: string,
+): Promise<ExpenseLine[]> {
   const start = `${period}-01`;
   const end = `${shiftPeriod(period, 1)}-01`;
   const rows = await sql`
@@ -68,8 +89,14 @@ export async function expenseLines(orgId: string, propertyId: string, period: st
     ORDER BY co.completed_at, co.id`;
   return rows.map((r) => ({
     workOrderId: String(r['id']),
-    label: typeof r['notes'] === 'string' && r['notes'].length > 0 ? r['notes'] : `ticket ${String(r['ticket_id']).slice(0, 8)}`,
-    completedISO: (r['completed_at'] instanceof Date ? r['completed_at'].toISOString() : String(r['completed_at'])).slice(0, 10),
+    label:
+      typeof r['notes'] === 'string' && r['notes'].length > 0
+        ? r['notes']
+        : `ticket ${String(r['ticket_id']).slice(0, 8)}`,
+    completedISO: (r['completed_at'] instanceof Date
+      ? r['completed_at'].toISOString()
+      : String(r['completed_at'])
+    ).slice(0, 10),
     costFils: Number(r['cost_fils']),
   }));
 }
@@ -83,22 +110,34 @@ export async function propertyShares(orgId: string, propertyId: string): Promise
 }
 
 /** Most recent recorded fee rate for the property; documented fallback otherwise. */
-export async function feeBasisBps(orgId: string, propertyId: string): Promise<{ bps: number; recorded: boolean }> {
+export async function feeBasisBps(
+  orgId: string,
+  propertyId: string,
+): Promise<{ bps: number; recorded: boolean }> {
   const rows = await sql`
     SELECT basis_bps FROM management_fees
     WHERE organization_id = ${orgId} AND property_id = ${propertyId}
     ORDER BY period DESC LIMIT 1`;
   const r = rows[0];
-  return r === undefined ? { bps: DEFAULT_MANAGEMENT_FEE_BPS, recorded: false } : { bps: Number(r['basis_bps']), recorded: true };
+  return r === undefined
+    ? { bps: DEFAULT_MANAGEMENT_FEE_BPS, recorded: false }
+    : { bps: Number(r['basis_bps']), recorded: true };
 }
 
 export interface ExistingStatement {
-  readonly id: string; readonly issuedAtISO: string;
-  readonly grossRentFils: number; readonly expensesFils: number;
-  readonly managementFeeFils: number; readonly netFils: number;
+  readonly id: string;
+  readonly issuedAtISO: string;
+  readonly grossRentFils: number;
+  readonly expensesFils: number;
+  readonly managementFeeFils: number;
+  readonly netFils: number;
 }
 
-export async function existingStatement(orgId: string, propertyId: string, period: string): Promise<ExistingStatement | null> {
+export async function existingStatement(
+  orgId: string,
+  propertyId: string,
+  period: string,
+): Promise<ExistingStatement | null> {
   const rows = await sql`
     SELECT id, issued_at, gross_rent_fils, expenses_fils, management_fee_fils, net_fils
     FROM owner_statements
@@ -108,13 +147,20 @@ export async function existingStatement(orgId: string, propertyId: string, perio
   if (r === undefined) return null;
   return {
     id: String(r['id']),
-    issuedAtISO: r['issued_at'] instanceof Date ? r['issued_at'].toISOString() : String(r['issued_at']),
-    grossRentFils: Number(r['gross_rent_fils']), expensesFils: Number(r['expenses_fils']),
-    managementFeeFils: Number(r['management_fee_fils']), netFils: Number(r['net_fils']),
+    issuedAtISO:
+      r['issued_at'] instanceof Date ? r['issued_at'].toISOString() : String(r['issued_at']),
+    grossRentFils: Number(r['gross_rent_fils']),
+    expensesFils: Number(r['expenses_fils']),
+    managementFeeFils: Number(r['management_fee_fils']),
+    netFils: Number(r['net_fils']),
   };
 }
 
-export async function existingDistributionOwnerIds(orgId: string, propertyId: string, period: string): Promise<Set<string>> {
+export async function existingDistributionOwnerIds(
+  orgId: string,
+  propertyId: string,
+  period: string,
+): Promise<Set<string>> {
   const rows = await sql`
     SELECT owner_id FROM distributions
     WHERE organization_id = ${orgId} AND property_id = ${propertyId} AND period = ${period}`;

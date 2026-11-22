@@ -44,7 +44,9 @@ const started = Date.now();
 const runOne = (dir) =>
   new Promise((resolve) => {
     const t0 = Date.now();
-    const child = spawn(TSGO, ['-p', `${dir}/tsconfig.json`, '--noEmit'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(TSGO, ['-p', `${dir}/tsconfig.json`, '--noEmit'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let out = '';
     child.stdout.on('data', (d) => (out += d));
     child.stderr.on('data', (d) => (out += d));
@@ -61,7 +63,11 @@ if (failed.length > 0) {
     console.error(`\n─── ${r.dir} (exit ${r.code}) ───`);
     console.error(r.out.trimEnd());
   }
-  console.error(`\ntypecheck FAILED in ${failed.length}/${results.length} projects (${total.toFixed(1)}s)`);
+  console.error(
+    `\ntypecheck FAILED in ${failed.length}/${results.length} projects (${total.toFixed(1)}s)`,
+  );
   process.exit(1);
 }
-console.log(`typecheck ok — ${results.length} projects in ${total.toFixed(1)}s (slowest ${worst.dir} ${worst.seconds.toFixed(2)}s)`);
+console.log(
+  `typecheck ok — ${results.length} projects in ${total.toFixed(1)}s (slowest ${worst.dir} ${worst.seconds.toFixed(2)}s)`,
+);

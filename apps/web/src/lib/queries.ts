@@ -3,16 +3,35 @@
 import { sql } from './db';
 import type { UnitStatus } from '@aqar/core';
 
-export interface UnitRow { id: string; status: UnitStatus; propertyId: string }
+export interface UnitRow {
+  id: string;
+  status: UnitStatus;
+  propertyId: string;
+}
 export interface ChargeRow {
-  id: string; leaseId: string; period: string; kind: string;
-  amountFils: number; dueDate: string; paidFils: number;
-  tenantName: string; unitLabel: string; propertyName: string;
+  id: string;
+  leaseId: string;
+  period: string;
+  kind: string;
+  amountFils: number;
+  dueDate: string;
+  paidFils: number;
+  tenantName: string;
+  unitLabel: string;
+  propertyName: string;
 }
 export interface TicketRow {
-  id: string; status: string; emergencyFlag: boolean; openedAt: string; channel: string;
-  text: string; category: string | null; severity: string | null; confidence: number | null;
-  unitLabel: string | null; propertyName: string;
+  id: string;
+  status: string;
+  emergencyFlag: boolean;
+  openedAt: string;
+  channel: string;
+  text: string;
+  category: string | null;
+  severity: string | null;
+  confidence: number | null;
+  unitLabel: string | null;
+  propertyName: string;
 }
 
 const UNIT_STATUSES: readonly string[] = ['occupied', 'vacant', 'turnover', 'unavailable'];
@@ -24,7 +43,11 @@ function asUnitStatus(value: unknown): UnitStatus {
 export async function unitsByStatus(orgId: string): Promise<UnitRow[]> {
   const rows = await sql`
     SELECT id, status, property_id FROM units WHERE organization_id = ${orgId}`;
-  return rows.map((r) => ({ id: String(r['id']), status: asUnitStatus(r['status']), propertyId: String(r['property_id']) }));
+  return rows.map((r) => ({
+    id: String(r['id']),
+    status: asUnitStatus(r['status']),
+    propertyId: String(r['property_id']),
+  }));
 }
 
 export async function chargesForPeriod(orgId: string, period: string): Promise<ChargeRow[]> {
@@ -48,16 +71,27 @@ export async function chargesForPeriod(orgId: string, period: string): Promise<C
     WHERE c.organization_id = ${orgId} AND c.period = ${period}
     ORDER BY c.due_date, u.unit_number`;
   return rows.map((r) => ({
-    id: String(r['id']), leaseId: String(r['lease_id']), period: String(r['period']),
-    kind: String(r['kind']), amountFils: Number(r['amount_fils']),
-    dueDate: (r['due_date'] instanceof Date ? r['due_date'].toISOString() : String(r['due_date'])).slice(0, 10),
-    paidFils: Number(r['paid_fils']), tenantName: String(r['tenant_name']),
-    unitLabel: String(r['unit_label']), propertyName: String(r['property_name']),
+    id: String(r['id']),
+    leaseId: String(r['lease_id']),
+    period: String(r['period']),
+    kind: String(r['kind']),
+    amountFils: Number(r['amount_fils']),
+    dueDate: (r['due_date'] instanceof Date
+      ? r['due_date'].toISOString()
+      : String(r['due_date'])
+    ).slice(0, 10),
+    paidFils: Number(r['paid_fils']),
+    tenantName: String(r['tenant_name']),
+    unitLabel: String(r['unit_label']),
+    propertyName: String(r['property_name']),
   }));
 }
 
 // Scalar subqueries: a JOIN to allocations would fan out charge rows and inflate SUM(amount).
-export async function collectionTotals(orgId: string, period: string): Promise<{ billed: number; collected: number }> {
+export async function collectionTotals(
+  orgId: string,
+  period: string,
+): Promise<{ billed: number; collected: number }> {
   const rows = await sql`
     SELECT
       (SELECT COALESCE(SUM(amount_fils), 0)::int FROM charges
@@ -94,8 +128,12 @@ export async function ticketsForOrg(orgId: string, limit: number): Promise<Ticke
     ORDER BY tk.emergency_flag DESC, tk.opened_at DESC
     LIMIT ${limit}`;
   return rows.map((r) => ({
-    id: String(r['id']), status: String(r['status']), emergencyFlag: Boolean(r['emergency_flag']),
-    openedAt: String(r['opened_at']), channel: String(r['channel']), text: String(r['text']),
+    id: String(r['id']),
+    status: String(r['status']),
+    emergencyFlag: Boolean(r['emergency_flag']),
+    openedAt: String(r['opened_at']),
+    channel: String(r['channel']),
+    text: String(r['text']),
     category: r['category'] === null ? null : String(r['category']),
     severity: r['severity'] === null ? null : String(r['severity']),
     confidence: r['confidence'] === null ? null : Number(r['confidence']),
@@ -104,11 +142,17 @@ export async function ticketsForOrg(orgId: string, limit: number): Promise<Ticke
   }));
 }
 
-export async function ticketMessages(ticketId: string): Promise<{ body: string; sender: string; at: string }[]> {
+export async function ticketMessages(
+  ticketId: string,
+): Promise<{ body: string; sender: string; at: string }[]> {
   const rows = await sql`
     SELECT body, direction AS sender, sent_at AS at FROM ticket_messages
     WHERE ticket_id = ${ticketId} ORDER BY sent_at`;
-  return rows.map((r) => ({ body: String(r['body']), sender: String(r['sender']), at: String(r['at']) }));
+  return rows.map((r) => ({
+    body: String(r['body']),
+    sender: String(r['sender']),
+    at: String(r['at']),
+  }));
 }
 
 export async function orgName(orgId: string): Promise<string> {
@@ -119,8 +163,16 @@ export async function orgName(orgId: string): Promise<string> {
 // ---------------------------------------------------------------- portfolio
 
 export interface PropertyRow {
-  id: string; name: string; nameAr: string; district: string | null; city: string | null;
-  units: number; occupied: number; vacant: number; buildings: number; marketRentFils: number;
+  id: string;
+  name: string;
+  nameAr: string;
+  district: string | null;
+  city: string | null;
+  units: number;
+  occupied: number;
+  vacant: number;
+  buildings: number;
+  marketRentFils: number;
 }
 
 export async function portfolioByProperty(orgId: string): Promise<PropertyRow[]> {
@@ -135,17 +187,28 @@ export async function portfolioByProperty(orgId: string): Promise<PropertyRow[]>
     WHERE p.organization_id = ${orgId}
     GROUP BY p.id ORDER BY p.name`;
   return rows.map((r) => ({
-    id: String(r['id']), name: String(r['name']), nameAr: String(r['name_ar']),
+    id: String(r['id']),
+    name: String(r['name']),
+    nameAr: String(r['name_ar']),
     district: r['district'] === null ? null : String(r['district']),
     city: r['city'] === null ? null : String(r['city']),
-    units: Number(r['units']), occupied: Number(r['occupied']), vacant: Number(r['vacant']),
-    buildings: Number(r['buildings']), marketRentFils: Number(r['market_rent']),
+    units: Number(r['units']),
+    occupied: Number(r['occupied']),
+    vacant: Number(r['vacant']),
+    buildings: Number(r['buildings']),
+    marketRentFils: Number(r['market_rent']),
   }));
 }
 
 export interface VacantUnitRow {
-  id: string; unitNumber: string; floor: number | null; bedrooms: number | null;
-  areaSqm: number | null; marketRentFils: number; propertyName: string; status: string;
+  id: string;
+  unitNumber: string;
+  floor: number | null;
+  bedrooms: number | null;
+  areaSqm: number | null;
+  marketRentFils: number;
+  propertyName: string;
+  status: string;
 }
 
 export async function unitsNeedingTenant(orgId: string): Promise<VacantUnitRow[]> {
@@ -156,19 +219,29 @@ export async function unitsNeedingTenant(orgId: string): Promise<VacantUnitRow[]
     WHERE u.organization_id = ${orgId} AND u.status IN ('vacant', 'turnover')
     ORDER BY p.name, u.unit_number`;
   return rows.map((r) => ({
-    id: String(r['id']), unitNumber: String(r['unit_number']),
+    id: String(r['id']),
+    unitNumber: String(r['unit_number']),
     floor: r['floor'] === null ? null : Number(r['floor']),
     bedrooms: r['bedrooms'] === null ? null : Number(r['bedrooms']),
     areaSqm: r['area_sqm'] === null ? null : Number(r['area_sqm']),
-    marketRentFils: Number(r['market_rent_fils']), propertyName: String(r['property_name']),
+    marketRentFils: Number(r['market_rent_fils']),
+    propertyName: String(r['property_name']),
     status: String(r['status']),
   }));
 }
 
 export interface LeaseRow {
-  id: string; status: string; startDate: string; endDate: string; rentFils: number;
-  depositFils: number; dueDay: number; unitNumber: string; propertyName: string;
-  tenantEn: string; tenantAr: string;
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  rentFils: number;
+  depositFils: number;
+  dueDay: number;
+  unitNumber: string;
+  propertyName: string;
+  tenantEn: string;
+  tenantAr: string;
 }
 
 export async function leasesForOrg(orgId: string): Promise<LeaseRow[]> {
@@ -184,19 +257,32 @@ export async function leasesForOrg(orgId: string): Promise<LeaseRow[]> {
     WHERE l.organization_id = ${orgId}
     ORDER BY l.end_date, p.name, u.unit_number`;
   return rows.map((r) => ({
-    id: String(r['id']), status: String(r['status']),
-    startDate: String(r['start_date']).slice(0, 10), endDate: String(r['end_date']).slice(0, 10),
-    rentFils: Number(r['rent_fils']), depositFils: Number(r['deposit_fils']), dueDay: Number(r['due_day']),
-    unitNumber: String(r['unit_number']), propertyName: String(r['property_name']),
-    tenantEn: String(r['tenant_en']), tenantAr: String(r['tenant_ar']),
+    id: String(r['id']),
+    status: String(r['status']),
+    startDate: String(r['start_date']).slice(0, 10),
+    endDate: String(r['end_date']).slice(0, 10),
+    rentFils: Number(r['rent_fils']),
+    depositFils: Number(r['deposit_fils']),
+    dueDay: Number(r['due_day']),
+    unitNumber: String(r['unit_number']),
+    propertyName: String(r['property_name']),
+    tenantEn: String(r['tenant_en']),
+    tenantAr: String(r['tenant_ar']),
   }));
 }
 
 // ------------------------------------------------------------ vendors/owners
 
 export interface VendorRow {
-  id: string; nameEn: string; nameAr: string; phone: string | null; email: string | null;
-  trades: string[]; coverage: string[]; rating: number | null; allowListed: boolean;
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  phone: string | null;
+  email: string | null;
+  trades: string[];
+  coverage: string[];
+  rating: number | null;
+  allowListed: boolean;
   insuranceExpiry: string | null;
 }
 
@@ -206,20 +292,28 @@ export async function vendorsForOrg(orgId: string): Promise<VendorRow[]> {
            allow_listed, insurance_cert_expiry
     FROM vendors WHERE organization_id = ${orgId} ORDER BY name_en`;
   return rows.map((r) => ({
-    id: String(r['id']), nameEn: String(r['name_en']), nameAr: String(r['name_ar']),
+    id: String(r['id']),
+    nameEn: String(r['name_en']),
+    nameAr: String(r['name_ar']),
     phone: r['phone'] === null ? null : String(r['phone']),
     email: r['email'] === null ? null : String(r['email']),
     trades: Array.isArray(r['trades']) ? (r['trades'] as string[]) : [],
     coverage: Array.isArray(r['coverage_areas']) ? (r['coverage_areas'] as string[]) : [],
     rating: r['rating'] === null ? null : Number(r['rating']),
     allowListed: Boolean(r['allow_listed']),
-    insuranceExpiry: r['insurance_cert_expiry'] === null ? null : String(r['insurance_cert_expiry']).slice(0, 10),
+    insuranceExpiry:
+      r['insurance_cert_expiry'] === null ? null : String(r['insurance_cert_expiry']).slice(0, 10),
   }));
 }
 
 export interface OwnerRow {
-  id: string; nameEn: string; nameAr: string; phone: string | null; email: string | null;
-  shareBps: number; properties: number;
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  phone: string | null;
+  email: string | null;
+  shareBps: number;
+  properties: number;
 }
 
 export async function ownersForOrg(orgId: string): Promise<OwnerRow[]> {
@@ -231,18 +325,28 @@ export async function ownersForOrg(orgId: string): Promise<OwnerRow[]> {
     WHERE o.organization_id = ${orgId}
     GROUP BY o.id ORDER BY o.full_name_en`;
   return rows.map((r) => ({
-    id: String(r['id']), nameEn: String(r['full_name_en']), nameAr: String(r['full_name_ar']),
+    id: String(r['id']),
+    nameEn: String(r['full_name_en']),
+    nameAr: String(r['full_name_ar']),
     phone: r['phone'] === null ? null : String(r['phone']),
     email: r['email'] === null ? null : String(r['email']),
-    shareBps: Number(r['share_bps']), properties: Number(r['properties']),
+    shareBps: Number(r['share_bps']),
+    properties: Number(r['properties']),
   }));
 }
 
 // ------------------------------------------------------- documents / settings
 
 export interface DocumentRow {
-  id: string; entityType: string; title: string; status: string; version: number;
-  isLatest: boolean; mime: string | null; bytes: number | null; createdAt: string;
+  id: string;
+  entityType: string;
+  title: string;
+  status: string;
+  version: number;
+  isLatest: boolean;
+  mime: string | null;
+  bytes: number | null;
+  createdAt: string;
 }
 
 export async function documentsForOrg(orgId: string): Promise<DocumentRow[]> {
@@ -250,8 +354,12 @@ export async function documentsForOrg(orgId: string): Promise<DocumentRow[]> {
     SELECT id, entity_type, title, status, version, is_latest, mime, bytes, created_at
     FROM documents WHERE organization_id = ${orgId} ORDER BY created_at DESC LIMIT 50`;
   return rows.map((r) => ({
-    id: String(r['id']), entityType: String(r['entity_type']), title: String(r['title']),
-    status: String(r['status']), version: Number(r['version']), isLatest: Boolean(r['is_latest']),
+    id: String(r['id']),
+    entityType: String(r['entity_type']),
+    title: String(r['title']),
+    status: String(r['status']),
+    version: Number(r['version']),
+    isLatest: Boolean(r['is_latest']),
     mime: r['mime'] === null ? null : String(r['mime']),
     bytes: r['bytes'] === null ? null : Number(r['bytes']),
     createdAt: String(r['created_at']).slice(0, 10),
@@ -259,7 +367,12 @@ export async function documentsForOrg(orgId: string): Promise<DocumentRow[]> {
 }
 
 export interface OrgUserRow {
-  id: string; email: string; role: string; nameEn: string; nameAr: string; isActive: boolean;
+  id: string;
+  email: string;
+  role: string;
+  nameEn: string;
+  nameAr: string;
+  isActive: boolean;
 }
 
 export async function usersForOrg(orgId: string): Promise<OrgUserRow[]> {
@@ -267,7 +380,11 @@ export async function usersForOrg(orgId: string): Promise<OrgUserRow[]> {
     SELECT id, email, role, name_en, name_ar, is_active
     FROM users WHERE organization_id = ${orgId} ORDER BY role, email`;
   return rows.map((r) => ({
-    id: String(r['id']), email: String(r['email']), role: String(r['role']),
-    nameEn: String(r['name_en']), nameAr: String(r['name_ar']), isActive: Boolean(r['is_active']),
+    id: String(r['id']),
+    email: String(r['email']),
+    role: String(r['role']),
+    nameEn: String(r['name_en']),
+    nameAr: String(r['name_ar']),
+    isActive: Boolean(r['is_active']),
   }));
 }

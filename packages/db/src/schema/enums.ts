@@ -109,13 +109,7 @@ export const matchKindEnum = pgEnum('match_kind', [
 ]);
 
 /** contracts/ops.ts severitySchema */
-export const severityEnum = pgEnum('severity', [
-  'emergency',
-  'high',
-  'medium',
-  'low',
-  'cosmetic',
-]);
+export const severityEnum = pgEnum('severity', ['emergency', 'high', 'medium', 'low', 'cosmetic']);
 
 /** contracts/ops.ts ticketCategorySchema */
 export const ticketCategoryEnum = pgEnum('ticket_category', [

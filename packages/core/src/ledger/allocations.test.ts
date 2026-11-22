@@ -50,9 +50,24 @@ describe('allocatePayment', () => {
   });
 
   it('orders charges inside the reference period by due date then id', () => {
-    const late = makeCharge({ id: 'b-second', period: '2026-05', dueDateISO: '2026-05-20', amountFils: 10000 });
-    const first = makeCharge({ id: 'a-first', period: '2026-05', dueDateISO: '2026-05-05', amountFils: 10000 });
-    const tie = makeCharge({ id: 'a-tie', period: '2026-05', dueDateISO: '2026-05-05', amountFils: 10000 });
+    const late = makeCharge({
+      id: 'b-second',
+      period: '2026-05',
+      dueDateISO: '2026-05-20',
+      amountFils: 10000,
+    });
+    const first = makeCharge({
+      id: 'a-first',
+      period: '2026-05',
+      dueDateISO: '2026-05-05',
+      amountFils: 10000,
+    });
+    const tie = makeCharge({
+      id: 'a-tie',
+      period: '2026-05',
+      dueDateISO: '2026-05-05',
+      amountFils: 10000,
+    });
     const payment = makePayment({ amountFils: 25000, referencePeriod: '2026-05' });
     const allocations = allocatePayment(payment, [late, tie, first], []);
     expect(allocations.map((a) => a.chargeId)).toEqual(['a-first', 'a-tie', 'b-second']);
@@ -73,7 +88,11 @@ describe('allocatePayment', () => {
 
   it('respects allocations already recorded against a charge', () => {
     const existing = [makeAllocation('earlier', 'c-apr', 150000)];
-    const allocations = allocatePayment(makePayment({ amountFils: 100000 }), [april, may], existing);
+    const allocations = allocatePayment(
+      makePayment({ amountFils: 100000 }),
+      [april, may],
+      existing,
+    );
     expect(allocations).toEqual([
       { paymentId: 'pay-1', chargeId: 'c-apr', amountFils: 50000 },
       { paymentId: 'pay-1', chargeId: 'c-may', amountFils: 50000 },
@@ -82,13 +101,21 @@ describe('allocatePayment', () => {
 
   it('only spends the part of this payment that is still unallocated', () => {
     const existing = [makeAllocation('pay-1', 'c-apr', 200000)];
-    const allocations = allocatePayment(makePayment({ amountFils: 250000 }), [april, may], existing);
+    const allocations = allocatePayment(
+      makePayment({ amountFils: 250000 }),
+      [april, may],
+      existing,
+    );
     expect(allocations).toEqual([{ paymentId: 'pay-1', chargeId: 'c-may', amountFils: 50000 }]);
   });
 
   it('skips fully settled charges', () => {
     const existing = [makeAllocation('earlier', 'c-apr', 200000)];
-    const allocations = allocatePayment(makePayment({ amountFils: 100000 }), [april, may], existing);
+    const allocations = allocatePayment(
+      makePayment({ amountFils: 100000 }),
+      [april, may],
+      existing,
+    );
     expect(allocations).toEqual([{ paymentId: 'pay-1', chargeId: 'c-may', amountFils: 100000 }]);
   });
 
@@ -104,7 +131,11 @@ describe('allocatePayment', () => {
   });
 
   it('ignores untrusted reference text', () => {
-    const payment = makePayment({ amountFils: 1000, referenceText: 'for May rent', referencePeriod: null });
+    const payment = makePayment({
+      amountFils: 1000,
+      referenceText: 'for May rent',
+      referencePeriod: null,
+    });
     const allocations = allocatePayment(payment, [april, may], []);
     expect(allocations.map((a) => a.chargeId)).toEqual(['c-apr']);
   });
@@ -118,7 +149,9 @@ describe('deriveChargeStatus', () => {
 
   it('is overdue past the due date when money is still owed', () => {
     expect(deriveChargeStatus(april, [], '2026-04-06')).toBe('overdue');
-    expect(deriveChargeStatus(april, [makeAllocation('p1', 'c-apr', 1000)], '2026-05-01')).toBe('overdue');
+    expect(deriveChargeStatus(april, [makeAllocation('p1', 'c-apr', 1000)], '2026-05-01')).toBe(
+      'overdue',
+    );
   });
 
   it('is not overdue on the due date itself', () => {
@@ -126,7 +159,9 @@ describe('deriveChargeStatus', () => {
   });
 
   it('is partial when some money arrived and the date has not passed', () => {
-    expect(deriveChargeStatus(april, [makeAllocation('p1', 'c-apr', 1000)], '2026-04-01')).toBe('partial');
+    expect(deriveChargeStatus(april, [makeAllocation('p1', 'c-apr', 1000)], '2026-04-01')).toBe(
+      'partial',
+    );
   });
 
   it('is open with no money and no lateness', () => {

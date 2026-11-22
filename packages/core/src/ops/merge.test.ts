@@ -16,7 +16,10 @@ function model(overrides: Partial<Classification> = {}): Classification {
 
 describe('mergeClassification — non-emergency path', () => {
   it('keeps the model severity and category when nothing raises an emergency', () => {
-    const merged = mergeClassification(emergencyPrecheck('the tap drips'), model({ severity: 'medium', category: 'plumbing' }));
+    const merged = mergeClassification(
+      emergencyPrecheck('the tap drips'),
+      model({ severity: 'medium', category: 'plumbing' }),
+    );
     expect(merged.severity).toBe('medium');
     expect(merged.category).toBe('plumbing');
     expect(merged.emergencyFlag).toBe(false);
@@ -35,14 +38,20 @@ describe('mergeClassification — non-emergency path', () => {
   });
 
   it('preserves the model rationale and appends a deterministic note', () => {
-    const merged = mergeClassification(emergencyPrecheck('the tap drips'), model({ rationale: 'minor drip' }));
+    const merged = mergeClassification(
+      emergencyPrecheck('the tap drips'),
+      model({ rationale: 'minor drip' }),
+    );
     expect(merged.rationale.startsWith('minor drip')).toBe(true);
     expect(merged.rationale).toContain('LAW 2');
     expect(merged.rationale).toContain('signals=none');
   });
 
   it('allows a cosmetic severity when no emergency exists', () => {
-    const merged = mergeClassification(emergencyPrecheck('paint faded in the lobby'), model({ severity: 'cosmetic' }));
+    const merged = mergeClassification(
+      emergencyPrecheck('paint faded in the lobby'),
+      model({ severity: 'cosmetic' }),
+    );
     expect(merged.severity).toBe('cosmetic');
   });
 });
@@ -64,7 +73,10 @@ describe('mergeClassification — a model may raise but never lower', () => {
 describe('mergeClassification — deterministic emergency wins', () => {
   it('overrides a cosmetic model severity and the model category on a gas smell', () => {
     const precheck = emergencyPrecheck('ريحة غاز قوية بالمطبخ');
-    const merged = mergeClassification(precheck, model({ severity: 'cosmetic', category: 'other' }));
+    const merged = mergeClassification(
+      precheck,
+      model({ severity: 'cosmetic', category: 'other' }),
+    );
     expect(merged.emergencyFlag).toBe(true);
     expect(merged.severity).toBe('emergency');
     expect(merged.category).toBe('gas');
@@ -73,7 +85,10 @@ describe('mergeClassification — deterministic emergency wins', () => {
   });
 
   it('overrides a low model severity on English "fire in the kitchen"', () => {
-    const merged = mergeClassification(emergencyPrecheck('fire in the kitchen'), model({ severity: 'low' }));
+    const merged = mergeClassification(
+      emergencyPrecheck('fire in the kitchen'),
+      model({ severity: 'low' }),
+    );
     expect(merged.severity).toBe('emergency');
     expect(merged.category).toBe('fire');
   });
@@ -118,7 +133,11 @@ describe('mergeClassification — stickiness', () => {
   it('is monotone: an emergency flag never flips back to false', () => {
     const precheck = emergencyPrecheck('ريحة غاز');
     const first = mergeClassification(precheck, model({ severity: 'low' }));
-    const second = mergeClassification(emergencyPrecheck('cleaned up'), model({ severity: 'cosmetic' }), first.emergencyFlag);
+    const second = mergeClassification(
+      emergencyPrecheck('cleaned up'),
+      model({ severity: 'cosmetic' }),
+      first.emergencyFlag,
+    );
     expect(first.emergencyFlag).toBe(true);
     expect(second.emergencyFlag).toBe(true);
     expect(second.severity).toBe('emergency');

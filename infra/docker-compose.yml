@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: aqar
       POSTGRES_DB: aqar
     ports:
-      - "127.0.0.1:5433:5432"
+      - '127.0.0.1:5433:5432'
     # PostgreSQL 18+ images store data under a major-version subdirectory and
     # require the mount at /var/lib/postgresql (not .../data) so pg_upgrade can
     # work across the mount boundary. Mounting the old path makes the image
@@ -15,18 +15,18 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aqar -d aqar"]
+      test: ['CMD-SHELL', 'pg_isready -U aqar -d aqar']
       interval: 3s
       timeout: 3s
       retries: 20
   redis:
     image: redis:8-alpine
     ports:
-      - "127.0.0.1:6380:6379"
+      - '127.0.0.1:6380:6379'
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 3s
       timeout: 3s
       retries: 20
@@ -37,15 +37,15 @@ services:
       MINIO_ROOT_USER: aqar_dev
       MINIO_ROOT_PASSWORD: aqar_dev_secret
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
     volumes:
       - miniodata:/data
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
 volumes:
   pgdata:
   redisdata:

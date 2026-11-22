@@ -19,10 +19,16 @@ export default async function VendorsPage() {
       <h1 style={{ fontSize: 'var(--text-xl)' }}>{t(m, 'nav.vendors')}</h1>
       <div className="table-scroll">
         <table>
-          <thead><tr>
-            <th>{t(m, 'ven.name')}</th><th>{t(m, 'ven.trades')}</th><th>{t(m, 'ven.contact')}</th>
-            <th>{t(m, 'ven.rating')}</th><th>{t(m, 'ven.insurance')}</th><th>{t(m, 'ven.allowListed')}</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>{t(m, 'ven.name')}</th>
+              <th>{t(m, 'ven.trades')}</th>
+              <th>{t(m, 'ven.contact')}</th>
+              <th>{t(m, 'ven.rating')}</th>
+              <th>{t(m, 'ven.insurance')}</th>
+              <th>{t(m, 'ven.allowListed')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
@@ -31,7 +37,11 @@ export default async function VendorsPage() {
                 <td dir="ltr">{r.phone ?? r.email ?? '—'}</td>
                 <td className="tnum">{r.rating === null ? '—' : r.rating.toFixed(1)}</td>
                 <td className="tnum">{r.insuranceExpiry ?? '—'}</td>
-                <td><Badge tone={r.allowListed ? 'ok' : 'warn'}>{r.allowListed ? t(m, 'ven.allowListed') : '—'}</Badge></td>
+                <td>
+                  <Badge tone={r.allowListed ? 'ok' : 'warn'}>
+                    {r.allowListed ? t(m, 'ven.allowListed') : '—'}
+                  </Badge>
+                </td>
               </tr>
             ))}
           </tbody>

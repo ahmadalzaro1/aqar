@@ -20,8 +20,19 @@ import { createSql } from '@aqar/db';
 import { clearSupersededRooms, guardSupersede } from './plan-write.js';
 
 const ROOM_KINDS = new Set([
-  'unit', 'bedroom', 'bath', 'kitchen', 'living', 'corridor', 'shaft', 'balcony',
-  'terrace', 'parking', 'common', 'storage', 'other',
+  'unit',
+  'bedroom',
+  'bath',
+  'kitchen',
+  'living',
+  'corridor',
+  'shaft',
+  'balcony',
+  'terrace',
+  'parking',
+  'common',
+  'storage',
+  'other',
 ]);
 
 export interface RasterImportOptions {
@@ -165,12 +176,17 @@ function argument(name: string): string | undefined {
   return process.argv[index + 1];
 }
 
-if (process.argv[1]?.endsWith('raster.ts') === true || process.argv[1]?.endsWith('raster.js') === true) {
+if (
+  process.argv[1]?.endsWith('raster.ts') === true ||
+  process.argv[1]?.endsWith('raster.js') === true
+) {
   const filePath = argument('file');
   const property = argument('property');
   const level = argument('level');
   if (filePath === undefined || property === undefined || level === undefined) {
-    console.error('usage: plan:import-raster --file <model.json> --property <name|uuid> --level <name> [--stated <m2>]');
+    console.error(
+      'usage: plan:import-raster --file <model.json> --property <name|uuid> --level <name> [--stated <m2>]',
+    );
     process.exit(2);
   }
   const stated = argument('stated');
@@ -185,7 +201,9 @@ if (process.argv[1]?.endsWith('raster.ts') === true || process.argv[1]?.endsWith
       process.exit(0);
     })
     .catch((error: unknown) => {
-      console.error(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2));
+      console.error(
+        JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2),
+      );
       process.exit(1);
     });
 }

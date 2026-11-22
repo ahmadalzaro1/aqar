@@ -7,8 +7,15 @@ export const leaseStatusSchema = z.enum(['upcoming', 'active', 'ended', 'cancell
 export type LeaseStatus = z.infer<typeof leaseStatusSchema>;
 
 export const roleSchema = z.enum([
-  'owner_admin', 'property_manager', 'maintenance_coordinator', 'accountant',
-  'leasing_agent', 'vendor', 'tenant', 'owner', 'agent',
+  'owner_admin',
+  'property_manager',
+  'maintenance_coordinator',
+  'accountant',
+  'leasing_agent',
+  'vendor',
+  'tenant',
+  'owner',
+  'agent',
 ]);
 export type Role = z.infer<typeof roleSchema>;
 
@@ -16,13 +23,26 @@ export const meterKindSchema = z.enum(['water', 'electric', 'generator']);
 export type MeterKind = z.infer<typeof meterKindSchema>;
 
 export const ticketStatusSchema = z.enum([
-  'new', 'triaged', 'awaiting_tenant', 'approved', 'dispatched',
-  'in_progress', 'completed', 'closed', 'cancelled',
+  'new',
+  'triaged',
+  'awaiting_tenant',
+  'approved',
+  'dispatched',
+  'in_progress',
+  'completed',
+  'closed',
+  'cancelled',
 ]);
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 
 export const applicationStatusSchema = z.enum([
-  'received', 'screening', 'documents_pending', 'ready_for_decision', 'approved', 'rejected', 'withdrawn',
+  'received',
+  'screening',
+  'documents_pending',
+  'ready_for_decision',
+  'approved',
+  'rejected',
+  'withdrawn',
 ]);
 export type ApplicationStatus = z.infer<typeof applicationStatusSchema>;
 

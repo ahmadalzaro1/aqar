@@ -108,25 +108,43 @@ function allocatedTotal(args: Readonly<Record<string, unknown>>): number | null 
 function shapeRules(action: string, args: Readonly<Record<string, unknown>>): PolicyRule[] {
   const rules: PolicyRule[] = [];
   const need = (key: string, ok: (v: unknown) => boolean, what: string): void => {
-    rules.push(args[key] !== undefined && ok(args[key])
-      ? { rule: `args.${key}`, verdict: 'allow', detail: `${key} is a valid ${what}` }
-      : { rule: `args.${key}`, verdict: 'deny', detail: `${key} must be a ${what}` });
+    rules.push(
+      args[key] !== undefined && ok(args[key])
+        ? { rule: `args.${key}`, verdict: 'allow', detail: `${key} is a valid ${what}` }
+        : { rule: `args.${key}`, verdict: 'deny', detail: `${key} must be a ${what}` },
+    );
   };
 
   if (action === 'post_payment') {
     need('leaseId', isNonEmptyString, 'lease id');
     need('amountFils', isPositiveInt, 'positive integer fils');
     need('receivedDate', isIsoDate, 'ISO date');
-    need('method', (v) => isNonEmptyString(v) && (PAYMENT_METHODS as readonly string[]).includes(v), 'known payment method');
+    need(
+      'method',
+      (v) => isNonEmptyString(v) && (PAYMENT_METHODS as readonly string[]).includes(v),
+      'known payment method',
+    );
     const amount = args['amountFils'];
     const allocated = allocatedTotal(args);
     if (allocated === null) {
-      rules.push({ rule: 'args.allocations', verdict: 'deny', detail: 'allocations must be a list of {chargeId, amountFils}' });
+      rules.push({
+        rule: 'args.allocations',
+        verdict: 'deny',
+        detail: 'allocations must be a list of {chargeId, amountFils}',
+      });
     } else {
       rules.push(
         isPositiveInt(amount) && allocated > amount
-          ? { rule: 'args.allocations', verdict: 'deny', detail: `allocations total ${allocated} exceeds the receipt ${amount}` }
-          : { rule: 'args.allocations', verdict: 'allow', detail: allocated === 0 ? 'no allocations' : `allocations total ${allocated}` },
+          ? {
+              rule: 'args.allocations',
+              verdict: 'deny',
+              detail: `allocations total ${allocated} exceeds the receipt ${amount}`,
+            }
+          : {
+              rule: 'args.allocations',
+              verdict: 'allow',
+              detail: allocated === 0 ? 'no allocations' : `allocations total ${allocated}`,
+            },
       );
     }
   }
@@ -135,11 +153,17 @@ function shapeRules(action: string, args: Readonly<Record<string, unknown>>): Po
     need('ticketId', isNonEmptyString, 'ticket id');
     need('vendorId', isNonEmptyString, 'vendor id');
     const nte = args['amountFils'];
-    rules.push(nte === undefined || nte === null
-      ? { rule: 'args.amountFils', verdict: 'allow', detail: 'no NTE set' }
-      : isPositiveInt(nte)
-        ? { rule: 'args.amountFils', verdict: 'allow', detail: `NTE ${nte} fils` }
-        : { rule: 'args.amountFils', verdict: 'deny', detail: 'NTE must be a positive integer in fils' });
+    rules.push(
+      nte === undefined || nte === null
+        ? { rule: 'args.amountFils', verdict: 'allow', detail: 'no NTE set' }
+        : isPositiveInt(nte)
+          ? { rule: 'args.amountFils', verdict: 'allow', detail: `NTE ${nte} fils` }
+          : {
+              rule: 'args.amountFils',
+              verdict: 'deny',
+              detail: 'NTE must be a positive integer in fils',
+            },
+    );
   }
 
   return rules;
@@ -154,21 +178,33 @@ export function evaluateProposal(input: PolicyInput): PolicyDecision {
   const rules: PolicyRule[] = [];
 
   const known = input.action === 'post_payment' || input.action === 'dispatch_vendor';
-  rules.push(known
-    ? { rule: 'action.known', verdict: 'allow', detail: `${input.action} has a policy` }
-    : { rule: 'action.known', verdict: 'deny', detail: `no policy exists for action "${input.action}"` });
+  rules.push(
+    known
+      ? { rule: 'action.known', verdict: 'allow', detail: `${input.action} has a policy` }
+      : {
+          rule: 'action.known',
+          verdict: 'deny',
+          detail: `no policy exists for action "${input.action}"`,
+        },
+  );
 
   const roleOk = limits.approverRoles.includes(input.role);
-  rules.push(roleOk
-    ? { rule: 'role.approver', verdict: 'allow', detail: `${input.role} may approve` }
-    : { rule: 'role.approver', verdict: 'deny', detail: `${input.role} is not an approver` });
+  rules.push(
+    roleOk
+      ? { rule: 'role.approver', verdict: 'allow', detail: `${input.role} may approve` }
+      : { rule: 'role.approver', verdict: 'deny', detail: `${input.role} is not an approver` },
+  );
 
   rules.push(...shapeRules(input.action, input.args));
 
   if (input.action === 'dispatch_vendor') {
     // Binding a vendor to a job is consequential whether or not a ceiling was
     // named, so it always needs a human — the NTE check only decides how much.
-    rules.push({ rule: 'limit.dispatch_human', verdict: 'approve_required', detail: 'dispatching a vendor always needs a human' });
+    rules.push({
+      rule: 'limit.dispatch_human',
+      verdict: 'approve_required',
+      detail: 'dispatching a vendor always needs a human',
+    });
     const nte = input.args['amountFils'];
     if (isPositiveInt(nte) && nte > limits.nteCeilingFils) {
       rules.push({
@@ -181,18 +217,31 @@ export function evaluateProposal(input: PolicyInput): PolicyDecision {
 
   const amount = input.args['amountFils'];
   if (isPositiveInt(amount)) {
-    rules.push(amount <= limits.autoApproveUnderFils
-      ? { rule: 'limit.auto_approve', verdict: 'allow', detail: `${amount} fils is under the auto-approve threshold` }
-      : { rule: 'limit.auto_approve', verdict: 'approve_required', detail: `${amount} fils needs a human` });
+    rules.push(
+      amount <= limits.autoApproveUnderFils
+        ? {
+            rule: 'limit.auto_approve',
+            verdict: 'allow',
+            detail: `${amount} fils is under the auto-approve threshold`,
+          }
+        : {
+            rule: 'limit.auto_approve',
+            verdict: 'approve_required',
+            detail: `${amount} fils needs a human`,
+          },
+    );
   }
 
   const denied = rules.filter((r) => r.verdict === 'deny');
   const needHuman = rules.filter((r) => r.verdict === 'approve_required');
-  const verdict: PolicyVerdict = denied.length > 0 ? 'deny' : needHuman.length > 0 ? 'approve_required' : 'allow';
+  const verdict: PolicyVerdict =
+    denied.length > 0 ? 'deny' : needHuman.length > 0 ? 'approve_required' : 'allow';
 
   return Object.freeze({
     verdict,
     rules: Object.freeze(rules),
-    decisive: Object.freeze(verdict === 'deny' ? denied : verdict === 'approve_required' ? needHuman : []),
+    decisive: Object.freeze(
+      verdict === 'deny' ? denied : verdict === 'approve_required' ? needHuman : [],
+    ),
   });
 }

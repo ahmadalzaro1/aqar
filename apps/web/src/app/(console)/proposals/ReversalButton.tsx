@@ -105,7 +105,12 @@ export function ReversalButton({
   return (
     <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
       {phase === 'idle' && reversible && (
-        <Button variant="danger" onClick={() => { setPhase('confirming'); }}>
+        <Button
+          variant="danger"
+          onClick={() => {
+            setPhase('confirming');
+          }}
+        >
           {s.reverse}
         </Button>
       )}
@@ -125,7 +130,9 @@ export function ReversalButton({
             rows={2}
             disabled={phase === 'busy'}
             placeholder={s.reversalPlaceholder}
-            onChange={(event) => { setReason(event.target.value); }}
+            onChange={(event) => {
+              setReason(event.target.value);
+            }}
             style={{
               font: 'inherit',
               fontSize: 'var(--text-sm)',
@@ -137,19 +144,31 @@ export function ReversalButton({
               resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 'var(--space-2)',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
             <Button
               variant="danger"
               disabled={phase === 'busy' || tooShort}
               aria-busy={phase === 'busy'}
-              onClick={() => { void submit(); }}
+              onClick={() => {
+                void submit();
+              }}
             >
               {phase === 'busy' ? s.reversing : s.reverseConfirm}
             </Button>
             <Button
               variant="secondary"
               disabled={phase === 'busy'}
-              onClick={() => { setReason(''); setPhase('idle'); }}
+              onClick={() => {
+                setReason('');
+                setPhase('idle');
+              }}
             >
               {s.cancel}
             </Button>

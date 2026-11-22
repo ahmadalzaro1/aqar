@@ -19,8 +19,19 @@ import { reconcileAreas } from '@aqar/core';
 import { reconcilableShapes, runPlanExtractor } from './extractor.js';
 
 const ROOM_KINDS = new Set([
-  'unit', 'bedroom', 'bath', 'kitchen', 'living', 'corridor', 'shaft',
-  'balcony', 'terrace', 'parking', 'common', 'storage', 'other',
+  'unit',
+  'bedroom',
+  'bath',
+  'kitchen',
+  'living',
+  'corridor',
+  'shaft',
+  'balcony',
+  'terrace',
+  'parking',
+  'common',
+  'storage',
+  'other',
 ]);
 const DRAWING_UNITS = new Set(['mm', 'cm', 'm', 'ft']);
 
@@ -70,7 +81,9 @@ export async function ingestPlan(options: IngestOptions): Promise<IngestResult> 
   // A corridor is not lettable area, and a bedroom hatch is already inside its flat.
   // Reconciling the stated area against everything the parser found would count the
   // same square metre twice and blame the drawing for it.
-  const lettable = new Set(rooms.filter((room) => room.room_kind === 'unit').map((room) => room.code));
+  const lettable = new Set(
+    rooms.filter((room) => room.room_kind === 'unit').map((room) => room.code),
+  );
   const reconciliation = reconcileAreas(
     reconcilableShapes(extraction).filter((shape) => lettable.has(shape.code)),
     options.statedSqm,
@@ -157,12 +170,17 @@ function argument(name: string): string | undefined {
   return process.argv[index + 1];
 }
 
-if (process.argv[1]?.endsWith('ingest.ts') === true || process.argv[1]?.endsWith('ingest.js') === true) {
+if (
+  process.argv[1]?.endsWith('ingest.ts') === true ||
+  process.argv[1]?.endsWith('ingest.js') === true
+) {
   const filePath = argument('file');
   const property = argument('property');
   const level = argument('level');
   if (filePath === undefined || property === undefined || level === undefined) {
-    console.error('usage: plan:ingest --file <drawing> --property <slug|uuid> --level <name> [--stated <m2>] [--unit mm] [--calibrate x1,y1,x2,y2,m]');
+    console.error(
+      'usage: plan:ingest --file <drawing> --property <slug|uuid> --level <name> [--stated <m2>] [--unit mm] [--calibrate x1,y1,x2,y2,m]',
+    );
     process.exit(2);
   }
   const stated = argument('stated');
@@ -180,7 +198,9 @@ if (process.argv[1]?.endsWith('ingest.ts') === true || process.argv[1]?.endsWith
       process.exit(0);
     })
     .catch((error: unknown) => {
-      console.error(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2));
+      console.error(
+        JSON.stringify({ error: error instanceof Error ? error.message : String(error) }, null, 2),
+      );
       process.exit(1);
     });
 }

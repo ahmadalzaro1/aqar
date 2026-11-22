@@ -11,7 +11,9 @@ import { describeError, isToolError } from './errors.js';
 
 export function ok(data: unknown, note?: string): CallToolResult {
   const text = JSON.stringify(data, null, 2);
-  const content: CallToolResult['content'] = [{ type: 'text', text: note === undefined ? text : `${note}\n\n${text}` }];
+  const content: CallToolResult['content'] = [
+    { type: 'text', text: note === undefined ? text : `${note}\n\n${text}` },
+  ];
   return { content };
 }
 

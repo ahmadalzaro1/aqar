@@ -23,7 +23,9 @@ describe('aging properties', () => {
           const late = agingReport([charge], [], fromDayNumber(BASE_DAY + asOfOffset + advance));
           const earlyBucket = early.rows[0]?.bucket ?? 'current';
           const lateBucket = late.rows[0]?.bucket ?? 'current';
-          expect(AGING_BUCKETS.indexOf(lateBucket)).toBeGreaterThanOrEqual(AGING_BUCKETS.indexOf(earlyBucket));
+          expect(AGING_BUCKETS.indexOf(lateBucket)).toBeGreaterThanOrEqual(
+            AGING_BUCKETS.indexOf(earlyBucket),
+          );
         },
       ),
     );
@@ -50,7 +52,9 @@ describe('aging properties', () => {
             }),
           );
           const allocations = specs
-            .map((spec, index) => makeAllocation('prior', `c${index}`, Math.min(spec.paidFils, spec.amountFils)))
+            .map((spec, index) =>
+              makeAllocation('prior', `c${index}`, Math.min(spec.paidFils, spec.amountFils)),
+            )
             .filter((allocation) => allocation.amountFils > 0);
           const asOfISO = fromDayNumber(BASE_DAY + asOfOffset);
           const report = agingReport(charges, allocations, asOfISO);
@@ -68,11 +72,16 @@ describe('aging properties', () => {
             expect(row.balanceFils).toBe(expectedBalance.get(row.chargeId));
             expect(row.balanceFils).toBeGreaterThan(0);
             expect(Number.isInteger(row.balanceFils)).toBe(true);
-            expect(row.bucket).toBe(agingBucketFor(toDayNumber(asOfISO) - toDayNumber(row.dueDateISO)));
+            expect(row.bucket).toBe(
+              agingBucketFor(toDayNumber(asOfISO) - toDayNumber(row.dueDateISO)),
+            );
             rowTotal += row.balanceFils;
           }
 
-          const bucketTotal = AGING_BUCKETS.reduce((sum, bucket) => sum + report.buckets[bucket], 0);
+          const bucketTotal = AGING_BUCKETS.reduce(
+            (sum, bucket) => sum + report.buckets[bucket],
+            0,
+          );
           expect(bucketTotal).toBe(rowTotal);
           expect(report.totalFils).toBe(rowTotal);
           for (const bucket of AGING_BUCKETS) {
@@ -83,7 +92,11 @@ describe('aging properties', () => {
           }
 
           // the same balances aged later keep the same total, only the buckets shift
-          const later = agingReport(charges, allocations, fromDayNumber(BASE_DAY + asOfOffset + 365));
+          const later = agingReport(
+            charges,
+            allocations,
+            fromDayNumber(BASE_DAY + asOfOffset + 365),
+          );
           expect(later.totalFils).toBe(report.totalFils);
         },
       ),
@@ -92,17 +105,14 @@ describe('aging properties', () => {
 
   it('keeps rows in due-date order', () => {
     fc.assert(
-      fc.property(
-        fc.array(fc.integer({ min: 0, max: 400 }), { maxLength: 8 }),
-        (offsets) => {
-          const charges = offsets.map((offset, index) =>
-            makeCharge({ id: `c${index}`, dueDateISO: fromDayNumber(BASE_DAY + offset) }),
-          );
-          const report = agingReport(charges, [], BASE_ISO);
-          const dues = report.rows.map((row) => row.dueDateISO);
-          expect(dues).toEqual([...dues].sort());
-        },
-      ),
+      fc.property(fc.array(fc.integer({ min: 0, max: 400 }), { maxLength: 8 }), (offsets) => {
+        const charges = offsets.map((offset, index) =>
+          makeCharge({ id: `c${index}`, dueDateISO: fromDayNumber(BASE_DAY + offset) }),
+        );
+        const report = agingReport(charges, [], BASE_ISO);
+        const dues = report.rows.map((row) => row.dueDateISO);
+        expect(dues).toEqual([...dues].sort());
+      }),
     );
   });
 });

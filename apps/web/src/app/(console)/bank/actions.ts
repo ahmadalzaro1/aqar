@@ -51,7 +51,8 @@ export async function confirmBankImport(input: AnalyzeInput): Promise<ConfirmRes
       issues: EMPTY_ISSUES,
     };
   }
-  const accountLabel = input.accountLabel.trim().length > 0 ? input.accountLabel.trim() : 'Unlabelled account';
+  const accountLabel =
+    input.accountLabel.trim().length > 0 ? input.accountLabel.trim() : 'Unlabelled account';
   const fileName = input.fileName.trim().length > 0 ? input.fileName.trim() : 'pasted.csv';
   const analysis = await analyzeForOrg(user.orgId, input.rawText);
   const result = await persistImport({
