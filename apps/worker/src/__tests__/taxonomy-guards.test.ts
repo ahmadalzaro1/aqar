@@ -16,6 +16,7 @@ let orgId: string;
 let propertyId: string;
 let buildingId: string;
 const createdUnits: string[] = [];
+const createdBuildings: string[] = [];
 
 maybe('the database enforces the space taxonomy', () => {
   beforeAll(async () => {
@@ -42,6 +43,12 @@ maybe('the database enforces the space taxonomy', () => {
       await sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${orgId}, true)`;
         await tx`delete from units where id = any(${createdUnits}::uuid[])`;
+      });
+    }
+    if (createdBuildings.length > 0) {
+      await sql.begin(async (tx) => {
+        await tx`select set_config('app.organization_id', ${orgId}, true)`;
+        await tx`delete from buildings where id = any(${createdBuildings}::uuid[])`;
       });
     }
     await sql.end();
@@ -204,28 +211,27 @@ maybe('the database enforces the space taxonomy', () => {
     expect(linked[0]?.allocated_to_unit_id).toBe(flatId);
 
     // A bay belonging to a flat on another property is a billing dispute waiting
-    // to happen, so the trigger refuses it.
-    // Pick the target by the boundary under test, not by whichever row happens
-    // to carry the lowest random UUID. A unit in the *same* building is a legal
-    // allocation, so `order by id` over freshly seeded UUIDs made this
-    // assertion a coin toss across the seed's two buildings.
+    // to happen, so the trigger refuses it. Pick the target by the boundary the
+    // trigger actually checks: this bay has no building, so `bay_building is not
+    // null` skips the building guard and the property guard is the only refusal
+    // reachable. `order by id` used to pick whichever row carried the lowest
+    // random UUID, and a unit on the *same* property is a legal allocation, so
+    // half the seeds passed for the wrong reason.
     const others = await sql<{ id: string }[]>`
       select id from units
        where organization_id = ${orgId}::uuid
-         and building_id is not null
-         and building_id <> ${buildingId}::uuid
-         and id <> ${flatId}::uuid
-       order by id limit 1`;
+         and property_id <> ${propertyId}::uuid
+       limit 1`;
     const other = others[0];
     if (other === undefined)
-      throw new Error('need a unit in another building; the seed must create one');
+      throw new Error('need a unit on another property; the seed must create one');
     await expect(
       sql.begin(async (tx) => {
         await tx`select set_config('app.organization_id', ${orgId}, true)`;
         await tx`update unit_parking_detail set allocated_to_unit_id = ${other.id}::uuid
                   where unit_id = ${bayId}::uuid`;
       }),
-    ).rejects.toThrow(/different buildings|different properties/);
+    ).rejects.toThrow(/different properties/);
 
     // A bay cannot be allocated to another bay.
     const secondBay = await insertUnit({ space_kind: 'parking', building_id: null });
@@ -236,6 +242,48 @@ maybe('the database enforces the space taxonomy', () => {
                  values (${secondBay}::uuid, ${bayId}::uuid)`;
       }),
     ).rejects.toThrow(/cannot be allocated to another parking bay/);
+  });
+
+  it('refuses a link across buildings inside one property', async () => {
+    // The building guard only fires when the bay carries a building, and the
+    // seed gives each property exactly one — so this case creates the second
+    // building itself rather than borrowing one from another property.
+    const annexId = randomUUID();
+    await sql.begin(async (tx) => {
+      await tx`select set_config('app.organization_id', ${orgId}, true)`;
+      await tx`insert into buildings (id, organization_id, property_id, name, name_ar)
+               values (${annexId}::uuid, ${orgId}::uuid, ${propertyId}::uuid, 'Annex', 'ملحق')`;
+    });
+    createdBuildings.push(annexId);
+
+    const flatId = await insertUnit({
+      space_kind: 'flat',
+      building_id: buildingId,
+      bedrooms: 2,
+      bathrooms: 1,
+    });
+    const bayId = await insertUnit({ space_kind: 'parking', building_id: buildingId });
+    const acrossTheYard = await insertUnit({
+      space_kind: 'flat',
+      building_id: annexId,
+      bedrooms: 1,
+      bathrooms: 1,
+    });
+
+    await expect(
+      sql.begin(async (tx) => {
+        await tx`select set_config('app.organization_id', ${orgId}, true)`;
+        await tx`insert into unit_parking_detail (unit_id, allocated_to_unit_id)
+                 values (${bayId}::uuid, ${acrossTheYard}::uuid)`;
+      }),
+    ).rejects.toThrow(/different buildings/);
+
+    // Same property, same building: the link this bay exists for.
+    await sql.begin(async (tx) => {
+      await tx`select set_config('app.organization_id', ${orgId}, true)`;
+      await tx`insert into unit_parking_detail (unit_id, allocated_to_unit_id)
+               values (${bayId}::uuid, ${flatId}::uuid)`;
+    });
   });
 
   it('treats the same number on two levels as two bays, and the same level as one', async () => {
