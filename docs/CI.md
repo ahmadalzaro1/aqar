@@ -150,6 +150,24 @@ And the budget enforcer was proved by the pipeline itself, not by a demo: the
 first fully-green-except-one run failed on
 `OVER BUDGET: typecheck 8.7s > 5s` while every other check passed.
 
+## The floor under the integration job
+
+`integration` is the slowest job and it does not move: 51–57 s across runs.
+
+| bucket | seconds | who owns it |
+|---|---|---|
+| `Initialize containers` (3 service images) | **20** | GitHub, before any step runs |
+| setup (checkout · Node · Corepack pnpm · install) | 4–7 | this workflow |
+| migrations, db, seed, worker, channels, evals | 21 | the suite itself |
+| teardown of the containers | 4 | GitHub |
+
+27 s of work sits on top of 20 s of provisioning. Under 35 s is therefore not
+reachable on hosted runners without either warm images on the machine
+(Blacksmith, self-hosted) or dropping a service — and Postgres, Redis and Mailpit
+are each load-bearing for a test that must not be weakened. Measured, not assumed:
+`docker save` + restore + `docker load` for those three images lands around 14 s,
+which buys about 6 s and adds a hand-rolled readiness wait to every run.
+
 ## What is deliberately not here
 
 | not done | why, with the number |
