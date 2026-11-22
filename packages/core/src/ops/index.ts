@@ -35,6 +35,25 @@ export type {
 
 export { vendorScore } from './vendor.js';
 
+// Work-order dispatch (M5/M6). Distinct from notification dispatch above:
+// `decideDispatch` decides whether to *interrupt a human*, this decides whether
+// to *send a technician*.
+export {
+  approvalForNte,
+  completionOutcome,
+  eligibleVendors,
+  quoteSelectionIsValid,
+  rankQuotes,
+} from './dispatch.js';
+export type {
+  ApprovalDecision,
+  ApprovalReason,
+  CompletionOutcome,
+  DispatchVendor,
+  EligibilityQuery,
+  QuoteForRanking,
+} from './dispatch.js';
+
 export {
   occupancyRate,
   delinquencyRateBps,

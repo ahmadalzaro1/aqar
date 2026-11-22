@@ -1,9 +1,13 @@
 import { notFound } from 'next/navigation';
 import { Card, Badge, EmptyState } from '@aqar/ui';
+import { tradeFor, type TicketCategory } from '@aqar/core';
 import { sql } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { getMessages, t } from '@/i18n/server';
+import { getMessages, getLocale, t } from '@/i18n/server';
 import { ticketMessages } from '@/lib/queries';
+import { DispatchPanel } from './DispatchPanel';
+import { dispatchStrings } from './dispatch-dict';
+import { dispatchBoard, dispatchContext, eligibleRoster, spendPolicy } from './dispatch-queries';
 
 export default async function TicketDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -30,6 +34,43 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   const traces =
     await sql`SELECT id, steps, total_tokens, total_latency_ms, handed_off_to_human FROM agent_traces WHERE ticket_id = ${id} ORDER BY id`;
   const emergency = Boolean(tk['emergency_flag']);
+
+  // Dispatch (M5/M6). The trade comes from the taxonomy, never from a second
+  // copy of the mapping; eligibility is judged on today's date in Amman.
+  const category = String(tk['category'] ?? 'other') as TicketCategory;
+  const trade = tradeFor(category);
+  const todayAmman = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Amman',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const [ctx, board, vendors, policy, locale] = await Promise.all([
+    dispatchContext(user.orgId, id),
+    dispatchBoard(user.orgId, id),
+    eligibleRoster(user.orgId, trade, todayAmman),
+    spendPolicy(user.orgId),
+    getLocale(),
+  ]);
+  const nowMs = Date.now();
+  const sla =
+    ctx?.sla === null || ctx?.sla === undefined
+      ? null
+      : {
+          responseDueAt: ctx.sla.responseDueAt,
+          resolutionDueAt: ctx.sla.resolutionDueAt,
+          respondedAt: ctx.sla.respondedAt,
+          resolvedAt: ctx.sla.resolvedAt,
+          responseBreached:
+            ctx.sla.respondedAt === null &&
+            ctx.sla.responseDueAt !== null &&
+            Date.parse(ctx.sla.responseDueAt) < nowMs,
+          resolutionBreached:
+            ctx.sla.resolvedAt === null &&
+            ctx.sla.resolutionDueAt !== null &&
+            Date.parse(ctx.sla.resolutionDueAt) < nowMs,
+        };
+
   return (
     <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
       {emergency && (
@@ -90,6 +131,20 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
           </ul>
         )}
       </Card>
+      <DispatchPanel
+        ticketId={id}
+        vendors={vendors.map((v) => ({
+          id: v.id,
+          name: v.nameAr ?? v.nameEn,
+          score: v.score,
+          rating: v.rating,
+          phone: v.phone,
+        }))}
+        board={board}
+        sla={sla}
+        policy={policy}
+        s={dispatchStrings(locale)}
+      />
       <Card title={t(m, 'ticket.trace')}>
         {traces.length === 0 ? (
           <EmptyState title={t(m, 'ticket.trace.empty')} />
