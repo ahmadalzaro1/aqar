@@ -6,7 +6,12 @@ import { createSql, type Sql } from '@aqar/db';
 import type { ChannelsConfig } from './config.js';
 import { parseRedisUrl } from './connections.js';
 import { deterministicTicketId } from './ids.js';
-import { normalizeTelegram, normalizeWhatsApp, PayloadError, type NormalizedInbound } from './payloads.js';
+import {
+  normalizeTelegram,
+  normalizeWhatsApp,
+  PayloadError,
+  type NormalizedInbound,
+} from './payloads.js';
 import {
   deleteTicket,
   ensureChannelIdentity,

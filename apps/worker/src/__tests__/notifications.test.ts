@@ -8,10 +8,7 @@
 //   - an unanswered intent must expire rather than ping forever.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createSql } from '@aqar/db';
-import {
-  TIER_POLICIES,
-  type NotificationTier,
-} from '@aqar/core';
+import { TIER_POLICIES, type NotificationTier } from '@aqar/core';
 import {
   dispatchPending,
   expireUnanswered,

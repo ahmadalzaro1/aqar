@@ -32,11 +32,17 @@ export async function login(
   if (user === undefined || user['is_active'] === false) return { ok: false, error: 'invalid' };
   // A throwing verify() is a failed login, not a 500 — but never an implicit
   // `true`, so the rejection handler is explicit about the value it yields.
-  const passwordOk = await verify(String(user['password_hash']), password).catch((): false => false);
+  const passwordOk = await verify(String(user['password_hash']), password).catch(
+    (): false => false,
+  );
   if (!passwordOk) return { ok: false, error: 'invalid' };
   const secret = user['totp_secret'];
   if (typeof secret === 'string' && secret.length > 0 && MONEY_ROLES.has(String(user['role']))) {
-    const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30 });
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(secret),
+      digits: 6,
+      period: 30,
+    });
     const delta = totp.validate({ token: totpCode ?? '', window: 1 });
     if (delta === null) return { ok: false, error: 'totp' };
   }
@@ -47,7 +53,9 @@ export async function login(
     VALUES (${randomBytes(16).toString('hex')}, ${String(user['organization_id'])}, ${sha256(token)}, ${String(user['id'])}, ${expires})`;
   const store = await cookies();
   store.set(COOKIE, token, {
-    httpOnly: true, sameSite: 'lax', path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
     secure: process.env['NODE_ENV'] === 'production',
     maxAge: 7 * 24 * 3600,
   });
@@ -66,8 +74,12 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const r = rows[0];
   if (r === undefined) return null;
   return {
-    id: String(r['id']), email: String(r['email']), role: String(r['role']),
-    orgId: String(r['organization_id']), nameEn: String(r['name_en']), nameAr: String(r['name_ar']),
+    id: String(r['id']),
+    email: String(r['email']),
+    role: String(r['role']),
+    orgId: String(r['organization_id']),
+    nameEn: String(r['name_en']),
+    nameAr: String(r['name_ar']),
   };
 }
 

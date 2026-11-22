@@ -89,7 +89,9 @@ export async function scanTriggers(sql: Sql, orgId: string): Promise<ScanResult>
   return sql.begin(async (tx) => {
     await tx`select set_config('app.organization_id', ${orgId}, true)`;
 
-    const leaseRows = await tx<{ id: string; end_date: string; rent_fils: number; days_to_end: number }[]>`
+    const leaseRows = await tx<
+      { id: string; end_date: string; rent_fils: number; days_to_end: number }[]
+    >`
       insert into outbox (id, organization_id, topic, dedupe_key, payload)
       select gen_random_uuid(), ${orgId}::uuid, 'lease.expiring', 'lease_expiring:lease:' || l.id || ':' || l.end_date,
              jsonb_build_object(
@@ -251,10 +253,7 @@ function digestTitle(trigger: string, count: number): string {
     : `${String(count)} tickets past SLA`;
 }
 
-function digestBody(
-  trigger: string,
-  rows: { payload: Record<string, unknown> }[],
-): string {
+function digestBody(trigger: string, rows: { payload: Record<string, unknown> }[]): string {
   if (trigger === 'rent_overdue') {
     const oldest = rows.reduce<number>(
       (max, row) => Math.max(max, Number(row.payload['daysLate'] ?? 0)),
@@ -470,7 +469,15 @@ export async function dispatchPending(
     let humanToday = counts[0]?.human_today ?? 0;
 
     const pending = await tx<
-      { id: string; tier: number; status: string; attempts: number; max_notifications: number; title: string; body: string }[]
+      {
+        id: string;
+        tier: number;
+        status: string;
+        attempts: number;
+        max_notifications: number;
+        title: string;
+        body: string;
+      }[]
     >`
       select id, tier, status, attempts, max_notifications, title, body
         from notification_intents

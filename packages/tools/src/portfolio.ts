@@ -142,27 +142,30 @@ export const portfolioSummary: ToolDef = {
 
     return {
       properties: propertyRows,
-      totals: total === undefined ? {} : {
-        units: Number(total.units),
-        occupied: Number(total.occupied),
-        vacant: Number(total.vacant),
-        turnover: Number(total.turnover),
-        unavailable: Number(total.unavailable),
-        activeLeases: Number(total.activeLeases),
-        chargedFils: Number(total.chargedFils),
-        chargedJod: formatFils(Number(total.chargedFils)),
-        collectedFils: Number(total.collectedFils),
-        collectedJod: formatFils(Number(total.collectedFils)),
-        // Cash that arrived but has not been applied to a charge. It is not arrears
-        // relief until it is allocated, and an operator who approves a payment
-        // needs to see that gap instead of wondering why arrears did not move.
-        receivedFils: Number(total.receivedFils),
-        receivedJod: formatFils(Number(total.receivedFils)),
-        unallocatedFils: Number(total.receivedFils) - Number(total.collectedFils),
-        unallocatedJod: formatFils(Number(total.receivedFils) - Number(total.collectedFils)),
-        arrearsFils: Number(total.arrearsFils),
-        arrearsJod: formatFils(Number(total.arrearsFils)),
-      },
+      totals:
+        total === undefined
+          ? {}
+          : {
+              units: Number(total.units),
+              occupied: Number(total.occupied),
+              vacant: Number(total.vacant),
+              turnover: Number(total.turnover),
+              unavailable: Number(total.unavailable),
+              activeLeases: Number(total.activeLeases),
+              chargedFils: Number(total.chargedFils),
+              chargedJod: formatFils(Number(total.chargedFils)),
+              collectedFils: Number(total.collectedFils),
+              collectedJod: formatFils(Number(total.collectedFils)),
+              // Cash that arrived but has not been applied to a charge. It is not arrears
+              // relief until it is allocated, and an operator who approves a payment
+              // needs to see that gap instead of wondering why arrears did not move.
+              receivedFils: Number(total.receivedFils),
+              receivedJod: formatFils(Number(total.receivedFils)),
+              unallocatedFils: Number(total.receivedFils) - Number(total.collectedFils),
+              unallocatedJod: formatFils(Number(total.receivedFils) - Number(total.collectedFils)),
+              arrearsFils: Number(total.arrearsFils),
+              arrearsJod: formatFils(Number(total.arrearsFils)),
+            },
     };
   },
 };
@@ -181,11 +184,19 @@ export const listVacantUnits: ToolDef = {
   schema: vacantUnitsSchema,
   async run(ctx, raw) {
     const { propertyId, limit } = vacantUnitsSchema.parse(raw);
-    const rows = await ctx.sql<{
-      id: string; property: string; building: string | null; unitNumber: string;
-      floor: string | null; bedrooms: number | null; marketRentFils: number | null;
-      status: string; vacantSince: Date | null;
-    }[]>`
+    const rows = await ctx.sql<
+      {
+        id: string;
+        property: string;
+        building: string | null;
+        unitNumber: string;
+        floor: string | null;
+        bedrooms: number | null;
+        marketRentFils: number | null;
+        status: string;
+        vacantSince: Date | null;
+      }[]
+    >`
       select u.id,
              p.name as property,
              b.name as building,
@@ -221,7 +232,8 @@ export const listVacantUnits: ToolDef = {
         status: row.status,
         marketRentFils: row.marketRentFils,
         marketRentJod: row.marketRentFils === null ? null : formatFils(row.marketRentFils),
-        lastLeaseEnded: row.vacantSince === null ? null : row.vacantSince.toISOString().slice(0, 10),
+        lastLeaseEnded:
+          row.vacantSince === null ? null : row.vacantSince.toISOString().slice(0, 10),
       })),
     };
   },
@@ -241,11 +253,18 @@ export const listExpiringLeases: ToolDef = {
   schema: expiringLeasesSchema,
   async run(ctx, raw) {
     const { withinDays, limit } = expiringLeasesSchema.parse(raw);
-    const rows = await ctx.sql<{
-      leaseId: string; endDate: string; rentFils: number; unitNumber: string;
-      property: string; tenant: string | null; tenantId: string | null;
-      daysLeft: number;
-    }[]>`
+    const rows = await ctx.sql<
+      {
+        leaseId: string;
+        endDate: string;
+        rentFils: number;
+        unitNumber: string;
+        property: string;
+        tenant: string | null;
+        tenantId: string | null;
+        daysLeft: number;
+      }[]
+    >`
       select l.id as "leaseId",
              to_char(l.end_date, 'YYYY-MM-DD') as "endDate",
              l.rent_fils as "rentFils",

@@ -180,7 +180,9 @@ export async function sendTelegram(
     })(),
   );
   if (!response.ok || !parsed.success || !parsed.data.ok || parsed.data.result === undefined) {
-    const description = parsed.success ? (parsed.data.description ?? 'unknown error') : raw.slice(0, 300);
+    const description = parsed.success
+      ? (parsed.data.description ?? 'unknown error')
+      : raw.slice(0, 300);
     throw new OutboundError(`Telegram send failed (${response.status}): ${description}`);
   }
   const messageId = String(parsed.data.result.message_id);

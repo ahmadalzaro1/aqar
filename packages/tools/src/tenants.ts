@@ -32,11 +32,19 @@ export const searchTenants: ToolDef = {
   async run(ctx, raw) {
     const { query, limit } = searchTenantsSchema.parse(raw);
     const like = `%${query}%`;
-    const rows = await ctx.sql<{
-      id: string; nameEn: string | null; nameAr: string | null; phone: string | null;
-      email: string | null; unitNumber: string | null; property: string | null;
-      leaseStatus: string | null; endDate: string | null;
-    }[]>`
+    const rows = await ctx.sql<
+      {
+        id: string;
+        nameEn: string | null;
+        nameAr: string | null;
+        phone: string | null;
+        email: string | null;
+        unitNumber: string | null;
+        property: string | null;
+        leaseStatus: string | null;
+        endDate: string | null;
+      }[]
+    >`
       select t.id,
              t.full_name_en as "nameEn",
              t.full_name_ar as "nameAr",
@@ -91,12 +99,21 @@ export const listArrears: ToolDef = {
   schema: listArrearsSchema,
   async run(ctx, raw) {
     const { limit } = listArrearsSchema.parse(raw);
-    const rows = await ctx.sql<{
-      tenantId: string; nameEn: string | null; nameAr: string | null;
-      unitNumber: string | null; property: string | null;
-      chargedFils: string; allocatedFils: string; outstandingFils: string;
-      oldestDue: string | null; daysLate: number | null; phone: string | null;
-    }[]>`
+    const rows = await ctx.sql<
+      {
+        tenantId: string;
+        nameEn: string | null;
+        nameAr: string | null;
+        unitNumber: string | null;
+        property: string | null;
+        chargedFils: string;
+        allocatedFils: string;
+        outstandingFils: string;
+        oldestDue: string | null;
+        daysLate: number | null;
+        phone: string | null;
+      }[]
+    >`
       with charged as (
         select c.lease_id,
                sum(c.amount_fils)::bigint as amount,
@@ -179,7 +196,9 @@ export const tenantStatement: ToolDef = {
   async run(ctx, raw) {
     const { tenantId, limit } = tenantStatementSchema.parse(raw);
 
-    const tenantRows = await ctx.sql<{ id: string; nameEn: string | null; nameAr: string | null; phone: string | null }[]>`
+    const tenantRows = await ctx.sql<
+      { id: string; nameEn: string | null; nameAr: string | null; phone: string | null }[]
+    >`
       select id, full_name_en as "nameEn", full_name_ar as "nameAr", phone
         from tenants
        where organization_id = ${ctx.org.id} and id = ${tenantId}
@@ -190,10 +209,18 @@ export const tenantStatement: ToolDef = {
       throw new ToolFailure('tenant_not_found', `No tenant ${tenantId} in this organization`);
     }
 
-    const charges = await ctx.sql<{
-      id: string; period: string; kind: string; amountFils: number;
-      dueDate: string; allocatedFils: string; outstandingFils: string; unitNumber: string | null;
-    }[]>`
+    const charges = await ctx.sql<
+      {
+        id: string;
+        period: string;
+        kind: string;
+        amountFils: number;
+        dueDate: string;
+        allocatedFils: string;
+        outstandingFils: string;
+        unitNumber: string | null;
+      }[]
+    >`
       select c.id,
              c.period,
              c.kind::text as kind,
@@ -214,7 +241,15 @@ export const tenantStatement: ToolDef = {
        limit ${limit}
     `;
 
-    const payments = await ctx.sql<{ id: string; amountFils: number; receivedDate: string; method: string; reference: string | null }[]>`
+    const payments = await ctx.sql<
+      {
+        id: string;
+        amountFils: number;
+        receivedDate: string;
+        method: string;
+        reference: string | null;
+      }[]
+    >`
       select id,
              amount_fils as "amountFils",
              to_char(received_date, 'YYYY-MM-DD') as "receivedDate",
@@ -226,7 +261,9 @@ export const tenantStatement: ToolDef = {
        limit ${limit}
     `;
 
-    const promises = await ctx.sql<{ amountFils: number; promisedDate: string; status: string; note: string | null }[]>`
+    const promises = await ctx.sql<
+      { amountFils: number; promisedDate: string; status: string; note: string | null }[]
+    >`
       select amount_fils as "amountFils",
              to_char(promised_date, 'YYYY-MM-DD') as "promisedDate",
              status,
@@ -237,7 +274,10 @@ export const tenantStatement: ToolDef = {
        limit 10
     `;
 
-    const totalOutstanding = charges.reduce((sum, charge) => sum + Number(charge.outstandingFils), 0);
+    const totalOutstanding = charges.reduce(
+      (sum, charge) => sum + Number(charge.outstandingFils),
+      0,
+    );
 
     return {
       tenant: {
