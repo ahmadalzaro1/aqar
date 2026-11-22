@@ -182,7 +182,9 @@ jobs:
 
       - name: budget
         if: always()
-        run: node scripts/ci/budget.mjs --job test --budget 45 --start "$JOB_START"
+        # 60s, not 45: on push the job also records the test inventory, which re-runs the
+        # 6s offline suite to ask "what actually ran?". That is 19s of wall on main only.
+        run: node scripts/ci/budget.mjs --job test --budget 60 --start "$JOB_START"
 
   integration:
     name: tests (postgres · redis · mailpit)
