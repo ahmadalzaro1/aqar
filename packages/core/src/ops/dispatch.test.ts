@@ -85,12 +85,21 @@ describe('eligibleVendors', () => {
     expect(out.map((v) => v.nameEn)).toEqual(['Alpha', 'Zeta']);
   });
 
-  it('accepts a category word for the trade when the caller passes it as an alias', () => {
+  it('matches a legacy stored trade word without the caller supplying aliases', () => {
+    // `plumbing` is what pre-0019 rows actually contain. Forcing the caller to remember
+    // the old spelling would let a rename silently orphan every vendor who had it, so the
+    // matcher normalises both sides through `canonicalTrade`. The alias argument stays
+    // supported for callers that still pass it.
     const roster = [vendor({ id: 'p', trades: ['plumbing'] })];
-    expect(eligibleVendors(roster, { trade: 'plumber', onDate: '2026-11-22' })).toHaveLength(0);
+    expect(eligibleVendors(roster, { trade: 'plumber', onDate: '2026-11-22' })).toHaveLength(1);
     expect(
       eligibleVendors(roster, { trade: 'plumber', onDate: '2026-11-22', aliases: ['plumbing'] }),
     ).toHaveLength(1);
+  });
+
+  it('matches an Arabic trade word stored on the vendor', () => {
+    const roster = [vendor({ id: 's', trades: ['سباكة'] })];
+    expect(eligibleVendors(roster, { trade: 'plumber', onDate: '2026-11-22' })).toHaveLength(1);
   });
 
   it('returns an empty list rather than inventing a vendor', () => {
