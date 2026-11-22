@@ -205,34 +205,27 @@ maybe('the database enforces the space taxonomy', () => {
 
     // A bay belonging to a flat on another property is a billing dispute waiting
     // to happen, so the trigger refuses it.
+    // Pick the target by the boundary under test, not by whichever row happens
+    // to carry the lowest random UUID. A unit in the *same* building is a legal
+    // allocation, so `order by id` over freshly seeded UUIDs made this
+    // assertion a coin toss across the seed's two buildings.
     const others = await sql<{ id: string }[]>`
       select id from units
-       where organization_id = ${orgId}::uuid and building_id is not null and id <> ${flatId}::uuid
+       where organization_id = ${orgId}::uuid
+         and building_id is not null
+         and building_id <> ${buildingId}::uuid
+         and id <> ${flatId}::uuid
        order by id limit 1`;
     const other = others[0];
-    if (other === undefined) throw new Error('need a second unit');
-    const otherProperty = await sql<{ property_id: string }[]>`
-      select property_id from units where id = ${other.id}::uuid`;
-    if (otherProperty[0]?.property_id === propertyId) {
-      // Same property in this seed: the cross-property case is exercised by the
-      // bay's own property check, so assert the trigger exists and fires on a
-      // different building instead.
-      await expect(
-        sql.begin(async (tx) => {
-          await tx`select set_config('app.organization_id', ${orgId}, true)`;
-          await tx`update unit_parking_detail set allocated_to_unit_id = ${other.id}::uuid
-                    where unit_id = ${bayId}::uuid`;
-        }),
-      ).rejects.toThrow(/different buildings|different properties/);
-    } else {
-      await expect(
-        sql.begin(async (tx) => {
-          await tx`select set_config('app.organization_id', ${orgId}, true)`;
-          await tx`update unit_parking_detail set allocated_to_unit_id = ${other.id}::uuid
-                    where unit_id = ${bayId}::uuid`;
-        }),
-      ).rejects.toThrow(/different properties/);
-    }
+    if (other === undefined)
+      throw new Error('need a unit in another building; the seed must create one');
+    await expect(
+      sql.begin(async (tx) => {
+        await tx`select set_config('app.organization_id', ${orgId}, true)`;
+        await tx`update unit_parking_detail set allocated_to_unit_id = ${other.id}::uuid
+                  where unit_id = ${bayId}::uuid`;
+      }),
+    ).rejects.toThrow(/different buildings|different properties/);
 
     // A bay cannot be allocated to another bay.
     const secondBay = await insertUnit({ space_kind: 'parking', building_id: null });
