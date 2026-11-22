@@ -110,16 +110,32 @@ export const units = pgTable(
     propertyId: uuid('property_id')
       .notNull()
       .references(() => properties.id, { onDelete: 'cascade' }),
-    buildingId: uuid('building_id')
-      .notNull()
-      .references(() => buildings.id, { onDelete: 'cascade' }),
+    /**
+     * Nullable on purpose: a parcel, a farm or a surface parking bay belongs to no
+     * building. Migration 0008 encodes which kinds may go without one and 0017
+     * corrected it (a rooftop is the roof OF a building, so it requires one).
+     * A `notNull` here made the type system disagree with the database, and code
+     * trusted the type.
+     */
+    buildingId: uuid('building_id').references(() => buildings.id, { onDelete: 'cascade' }),
     /** What kind of lettable space this is; drives which detail table applies. */
     spaceKind: spaceKindEnum('space_kind').notNull().default('flat'),
     unitNumber: text('unit_number').notNull(),
     floor: text('floor'),
-    bedrooms: integer('bedrooms').notNull().default(1),
-    bathrooms: integer('bathrooms').notNull().default(1),
+    /**
+     * Bedroom and bathroom counts belong to residential kinds only. They are
+     * nullable because a bay or a plot has no count to state, and they carry no
+     * default: a default writes a number nobody chose and hides the check. 0008's
+     * two count checks decide which kinds may carry them.
+     */
+    bedrooms: integer('bedrooms'),
+    bathrooms: integer('bathrooms'),
     areaSqm: areaSqm(),
+    /** Net lettable area; `areaSqm` is the gross registered figure. */
+    netAreaSqm: numeric('net_area_sqm'),
+    /** Share of the building's common areas, in permille of 1000 — it apportions service charges. */
+    commonSharePermille: integer('common_share_permille'),
+    occupancyPermitRef: text('occupancy_permit_ref'),
     /** Asking rent for the unit in fils; the lease is the binding figure. */
     marketRentFils: integer('market_rent_fils').notNull(),
     status: unitStatusEnum('status').notNull().default('vacant'),
@@ -130,11 +146,57 @@ export const units = pgTable(
     index('units_org_idx').on(t.organizationId),
     index('units_property_idx').on(t.propertyId),
     index('units_status_idx').on(t.organizationId, t.status),
-    uniqueIndex('units_building_number_uq').on(t.buildingId, t.unitNumber),
-    check('units_bedrooms_ck', sql`${t.bedrooms} >= 0`),
-    check('units_bathrooms_ck', sql`${t.bathrooms} >= 0`),
+    /**
+     * Identity has two anchors, never neither. Inside a building it is
+     * (building, level, number) — "12" on B1 and "12" on B2 are different bays, and
+     * parking levels make that routine. Without a building it is (property, number),
+     * because two NULL buildings never conflict in a Postgres unique index.
+     */
+    uniqueIndex('units_building_floor_number_uq')
+      .on(t.buildingId, sql`coalesce(${t.floor}, '')`, t.unitNumber)
+      .where(sql`${t.buildingId} IS NOT NULL`),
+    uniqueIndex('units_property_number_uq')
+      .on(t.propertyId, t.unitNumber)
+      .where(sql`${t.buildingId} IS NULL`),
+    check('units_bedrooms_ck', sql`${t.bedrooms} IS NULL OR ${t.bedrooms} >= 0`),
+    check('units_bathrooms_ck', sql`${t.bathrooms} IS NULL OR ${t.bathrooms} >= 0`),
     check('units_market_rent_ck', sql`${t.marketRentFils} >= 0`),
     check('units_area_ck', sql`${t.areaSqm} IS NULL OR ${t.areaSqm} > 0`),
+    check('units_net_area_ck', sql`${t.netAreaSqm} IS NULL OR ${t.netAreaSqm} > 0`),
+    check(
+      'units_net_le_gross_ck',
+      sql`${t.netAreaSqm} IS NULL OR ${t.areaSqm} IS NULL OR ${t.netAreaSqm} <= ${t.areaSqm}`,
+    ),
+    check(
+      'units_common_share_ck',
+      sql`${t.commonSharePermille} IS NULL OR (${t.commonSharePermille} >= 0 AND ${t.commonSharePermille} <= 1000)`,
+    ),
+    check(
+      'units_common_share_needs_building_ck',
+      sql`${t.commonSharePermille} IS NULL OR ${t.buildingId} IS NOT NULL`,
+    ),
+    /** A flat with no bedroom count is unknown, not zero-bedroom. */
+    check(
+      'units_residential_counts_ck',
+      sql`${t.spaceKind} <> ALL (ARRAY['flat','villa','staff_housing','labour_camp']::space_kind[])
+          OR (${t.bedrooms} IS NOT NULL AND ${t.bathrooms} IS NOT NULL)`,
+    ),
+    check(
+      'units_nonresidential_counts_ck',
+      sql`${t.spaceKind} = ANY (ARRAY['flat','villa','staff_housing','labour_camp']::space_kind[])
+          OR (${t.bedrooms} IS NULL AND ${t.bathrooms} IS NULL)`,
+    ),
+    /** Which kinds must, may, or may not hang off a building. */
+    check(
+      'units_building_ck',
+      sql`CASE ${t.spaceKind}
+            WHEN 'land'::space_kind THEN ${t.buildingId} IS NULL
+            WHEN 'farm'::space_kind THEN ${t.buildingId} IS NULL
+            WHEN 'parking'::space_kind THEN true
+            WHEN 'signage'::space_kind THEN true
+            ELSE ${t.buildingId} IS NOT NULL
+          END`,
+    ),
   ],
 );
 
