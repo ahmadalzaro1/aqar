@@ -7,6 +7,7 @@ export * from './enums.js';
 export * from './organizations.js';
 export * from './auth.js';
 export * from './m1-property.js';
+export * from './m1-assets.js';
 export * from './m2-leasing.js';
 export * from './m3-leases.js';
 export * from './m4-finance.js';
