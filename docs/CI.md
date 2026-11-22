@@ -51,7 +51,7 @@ On `ubuntu-latest` (4 cores), from a real run — this is the number that govern
 | waiting | 3 s | 5 s |
 | `checks` | 35 s | 30.9 s / 40 s |
 | `build` | 69 s | 56.4 s / 60 s |
-| `tests` (offline) | 42 s | 28.9 s / 45 s |
+| `tests` (offline) | 42 s | 30.2 s / 60 s on `main` (45 s on PRs) |
 | `tests` (integration) | 59 s | 38.5 s / 90 s |
 | **PR result (wall, cold caches)** | **72 s** | target <60 s median |
 
