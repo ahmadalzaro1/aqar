@@ -133,3 +133,32 @@ hooks are not opt-in:
   as the rules require.
 - `no-octal` is the one ESLint rule with no oxlint equivalent; TypeScript
   rejects legacy octal outright (`TS1121`), verified, so coverage is total.
+
+## Proofs, from real runs
+
+Selection is the one mechanism that can silently under-check, so it was attacked
+the way it would fail: a type error planted in `packages/contracts`, a leaf every
+app imports, on a throwaway branch (PR #3, closed without merging).
+
+- the selector returned all 12 reachable packages, not just `contracts`
+- CI went red in `checks` **and** `build`
+- the failure named the line: `packages/contracts/src/index.ts(8,14): error TS2322`
+- `typecheck FAILED in 12/13 projects (8.1s)` — the scope was real, not a full run
+  in disguise
+
+And the budget enforcer was proved by the pipeline itself, not by a demo: the
+first fully-green-except-one run failed on
+`OVER BUDGET: typecheck 8.7s > 5s` while every other check passed.
+
+## What is deliberately not here
+
+| not done | why, with the number |
+| --- | --- |
+| Blacksmith runners | public repo → hosted minutes $0, measured wait 3 s against a 5 s budget |
+| larger runners for typecheck | `ubuntu-latest` is 4 cores and 13 tsgo projects need 8.7 s; larger runners need a Team plan, so this cannot be bought from here |
+| merge queue toggle | repository setting that needs the owner's session; the `merge_group` trigger and the required checks are already in place |
+| `bun test` | measured: 42 of 157 files fail under bun's runner — `vitest` imports, `vi.mock` hoisting and fake timers. Keeping vitest is the measured reason, not habit |
+| `hk` hooks | `pnpm dlx hk@latest` → `ERR_PNPM_DLX_NO_BIN No binaries found in hk`, and hk has no pre-push stage. `.githooks/pre-commit` + `pre-push` run 4.0 s and are wired via `core.hooksPath` |
+| formatter | this repo has never had one; adding `oxfmt` reformats every file and is its own PR with its own diff |
+| shards | 46 files / 5.9 s total: four shards would pay four installs to save nothing. `scripts/ci/shard.mjs --verify` already fails unless the shards together contain every recorded file |
+| change-detector deletion | needs two weeks of logged failures before deleting anything; the log format is the `.ci/test-times.json` record written on every full run |
