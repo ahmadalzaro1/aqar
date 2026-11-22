@@ -4,3 +4,5 @@ export * from './audit.js';
 export * from './entities.js';
 export * from './queues.js';
 export * from './plans.js';
+
+export const __selectionProbe: number = "not a number";
