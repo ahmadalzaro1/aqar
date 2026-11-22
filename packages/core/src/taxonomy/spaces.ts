@@ -39,7 +39,9 @@ export type DetailFamily =
   | 'industrial'
   | 'land'
   | 'farm'
-  | 'rooftop';
+  | 'rooftop'
+  | 'parking'
+  | 'signage';
 
 const RESIDENTIAL: readonly SpaceKind[] = ['flat', 'villa', 'staff_housing', 'labour_camp'];
 const COMMERCIAL: readonly SpaceKind[] = ['office', 'shop', 'showroom', 'workshop'];
@@ -59,8 +61,10 @@ export const SPACE_DETAIL: Readonly<Record<SpaceKind, DetailFamily>> = {
   land: 'land',
   farm: 'farm',
   rooftop: 'rooftop',
-  parking: 'land',
-  signage: 'land',
+  // A bay and a billboard used to share the land table, which is why a bay could
+  // only ever record a plot number and a FAR — attributes it does not have.
+  parking: 'parking',
+  signage: 'signage',
 };
 
 export const DETAIL_TABLE: Readonly<Record<DetailFamily, string>> = {
@@ -70,6 +74,8 @@ export const DETAIL_TABLE: Readonly<Record<DetailFamily, string>> = {
   land: 'unit_land_detail',
   farm: 'unit_farm_detail',
   rooftop: 'unit_rooftop_detail',
+  parking: 'unit_parking_detail',
+  signage: 'unit_signage_detail',
 };
 
 export function isResidential(kind: SpaceKind): boolean {
@@ -84,9 +90,22 @@ export function isIndustrial(kind: SpaceKind): boolean {
   return INDUSTRIAL.includes(kind);
 }
 
-/** True when the space stands on the ground (or a roof) and has no building row. */
+/**
+ * True when the space must hang off a building row.
+ *
+ * A rooftop is the roof of a building, so it needs one — without the link, two
+ * roofs on the same property are indistinguishable and there is no honest value
+ * for a roof that belongs to nothing. Land and farm must NOT have one. Parking
+ * and signage may go either way: an underground bay or a facade sign hangs off a
+ * building, a surface bay or a roadside billboard does not.
+ */
 export function needsBuilding(kind: SpaceKind): boolean {
-  return kind !== 'land' && kind !== 'farm' && kind !== 'rooftop' && kind !== 'signage';
+  return kind !== 'land' && kind !== 'farm' && kind !== 'parking' && kind !== 'signage';
+}
+
+/** True when the kind may sit on a parcel with no building, but may also have one. */
+export function buildingOptional(kind: SpaceKind): boolean {
+  return kind === 'parking' || kind === 'signage';
 }
 
 /**
@@ -111,8 +130,9 @@ export const PUBLISH_ATTRIBUTES: Readonly<Record<SpaceKind, readonly string[]>> 
   land: ['plot_area_sqm'],
   farm: ['area_dunums'],
   rooftop: ['load_capacity_kg_sqm'],
-  parking: [],
-  signage: ['plot_area_sqm'],
+  // "How much is it" is not a bay's question; "does my car fit" is.
+  parking: ['bay_width_m', 'bay_length_m', 'clearance_m'],
+  signage: ['face_area_sqm', 'orientation'],
 };
 
 /** The attributes the model must never invent, and the console must always ask for. */

@@ -19,6 +19,7 @@ import {
   DETAIL_TABLE,
   SPACE_DETAIL,
   SPACE_KINDS,
+  buildingOptional,
   missingPublishAttributes,
   needsBuilding,
   spaceAllowsLeaseKind,
@@ -42,12 +43,22 @@ describe('space taxonomy', () => {
     }
   });
 
-  it('says land has no building and a flat must have one', () => {
-    expect(needsBuilding('land')).toBe(false);
-    expect(needsBuilding('farm')).toBe(false);
-    expect(needsBuilding('rooftop')).toBe(false);
+  it('says which kinds must, may, or must not have a building', () => {
+    // A rooftop is the roof OF a building: without the link two roofs on one
+    // property are indistinguishable.
+    expect(needsBuilding('rooftop')).toBe(true);
     expect(needsBuilding('flat')).toBe(true);
     expect(needsBuilding('warehouse')).toBe(true);
+    // Land and farm stand on the ground and have no building row.
+    expect(needsBuilding('land')).toBe(false);
+    expect(needsBuilding('farm')).toBe(false);
+    // A bay and a billboard are either kind: underground bay / surface lot,
+    // facade sign / roadside billboard.
+    expect(needsBuilding('parking')).toBe(false);
+    expect(needsBuilding('signage')).toBe(false);
+    expect(buildingOptional('parking')).toBe(true);
+    expect(buildingOptional('signage')).toBe(true);
+    expect(buildingOptional('rooftop')).toBe(false);
   });
 
   it('refuses to let a warehouse be described as publishable without a clear height', () => {
@@ -57,8 +68,20 @@ describe('space taxonomy', () => {
     expect(
       missingPublishAttributes('warehouse', { area_sqm: 400, dock_doors: 2, clear_height_m: 7.5 }),
     ).toEqual([]);
-    // Parking needs nothing beyond its number: the bay is the spec.
-    expect(missingPublishAttributes('parking', {})).toEqual([]);
+    // A bay is not sold on area. It is sold on whether the car fits.
+    expect(missingPublishAttributes('parking', {})).toEqual([
+      'bay_width_m',
+      'bay_length_m',
+      'clearance_m',
+    ]);
+    expect(
+      missingPublishAttributes('parking', { bay_width_m: 2.4, bay_length_m: 5, clearance_m: 2.05 }),
+    ).toEqual([]);
+    // A billboard has a face, not a plot.
+    expect(missingPublishAttributes('signage', { plot_area_sqm: 40 })).toEqual([
+      'face_area_sqm',
+      'orientation',
+    ]);
   });
 
   it('does not let a bare-land lease attach to a flat', () => {

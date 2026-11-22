@@ -463,7 +463,7 @@
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: space taxonomy gives every kind a detail family and a table that exists",
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: space taxonomy maps each space to the default lease kind the console should preselect",
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: space taxonomy refuses to let a warehouse be described as publishable without a clear height",
-    "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: space taxonomy says land has no building and a flat must have one",
+    "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: space taxonomy says which kinds must, may, or must not have a building",
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: trade taxonomy cannot record a gas leak below emergency",
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: trade taxonomy gives every ticket category a trade and a floor",
     "packages/core :: packages/core/src/taxonomy/taxonomy.test.ts :: trade taxonomy lifts a calmly-described sewage flood to its floor but lets a model escalate higher",
