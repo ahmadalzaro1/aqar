@@ -46,6 +46,14 @@ export const CHAT_COLUMN_KEYS = [
   'chat.col.expenses',
   'chat.col.fee',
   'chat.col.net',
+  'chat.col.proposed',
+  'chat.col.escalation',
+  'chat.col.noticePeriod',
+  'chat.col.servedAt',
+  'chat.col.dueDate',
+  'chat.col.kind',
+  'chat.col.provenance',
+  'chat.col.confirmed',
 ] as const;
 
 export type ChatColumnKey = (typeof CHAT_COLUMN_KEYS)[number];
@@ -65,6 +73,15 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   pending: { ar: 'قيد الانتظار', en: 'Pending' },
   notice: { ar: 'إشعار إخلاء', en: 'Notice given' },
   scheduled: { ar: 'مجدول', en: 'Scheduled' },
+};
+
+/** Notice kinds are enums too; the operator reads a word, not `rent_increase`. */
+const NOTICE_KIND_LABELS: Record<string, { ar: string; en: string }> = {
+  rent_increase: { ar: 'زيادة إيجار', en: 'Rent increase' },
+  eviction: { ar: 'إخلاء', en: 'Eviction' },
+  maintenance_entry: { ar: 'دخول للصيانة', en: 'Maintenance entry' },
+  termination: { ar: 'إنهاء العقد', en: 'Termination' },
+  general: { ar: 'إشعار عام', en: 'General' },
 };
 
 /**
@@ -253,7 +270,78 @@ const SPECS: Record<string, TableSpec> = {
     totalKey: 'totalNetJod',
     countKey: 'count',
   },
+  renewal_pipeline: {
+    arrayKey: 'rows',
+    columns: [
+      { key: 'unitNumber', labelKey: 'chat.col.unit' },
+      { key: 'property', labelKey: 'chat.col.property', get: propertyCell },
+      { key: 'tenantName', labelKey: 'chat.col.tenant' },
+      { key: 'endDate', labelKey: 'chat.col.endDate' },
+      { key: 'daysToExpiry', labelKey: 'chat.col.daysLeft', align: 'end' },
+      { key: 'rent', labelKey: 'chat.col.rent', align: 'end' },
+      { key: 'proposed', labelKey: 'chat.col.proposed', align: 'end' },
+      // The tool already says "no increase in the contract" for kind:none; pass it through.
+      { key: 'escalationRule', labelKey: 'chat.col.escalation' },
+    ],
+    countKey: 'count',
+  },
+  notices_due: {
+    arrayKey: 'rows',
+    columns: [
+      { key: 'tenantName', labelKey: 'chat.col.tenant' },
+      { key: 'unitNumber', labelKey: 'chat.col.unit' },
+      {
+        key: 'kind',
+        labelKey: 'chat.col.kind',
+        get: (row, locale) => noticeKindLabel(row['kind'], locale),
+      },
+      { key: 'servedAt', labelKey: 'chat.col.servedAt' },
+      { key: 'dueDate', labelKey: 'chat.col.dueDate' },
+      { key: 'noticePeriodDays', labelKey: 'chat.col.noticePeriod', align: 'end' },
+    ],
+    countKey: 'count',
+  },
+  obligation_for: {
+    arrayKey: 'rows',
+    columns: [
+      { key: 'property', labelKey: 'chat.col.property', get: propertyCell },
+      { key: 'unitNumber', labelKey: 'chat.col.unit' },
+      {
+        key: 'confirmed',
+        labelKey: 'chat.col.confirmed',
+        get: (row, locale) => confirmedLabel(row['confirmed'], locale),
+      },
+      { key: 'provenance', labelKey: 'chat.col.provenance' },
+    ],
+    countKey: 'confirmedCount',
+  },
 };
+
+/**
+ * Arabic counts one and two with a dual form, not a numeral: "عقدان" not "2 عقد".
+ * Three to ten take the plural, eleven and above the singular accusative.
+ */
+function arCount(n: number, one: string, two: string, few: string, many: string): string {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n >= 3 && n <= 10) return `${n} ${few}`;
+  return `${n} ${many}`;
+}
+
+/** Notice kinds, same contract as statusLabel: words, passthrough for unknown. */
+function noticeKindLabel(value: unknown, locale: 'ar' | 'en'): string {
+  const key = typeof value === 'string' ? value : '';
+  const hit = NOTICE_KIND_LABELS[key];
+  if (hit === undefined) return key.length === 0 ? '—' : key;
+  return locale === 'ar' ? hit.ar : hit.en;
+}
+
+/** Whether a clause is the answer or only a machine's guess at the answer. */
+function confirmedLabel(value: unknown, locale: 'ar' | 'en'): string {
+  if (value === true) return locale === 'ar' ? 'مؤكد' : 'Confirmed';
+  if (value === false) return locale === 'ar' ? 'غير مؤكد' : 'Unconfirmed';
+  return '—';
+}
 
 function cell(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -362,6 +450,68 @@ export function leadForTool(
     return ar
       ? `${name}: مستحق ${total} د.أ${when}. تفصيل العقود والبنود أدناه.`
       : `${name}: ${total} JOD outstanding${when}. Leases and charges below.`;
+  }
+
+  if (tool === 'renewal_pipeline') {
+    const count = num(record['count']) ?? 0;
+    const days = num(record['windowDays']);
+    const window = days === null ? '' : ar ? ` خلال ${days} يومًا` : ` within ${days} days`;
+    if (count === 0) {
+      return ar ? `لا عقود تنتهي${window}.` : `No leases expire${window}.`;
+    }
+    const rows = Array.isArray(record['rows']) ? (record['rows'] as Record<string, unknown>[]) : [];
+    const none = rows.filter((r) => String(r['escalationKind'] ?? '') === 'none').length;
+    const offered = rows.filter((r) => typeof r['offerStatus'] === 'string').length;
+    const total = num(record['totalProposedFils']);
+    return ar
+      ? `${arCount(count, 'عقد واحد ينتهي', 'عقدان ينتهيان', 'عقود تنتهي', 'عقدًا ينتهي')}${window}. ` +
+          (none === count && none > 0
+            ? 'لا تتضمن أي منها زيادة — التمديد بنفس الإيجار. '
+            : none > 0
+              ? `${none} منها لا تتضمن زيادة. `
+              : '') +
+          (offered === 0 ? 'لم يُرسل أي عرض تجديد بعد. ' : `عروض مُرسلة ${offered}. `) +
+          (total === null ? '' : `إجمالي الإيجار المقترح ${Math.round(total / 100)} د.أ. `) +
+          'التفصيل أدناه.'
+      : `${count} lease(s) expiring${window}. ` +
+          (none > 0 ? `${none} carry no escalation — renewal at the same rent. ` : '') +
+          (offered === 0 ? 'No renewal offer sent yet. ' : `${offered} offer(s) sent. `) +
+          (total === null ? '' : `Proposed rent total ${Math.round(total / 100)} JOD. `) +
+          'Breakdown below.';
+  }
+
+  if (tool === 'notices_due') {
+    const count = num(record['count']) ?? 0;
+    const computable = num(record['computableDeadlines']) ?? 0;
+    const missing = num(record['missingNoticePeriod']) ?? 0;
+    if (count === 0) return null;
+    return ar
+      ? `${count} إشعار صادر. ${computable} منها بتاريخ استحقاق محسوب من مدة الإخطار` +
+          (missing > 0 ? `، و${missing} بلا مدة إخطار مسجّلة في العقد فلا يمكن حساب تاريخها.` : '.')
+      : `${count} outgoing notice(s). ${computable} with a deadline computed from the notice period` +
+          (missing > 0
+            ? `, ${missing} on leases with no recorded notice period, so no date can be computed.`
+            : '.');
+  }
+
+  if (tool === 'obligation_for') {
+    const basis = typeof record['basis'] === 'string' ? record['basis'] : null;
+    if (basis === null) return null;
+    const confirmed = num(record['confirmedCount']) ?? 0;
+    const unconfirmed = num(record['unconfirmedCount']) ?? 0;
+    const legal = Array.isArray(record['rows']) ? record['rows'].length : 0;
+    if (basis === 'lease_clause') {
+      return ar
+        ? `الأساس: بند في العقد — ${confirmed} مؤكد و${unconfirmed} غير مؤكد. ` +
+            (confirmed === 0 ? 'لا يُعرض أي بند كإجابة قبل مراجعته. ' : '') +
+            'التفصيل أدناه.'
+        : `Basis: lease clause — ${confirmed} confirmed, ${unconfirmed} unconfirmed. ` +
+            (confirmed === 0 ? 'Nothing is presented as the answer before review. ' : '') +
+            'Breakdown below.';
+    }
+    return ar
+      ? `الأساس: مادة قانونية مراجَعة (${legal}). المصدر والمراجع في الصفوف أدناه.`
+      : `Basis: reviewed legal article (${legal}). Source and reviewer in the rows below.`;
   }
 
   if (tool === 'deposits_held') {

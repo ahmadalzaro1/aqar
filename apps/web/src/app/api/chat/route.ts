@@ -17,8 +17,8 @@ import {
   type ChatResponse,
   type ModelTool,
 } from '@aqar/agents';
-import { registry, type ToolContext } from '@aqar/tools';
-import { degradedAnswer, routeQuestion, unknownQuestion } from '@/lib/router';
+import { isToolFailure, registry, type ToolContext } from '@aqar/tools';
+import { degradedAnswer, refusalAnswer, routeQuestion, unknownQuestion } from '@/lib/router';
 import type { Sql } from '@aqar/db';
 import { getSessionUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
@@ -201,6 +201,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         ok: false,
         error: err instanceof Error ? err.message : String(err),
       });
+      // A refusal is the answer. Sending it to the model would turn a precise
+      // "this record does not exist" into prose, in the wrong language.
+      if (isToolFailure(err)) {
+        return NextResponse.json({
+          answer: refusalAnswer(err.code, locale),
+          model: `rules:${routed.reason}:${err.code}`,
+          lane: 'rules',
+          latencyMs: Date.now() - started,
+          costUsd: 0,
+          tools: trace,
+          table: null,
+          strongAvailable: providers.strong !== null,
+        });
+      }
     }
   }
 

@@ -102,6 +102,47 @@ const INTENTS: Intent[] = [
 ];
 
 /**
+ * Tier-3 intents carry an argument, so they cannot live in the static table.
+ * A clause word maps to the vocabulary the tool accepts — nothing else does, so
+ * an unrecognised repair question falls through to the nudge instead of a guess.
+ */
+const CLAUSE_WORDS: ReadonlyArray<{ pattern: RegExp; clause: string }> = [
+  {
+    pattern: /سخان|سخانات|أجهزة|اجهزة|water\s*heater|appliance|boiler/i,
+    clause: 'repairs_appliance',
+  },
+  {
+    pattern: /إنشائي|انشائي|هيكل|سطح|تسريب|structural|roof|foundation/i,
+    clause: 'repairs_structural',
+  },
+  {
+    pattern: /رسوم\s*الخدمات|خدمات\s*المبنى|service\s*charge|building\s*fee/i,
+    clause: 'service_charge',
+  },
+  { pattern: /من\s*الباطن|sublet|sub-let/i, clause: 'sublet' },
+  { pattern: /حيوان|حيوانات|pet/i, clause: 'pets' },
+  { pattern: /استرداد\s*التأمين|تأمين\s*مسترد|deposit\s*refund/i, clause: 'deposit_refund' },
+  { pattern: /إنهاء\s*مبكر|انهاء\s*مبكر|early\s*termination|فسخ/i, clause: 'early_termination' },
+  { pattern: /تجديد\s*تلقائي|auto[\s-]*renew/i, clause: 'auto_renewal' },
+  { pattern: /حق\s*الدخول|زيارة\s*الوحدة|entry\s*right/i, clause: 'entry_rights' },
+];
+
+/** The question has to be about responsibility before a clause is worth resolving. */
+const RESPONSIBILITY =
+  /من\s*يدفع|مين\s*يدفع|على\s*من|مسؤول|مسؤولية|who\s*pays|who\s*is\s*responsible|responsible\s*for/i;
+const NOTICE_ASK = /إشعار|اشعار|إخطار|اخطار|إنذار|انذار|notice|eviction/i;
+const RENEWAL_ASK =
+  /تجديد|جدّد|جدد\s*العقد|عرض\s*تجديد|renew|renewal|زيادة\s*الإيجار|rent\s*increase/i;
+
+function clauseFor(text: string): string | null {
+  if (!RESPONSIBILITY.test(text)) return null;
+  for (const entry of CLAUSE_WORDS) {
+    if (entry.pattern.test(text)) return entry.clause;
+  }
+  return null;
+}
+
+/**
  * A tenant named inside the question wins over every keyword rule except deposits
  * and rent roll, which are about the whole book rather than one person.
  * Matched in SQL so the Arabic name does not have to be normalised in JS.
@@ -135,6 +176,19 @@ export async function routeQuestion(
     };
   }
 
+  // Tier-3: renewal and notices before the generic expiring-lease rule, which
+  // answers a narrower question ("what ends soon") than "what do we renew".
+  const clause = clauseFor(text);
+  if (clause !== null) {
+    return { name: 'obligation_for', args: { clause }, reason: `responsibility for ${clause}` };
+  }
+  if (NOTICE_ASK.test(text)) {
+    return { name: 'notices_due', args: { horizonDays: 60 }, reason: 'notices and deadlines' };
+  }
+  if (RENEWAL_ASK.test(text)) {
+    return { name: 'renewal_pipeline', args: { days: 120 }, reason: 'renewal pipeline' };
+  }
+
   for (const intent of INTENTS.slice(4)) {
     if (intent.pattern.test(text)) {
       return { name: intent.name, args: intent.args, reason: intent.reason };
@@ -151,6 +205,33 @@ export function degradedAnswer(locale: Locale): string {
 }
 
 /** Locale-correct nudge used when nothing matches, instead of a model apology. */
+/** A refusal is an answer, not an error — say it in the language that was asked. */
+export function refusalAnswer(code: string, locale: 'ar' | 'en'): string {
+  const ar: Record<string, string> = {
+    no_notices:
+      'لا يوجد أي إشعار صادر مسجّل حتى الآن، لذلك لا يوجد تاريخ استحقاق يُحسب. يُسجَّل الإشعار أولًا في سجل الإشعارات، ويُحسب تاريخ الاستحقاق تلقائيًا من مدة الإخطار المكتوبة في العقد.',
+    no_obligation_record:
+      'لا يوجد سند موثّق لهذه المسألة: لا بند في العقود ولا مادة قانونية مراجَعة. لن أخمّن. لتُصبح قابلة للإجابة يجب تسجيل بند العقد، أو إدخال المادة القانونية مع رابط المصدر واسم من راجعها.',
+    not_found: 'لم أجد السجل المطلوب ضمن بيانات المؤسسة.',
+    no_rows: 'لا توجد صفوف مطابقة في البيانات الحالية.',
+  };
+  const en: Record<string, string> = {
+    no_notices:
+      'No outgoing notice is recorded yet, so there is no deadline to compute. Once a notice is entered, its due date is derived from the notice period written into the lease.',
+    no_obligation_record:
+      'There is no documented basis for this: no lease clause and no reviewed legal article. I will not guess. Record the clause, or enter the article with its source URL and reviewer.',
+    not_found: 'No matching record in this organisation.',
+    no_rows: 'No rows match in the current data.',
+  };
+  const table = locale === 'ar' ? ar : en;
+  return (
+    table[code] ??
+    (locale === 'ar'
+      ? 'تعذّر إكمال الطلب من البيانات المتاحة، ولم أخمّن النتيجة.'
+      : 'The request could not be answered from the available data, and I did not guess.')
+  );
+}
+
 export function unknownQuestion(locale: Locale): string {
   return locale === 'ar'
     ? 'لم أحدد المقصود تمامًا. جرّب: «كم يستحق على خليل عدنان الطراونة؟» أو «شو نسبة التحصيل؟» أو «كم تأمين نحتجز؟»'
