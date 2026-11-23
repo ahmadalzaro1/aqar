@@ -27,8 +27,49 @@ const obligationKind = z.enum([
   'entry_rights',
 ]);
 
+/** Mirrors the equipment_kind enum. Kept as a literal so a typo is a type error. */
+const equipmentKind = z.enum([
+  'structure',
+  'roof',
+  'envelope',
+  'water_supply',
+  'water_tank',
+  'pump',
+  'drainage',
+  'sewer',
+  'gas_network',
+  'gas_cylinder',
+  'electrical_panel',
+  'wiring',
+  'generator',
+  'solar',
+  'hvac_split',
+  'hvac_central',
+  'water_heater',
+  'elevator',
+  'fire_alarm',
+  'fire_extinguisher',
+  'fire_riser',
+  'security_access',
+  'cctv',
+  'intercom',
+  'door_lock',
+  'kitchen',
+  'appliance',
+  'plumbing_fixture',
+  'lighting',
+  'parking_equipment',
+  'signage',
+  'other',
+]);
+
 export const obligationForSchema = z.object({
   clause: obligationKind.describe('The obligation to resolve, in the clause vocabulary'),
+  equipmentKind: equipmentKind
+    .optional()
+    .describe(
+      'The piece of equipment the question names. Supplying it enables the maintenance_policy lookup, which is how "who pays for the water heater" gets a real answer instead of a refusal.',
+    ),
   leaseId: z.uuid().optional().describe('A specific lease; omit to answer for the whole portfolio'),
 });
 
@@ -46,6 +87,22 @@ interface ClauseRow {
   propertyAr: string | null;
 }
 
+interface PolicyRow {
+  responsibility: string;
+  wearVsDamage: string;
+  basis: string;
+  noteAr: string | null;
+  noteEn: string | null;
+  propertyId: string | null;
+  property: string | null;
+  propertyAr: string | null;
+  effectiveFrom: string;
+  instrument: string | null;
+  article: string | null;
+  sourceUrl: string | null;
+  reviewedBy: string | null;
+}
+
 /**
  * Resolve one obligation. Order is fixed and auditable: the lease's own terms
  * first (a contract beats a default), then the reviewed legal corpus, then a
@@ -59,7 +116,7 @@ export const obligationFor: ToolDef = {
     'Answer "who pays for this / who decides this" for one clause of the lease vocabulary. Returns the lease clause when one exists, otherwise the reviewed legal basis, otherwise a refusal naming the missing record. Never guesses.',
   schema: obligationForSchema,
   async run(ctx, raw) {
-    const { clause, leaseId } = obligationForSchema.parse(raw);
+    const { clause, equipmentKind: equipment, leaseId } = obligationForSchema.parse(raw);
 
     const clauses = await ctx.sql<ClauseRow[]>`
       select lc.lease_id as "leaseId",
@@ -111,6 +168,80 @@ export const obligationFor: ToolDef = {
       };
     }
 
+    // A recorded policy decision beats a general statute, and a property row
+    // beats an organisation row. This is the branch that answers the water
+    // heater without inventing anything: if no row exists, we fall through.
+    if (equipment !== undefined) {
+      const scope = leaseId
+        ? await ctx.sql<{ propertyId: string | null }[]>`
+            select property_id as "propertyId"
+              from leases
+             where id = ${leaseId} and organization_id = ${ctx.org.id}
+             limit 1
+          `
+        : [];
+      const propertyId = scope[0]?.propertyId ?? null;
+
+      const policies = await ctx.sql<PolicyRow[]>`
+        select mp.responsibility::text as responsibility,
+               mp.wear_vs_damage::text as "wearVsDamage",
+               mp.basis,
+               mp.note_ar as "noteAr",
+               mp.note_en as "noteEn",
+               mp.property_id as "propertyId",
+               p.name as property,
+               p.name_ar as "propertyAr",
+               mp.effective_from::text as "effectiveFrom",
+               lr.instrument,
+               lr.article,
+               lr.source_url as "sourceUrl",
+               lr.reviewed_by as "reviewedBy"
+          from maintenance_policy mp
+          left join properties p on p.id = mp.property_id
+          left join legal_reference lr on lr.id = mp.legal_reference_id
+         where mp.organization_id = ${ctx.org.id}
+           and mp.equipment_kind = ${equipment}::equipment_kind
+           and mp.effective_to is null
+           and (
+             (${propertyId}::uuid is not null
+              and (mp.property_id is null or mp.property_id = ${propertyId}::uuid))
+             or (${propertyId}::uuid is null and mp.property_id is null)
+           )
+         order by (mp.property_id is not null) desc
+         limit 1
+      `;
+
+      const policy = policies[0];
+      if (policy !== undefined) {
+        return {
+          basis: 'maintenance_policy',
+          clause,
+          equipmentKind: equipment,
+          responsibility: policy.responsibility,
+          wearVsDamage: policy.wearVsDamage,
+          policyBasis: policy.basis,
+          scope: policy.propertyId === null ? 'organization' : 'property',
+          property: policy.property,
+          propertyAr: policy.propertyAr,
+          effectiveFrom: policy.effectiveFrom,
+          citation:
+            policy.instrument === null
+              ? null
+              : {
+                  instrument: policy.instrument,
+                  article: policy.article,
+                  sourceUrl: policy.sourceUrl,
+                  reviewedBy: policy.reviewedBy,
+                },
+          noteAr: policy.noteAr,
+          noteEn: policy.noteEn,
+          // A policy is a decision someone recorded, not a contract term.
+          confirmed: false,
+          note: 'Recorded as a maintenance policy, not as a lease term. Confirm against the lease before acting on it.',
+        };
+      }
+    }
+
     const legal = await ctx.sql<
       {
         instrument: string;
@@ -136,7 +267,7 @@ export const obligationFor: ToolDef = {
     throw new ToolFailure(
       'no_obligation_record',
       `No lease clause of type "${clause}" and no reviewed legal article answers this.`,
-      'Record the clause on the lease (lease_clauses) or cite a reviewed article (legal_reference with source_url and reviewed_by). Until then the console refuses rather than guessing.',
+      'Record the clause on the lease (lease_clauses), record a responsibility decision for this equipment kind (maintenance_policy: responsibility + basis), or cite a reviewed article (legal_reference with source_url and reviewed_by). Until then the console refuses rather than guessing.',
     );
   },
 };
