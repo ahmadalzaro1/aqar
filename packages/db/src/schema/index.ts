@@ -17,5 +17,6 @@ export * from './m5-maintenance.js';
 export * from './m6-vendor-ops.js';
 export * from './m7-owners.js';
 export * from './m8-compliance.js';
+export * from './legal.js';
 export * from './m9-views.js';
 export * from './taxonomy.js';

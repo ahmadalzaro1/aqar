@@ -20,7 +20,6 @@
   "login.submit": "دخول",
   "login.error.invalid": "هذا البريد غير مسجّل في النظام.",
   "login.error.required": "أدخل بريدًا إلكترونيًا صحيحًا.",
-  "login.hint": "بيانات التطوير: admin@aqar.example",
   "shell.logout": "خروج",
   "shell.locale": "English",
   "shell.theme": "المظهر",

@@ -20,7 +20,6 @@
   "login.submit": "Sign in",
   "login.error.invalid": "That email isn't registered on this ledger.",
   "login.error.required": "Enter a valid email address.",
-  "login.hint": "Dev seed: admin@aqar.example",
   "shell.logout": "Sign out",
   "shell.locale": "العربية",
   "shell.theme": "Theme",

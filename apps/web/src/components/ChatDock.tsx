@@ -9,17 +9,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Locale } from '@aqar/contracts';
 import { Bot, Send, X, ChevronDown, Loader2 } from 'lucide-react';
+import type { ChatColumnKey, ToolTrace } from '@/lib/toolTable';
 
-interface ToolTrace {
-  name: string;
-  ms: number;
-  ok: boolean;
+interface ToolTable {
+  tool: string;
+  columns: { key: string; labelKey: string; align: 'start' | 'end' }[];
+  rows: Record<string, string>[];
+  totalLabelKey?: string | undefined;
+  total?: string | undefined;
+  count: number;
 }
+
 interface Turn {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   tools?: ToolTrace[];
+  table?: ToolTable | null;
   meta?: { model: string; lane: string; latencyMs: number; costUsd: number };
   failed?: boolean;
 }
@@ -31,6 +37,7 @@ interface ApiReply {
   latencyMs: number;
   costUsd: number;
   tools: ToolTrace[];
+  table?: ToolTable | null;
   strongAvailable: boolean;
 }
 
@@ -44,6 +51,43 @@ const LABELS = {
     strong: 'سحابي',
     error: 'تعذّر إكمال الطلب',
     open: 'المساعد',
+    cols: {
+      'chat.col.tenant': 'المستأجر',
+      'chat.col.unit': 'الوحدة',
+      'chat.col.property': 'العقار',
+      'chat.col.outstanding': 'المستحق (د.أ)',
+      'chat.col.since': 'أقدم استحقاق',
+      'chat.col.floor': 'الطابق',
+      'chat.col.area': 'المساحة (م²)',
+      'chat.col.total': 'الإجمالي (د.أ)',
+      'chat.col.units': 'الوحدات',
+      'chat.col.occupied': 'المشغول',
+      'chat.col.occupancy': 'الإشغال %',
+      'chat.col.tickets': 'تذاكر مفتوحة',
+      'chat.col.endDate': 'ينتهي',
+      'chat.col.daysLeft': 'باقي (يوم)',
+      'chat.col.rent': 'الإيجار (د.أ)',
+      'chat.col.period': 'الفترة',
+      'chat.col.charged': 'المستحق (د.أ)',
+      'chat.col.collected': 'المحصّل (د.أ)',
+      'chat.col.rate': 'نسبة التحصيل %',
+      'chat.col.status': 'الحالة',
+      'chat.col.deposit': 'التأمين (د.أ)',
+      'chat.col.leaseEnd': 'ينتهي العقد',
+      'chat.col.arrears': 'المتأخرات (د.أ)',
+      'chat.col.gross': 'الإجمالي (د.أ)',
+      'chat.col.expenses': 'المصاريف (د.أ)',
+      'chat.col.fee': 'أتعاب الإدارة (د.أ)',
+      'chat.col.net': 'الصافي (د.أ)',
+      'chat.col.proposed': 'الإيجار المقترح (د.أ)',
+      'chat.col.escalation': 'الزيادة في العقد',
+      'chat.col.noticePeriod': 'مدة الإخطار (يوم)',
+      'chat.col.servedAt': 'تاريخ التبليغ',
+      'chat.col.dueDate': 'تاريخ الاستحقاق',
+      'chat.col.kind': 'نوع الإشعار',
+      'chat.col.provenance': 'مصدر البند',
+      'chat.col.confirmed': 'الحالة',
+    } satisfies Record<ChatColumnKey, string>,
   },
   en: {
     title: 'Operations assistant',
@@ -55,8 +99,115 @@ const LABELS = {
     strong: 'Cloud',
     error: 'Request failed',
     open: 'Assistant',
+    cols: {
+      'chat.col.tenant': 'Tenant',
+      'chat.col.unit': 'Unit',
+      'chat.col.property': 'Property',
+      'chat.col.outstanding': 'Outstanding (JOD)',
+      'chat.col.since': 'Oldest due',
+      'chat.col.floor': 'Floor',
+      'chat.col.area': 'Area (m²)',
+      'chat.col.total': 'Total (JOD)',
+      'chat.col.units': 'Units',
+      'chat.col.occupied': 'Occupied',
+      'chat.col.occupancy': 'Occupancy %',
+      'chat.col.tickets': 'Open tickets',
+      'chat.col.endDate': 'Ends',
+      'chat.col.daysLeft': 'Days left',
+      'chat.col.rent': 'Rent (JOD)',
+      'chat.col.period': 'Period',
+      'chat.col.charged': 'Charged (JOD)',
+      'chat.col.collected': 'Collected (JOD)',
+      'chat.col.rate': 'Collection %',
+      'chat.col.status': 'Status',
+      'chat.col.deposit': 'Deposit (JOD)',
+      'chat.col.leaseEnd': 'Lease ends',
+      'chat.col.arrears': 'Arrears (JOD)',
+      'chat.col.gross': 'Gross (JOD)',
+      'chat.col.expenses': 'Expenses (JOD)',
+      'chat.col.fee': 'Mgmt fee (JOD)',
+      'chat.col.net': 'Net (JOD)',
+      'chat.col.proposed': 'Proposed rent (JOD)',
+      'chat.col.escalation': 'Escalation in contract',
+      'chat.col.noticePeriod': 'Notice period (days)',
+      'chat.col.servedAt': 'Served',
+      'chat.col.dueDate': 'Due',
+      'chat.col.kind': 'Notice kind',
+      'chat.col.provenance': 'Clause source',
+      'chat.col.confirmed': 'Status',
+    } satisfies Record<ChatColumnKey, string>,
   },
 } as const;
+
+/**
+ * The table is rendered from the tool's own fields, never re-typed by the model.
+ * The currency lives in the column header so cells stay bare numbers — that is
+ * what stops "885,000 FILS / 885.000 JOD" from appearing side by side.
+ */
+function ToolTableView({ table, locale }: { table: ToolTable; locale: Locale }) {
+  const cols = LABELS[locale].cols as Record<string, string>;
+  const cellStyle = (align: 'start' | 'end') => ({
+    textAlign: align === 'end' ? ('end' as const) : ('start' as const),
+    padding: '3px 6px',
+    borderBlockEnd: '1px solid var(--border)',
+    whiteSpace: 'nowrap' as const,
+    fontVariantNumeric: 'tabular-nums' as const,
+  });
+  return (
+    <div style={{ overflowX: 'auto', maxInlineSize: '100%' }}>
+      <table
+        data-chat-table={table.tool}
+        style={{ borderCollapse: 'collapse', inlineSize: '100%', fontSize: 11 }}
+      >
+        <thead>
+          <tr>
+            {table.columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                style={{
+                  ...cellStyle(column.align),
+                  color: 'var(--muted)',
+                  fontWeight: 600,
+                  borderBlockEnd: '1px solid var(--border)',
+                }}
+              >
+                {cols[column.labelKey] ?? column.labelKey}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, index) => (
+            <tr key={`${table.tool}-${index}`}>
+              {table.columns.map((column) => (
+                <td key={column.key} style={cellStyle(column.align)}>
+                  <bdi>{row[column.key] ?? '—'}</bdi>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        {table.total !== undefined && table.totalLabelKey !== undefined && (
+          <tfoot>
+            <tr>
+              <th
+                scope="row"
+                colSpan={table.columns.length - 1}
+                style={{ ...cellStyle('end'), color: 'var(--muted)' }}
+              >
+                {cols[table.totalLabelKey] ?? table.totalLabelKey}
+              </th>
+              <td style={{ ...cellStyle('end'), fontWeight: 700 }}>
+                <bdi>{table.total}</bdi>
+              </td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
 
 export function ChatDock({ locale }: { locale: Locale }) {
   const L = LABELS[locale];
@@ -119,6 +270,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           lane,
+          locale,
           messages: history
             .filter((t) => t.failed !== true)
             .map((t) => ({ role: t.role, content: t.content })),
@@ -134,6 +286,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
           role: 'assistant',
           content: data.answer,
           tools: data.tools,
+          table: data.table ?? null,
           meta: data,
         },
       ]);
@@ -303,6 +456,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
             >
               {turn.content}
             </div>
+            {turn.table != null && <ToolTableView table={turn.table} locale={locale} />}
             {turn.tools !== undefined && turn.tools.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {turn.tools.map((tool, i) => (

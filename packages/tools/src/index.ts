@@ -9,12 +9,16 @@ import { systemTools } from './system.js';
 import { portfolioTools } from './portfolio.js';
 import { tenantsTools } from './tenants.js';
 import { ticketsTools } from './tickets.js';
+import { accountTools } from './accounts.js';
+import { obligationTools } from './obligations.js';
 
 export const toolDefs: readonly ToolDef[] = [
   ...systemTools,
   ...portfolioTools,
   ...tenantsTools,
   ...ticketsTools,
+  ...accountTools,
+  ...obligationTools,
 ];
 
 export const registry = makeRegistry(toolDefs);
@@ -28,6 +32,15 @@ export {
 } from './portfolio.js';
 export { searchTenants, listArrears, tenantStatement, tenantsTools } from './tenants.js';
 export { listOpenTickets, getTicket, ticketsTools } from './tickets.js';
+export { obligationFor, noticesDue, renewalPipeline, obligationTools } from './obligations.js';
+export {
+  tenantAccount,
+  depositsHeld,
+  collections,
+  rentRoll,
+  ownerStatement,
+  accountTools,
+} from './accounts.js';
 export { makeRegistry } from './registry.js';
 export type { Registry, ToolDef, ToolKind, ToolSummary } from './registry.js';
 export { ToolNotFoundError, toParameters, rawShape } from './registry.js';
