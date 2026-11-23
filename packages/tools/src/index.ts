@@ -11,6 +11,9 @@ import { tenantsTools } from './tenants.js';
 import { ticketsTools } from './tickets.js';
 import { accountTools } from './accounts.js';
 import { obligationTools } from './obligations.js';
+import { maintenanceTools } from './maintenance.js';
+import { spendTools } from './spend.js';
+import { documentTools } from './documents.js';
 
 export const toolDefs: readonly ToolDef[] = [
   ...systemTools,
@@ -19,6 +22,9 @@ export const toolDefs: readonly ToolDef[] = [
   ...ticketsTools,
   ...accountTools,
   ...obligationTools,
+  ...maintenanceTools,
+  ...spendTools,
+  ...documentTools,
 ];
 
 export const registry = makeRegistry(toolDefs);
@@ -33,6 +39,9 @@ export {
 export { searchTenants, listArrears, tenantStatement, tenantsTools } from './tenants.js';
 export { listOpenTickets, getTicket, ticketsTools } from './tickets.js';
 export { obligationFor, noticesDue, renewalPipeline, obligationTools } from './obligations.js';
+export { maintenanceCost, assetsDue, maintenanceTools } from './maintenance.js';
+export { operatingSpend, spendTools } from './spend.js';
+export { documentsDue, documentsFor, documentTools } from './documents.js';
 export {
   tenantAccount,
   depositsHeld,
