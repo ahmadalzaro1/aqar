@@ -10,6 +10,7 @@ import { portfolioTools } from './portfolio.js';
 import { tenantsTools } from './tenants.js';
 import { ticketsTools } from './tickets.js';
 import { accountTools } from './accounts.js';
+import { obligationTools } from './obligations.js';
 
 export const toolDefs: readonly ToolDef[] = [
   ...systemTools,
@@ -17,6 +18,7 @@ export const toolDefs: readonly ToolDef[] = [
   ...tenantsTools,
   ...ticketsTools,
   ...accountTools,
+  ...obligationTools,
 ];
 
 export const registry = makeRegistry(toolDefs);
@@ -30,6 +32,7 @@ export {
 } from './portfolio.js';
 export { searchTenants, listArrears, tenantStatement, tenantsTools } from './tenants.js';
 export { listOpenTickets, getTicket, ticketsTools } from './tickets.js';
+export { obligationFor, noticesDue, renewalPipeline, obligationTools } from './obligations.js';
 export {
   tenantAccount,
   depositsHeld,
