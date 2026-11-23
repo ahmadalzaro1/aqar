@@ -9,12 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Locale } from '@aqar/contracts';
 import { Bot, Send, X, ChevronDown, Loader2 } from 'lucide-react';
+import type { ChatColumnKey, ToolTrace } from '@/lib/toolTable';
 
-interface ToolTrace {
-  name: string;
-  ms: number;
-  ok: boolean;
-}
 interface ToolTable {
   tool: string;
   columns: { key: string; labelKey: string; align: 'start' | 'end' }[];
@@ -71,7 +67,19 @@ const LABELS = {
       'chat.col.endDate': 'ينتهي',
       'chat.col.daysLeft': 'باقي (يوم)',
       'chat.col.rent': 'الإيجار (د.أ)',
-    },
+      'chat.col.period': 'الفترة',
+      'chat.col.charged': 'المستحق (د.أ)',
+      'chat.col.collected': 'المحصّل (د.أ)',
+      'chat.col.rate': 'نسبة التحصيل %',
+      'chat.col.status': 'الحالة',
+      'chat.col.deposit': 'التأمين (د.أ)',
+      'chat.col.leaseEnd': 'ينتهي العقد',
+      'chat.col.arrears': 'المتأخرات (د.أ)',
+      'chat.col.gross': 'الإجمالي (د.أ)',
+      'chat.col.expenses': 'المصاريف (د.أ)',
+      'chat.col.fee': 'أتعاب الإدارة (د.أ)',
+      'chat.col.net': 'الصافي (د.أ)',
+    } satisfies Record<ChatColumnKey, string>,
   },
   en: {
     title: 'Operations assistant',
@@ -99,7 +107,19 @@ const LABELS = {
       'chat.col.endDate': 'Ends',
       'chat.col.daysLeft': 'Days left',
       'chat.col.rent': 'Rent (JOD)',
-    },
+      'chat.col.period': 'Period',
+      'chat.col.charged': 'Charged (JOD)',
+      'chat.col.collected': 'Collected (JOD)',
+      'chat.col.rate': 'Collection %',
+      'chat.col.status': 'Status',
+      'chat.col.deposit': 'Deposit (JOD)',
+      'chat.col.leaseEnd': 'Lease ends',
+      'chat.col.arrears': 'Arrears (JOD)',
+      'chat.col.gross': 'Gross (JOD)',
+      'chat.col.expenses': 'Expenses (JOD)',
+      'chat.col.fee': 'Mgmt fee (JOD)',
+      'chat.col.net': 'Net (JOD)',
+    } satisfies Record<ChatColumnKey, string>,
   },
 } as const;
 

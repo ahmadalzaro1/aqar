@@ -18,10 +18,11 @@ import {
   type ModelTool,
 } from '@aqar/agents';
 import { registry, type ToolContext } from '@aqar/tools';
+import { degradedAnswer, routeQuestion, unknownQuestion } from '@/lib/router';
 import type { Sql } from '@aqar/db';
 import { getSessionUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { leadForTool, tableForTool, type ToolTable } from '@/lib/toolTable';
+import { leadForTool, tableForTool, type ToolTable, type ToolTrace } from '@/lib/toolTable';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -102,12 +103,6 @@ function leadFromTable(locale: 'ar' | 'en', table: ToolTable | null): string | n
 
 const ARABIC = /[\u0600-\u06FF]/;
 
-interface ToolTrace {
-  name: string;
-  ms: number;
-  ok: boolean;
-}
-
 export async function POST(req: Request): Promise<NextResponse> {
   const session = await getSessionUser();
   if (session === null) {
@@ -174,6 +169,40 @@ export async function POST(req: Request): Promise<NextResponse> {
   let totalMs = 0;
   let answer = '';
   let model = provider.model;
+
+  // Rules first. The model is a fallback, not the router: with 14 tools in the
+  // window a 3B local picks the wrong one and then apologises, while the answer
+  // was one deterministic query away.
+  const question = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const routed = question.length > 0 ? await routeQuestion(sql, org.id, question) : null;
+  if (routed !== null) {
+    const started = Date.now();
+    try {
+      const result = await registry.run(routed.name, routed.args, ctx);
+      trace.push({ name: routed.name, ms: Date.now() - started, ok: true });
+      table = tableForTool(routed.name, result, locale);
+      const lead = leadForTool(routed.name, locale, result, table) ?? leadFromTable(locale, table);
+      return NextResponse.json({
+        answer: lead ?? unknownQuestion(locale),
+        model: `rules:${routed.reason}`,
+        lane: 'rules',
+        latencyMs: Date.now() - started,
+        costUsd: 0,
+        tools: trace,
+        table,
+        strongAvailable: providers.strong !== null,
+      });
+    } catch (err) {
+      // A rule that fails must not block the model path — fall through with the
+      // failure recorded so the trace shows the attempt.
+      trace.push({
+        name: routed.name,
+        ms: Date.now() - started,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   try {
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
@@ -257,7 +286,22 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   } catch (err) {
     const messageText = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: messageText, tools: trace }, { status: 502 });
+    // A dead or misbehaving model must never become a 502 in front of a stakeholder.
+    // The rules layer can still answer from records, so say that in the operator's
+    // language and keep the real error in the trace for whoever debugs it.
+    trace.push({ name: 'model', ms: totalMs, ok: false, error: messageText });
+    return NextResponse.json({
+      answer: degradedAnswer(locale),
+      model,
+      lane: 'degraded',
+      latencyMs: totalMs,
+      costUsd: 0,
+      tools: trace,
+      table: null,
+      strongAvailable: providers.strong !== null,
+      degraded: true,
+      error: messageText,
+    });
   }
 
   if (answer.length === 0) {
