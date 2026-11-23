@@ -15,11 +15,21 @@ interface ToolTrace {
   ms: number;
   ok: boolean;
 }
+interface ToolTable {
+  tool: string;
+  columns: { key: string; labelKey: string; align: 'start' | 'end' }[];
+  rows: Record<string, string>[];
+  totalLabelKey?: string | undefined;
+  total?: string | undefined;
+  count: number;
+}
+
 interface Turn {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   tools?: ToolTrace[];
+  table?: ToolTable | null;
   meta?: { model: string; lane: string; latencyMs: number; costUsd: number };
   failed?: boolean;
 }
@@ -31,6 +41,7 @@ interface ApiReply {
   latencyMs: number;
   costUsd: number;
   tools: ToolTrace[];
+  table?: ToolTable | null;
   strongAvailable: boolean;
 }
 
@@ -44,6 +55,16 @@ const LABELS = {
     strong: 'سحابي',
     error: 'تعذّر إكمال الطلب',
     open: 'المساعد',
+    cols: {
+      'chat.col.tenant': 'المستأجر',
+      'chat.col.unit': 'الوحدة',
+      'chat.col.property': 'العقار',
+      'chat.col.outstanding': 'المستحق (د.أ)',
+      'chat.col.since': 'أقدم استحقاق',
+      'chat.col.floor': 'الطابق',
+      'chat.col.area': 'المساحة (م²)',
+      'chat.col.total': 'الإجمالي (د.أ)',
+    },
   },
   en: {
     title: 'Operations assistant',
@@ -55,8 +76,88 @@ const LABELS = {
     strong: 'Cloud',
     error: 'Request failed',
     open: 'Assistant',
+    cols: {
+      'chat.col.tenant': 'Tenant',
+      'chat.col.unit': 'Unit',
+      'chat.col.property': 'Property',
+      'chat.col.outstanding': 'Outstanding (JOD)',
+      'chat.col.since': 'Oldest due',
+      'chat.col.floor': 'Floor',
+      'chat.col.area': 'Area (m²)',
+      'chat.col.total': 'Total (JOD)',
+    },
   },
 } as const;
+
+/**
+ * The table is rendered from the tool's own fields, never re-typed by the model.
+ * The currency lives in the column header so cells stay bare numbers — that is
+ * what stops "885,000 FILS / 885.000 JOD" from appearing side by side.
+ */
+function ToolTableView({ table, locale }: { table: ToolTable; locale: Locale }) {
+  const cols = LABELS[locale].cols as Record<string, string>;
+  const cellStyle = (align: 'start' | 'end') => ({
+    textAlign: align === 'end' ? ('end' as const) : ('start' as const),
+    padding: '3px 6px',
+    borderBlockEnd: '1px solid var(--border)',
+    whiteSpace: 'nowrap' as const,
+    fontVariantNumeric: 'tabular-nums' as const,
+  });
+  return (
+    <div style={{ overflowX: 'auto', maxInlineSize: '100%' }}>
+      <table
+        data-chat-table={table.tool}
+        style={{ borderCollapse: 'collapse', inlineSize: '100%', fontSize: 11 }}
+      >
+        <thead>
+          <tr>
+            {table.columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                style={{
+                  ...cellStyle(column.align),
+                  color: 'var(--muted)',
+                  fontWeight: 600,
+                  borderBlockEnd: '1px solid var(--border)',
+                }}
+              >
+                {cols[column.labelKey] ?? column.labelKey}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, index) => (
+            <tr key={`${table.tool}-${index}`}>
+              {table.columns.map((column) => (
+                <td key={column.key} style={cellStyle(column.align)}>
+                  <bdi>{row[column.key] ?? '—'}</bdi>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        {table.total !== undefined && table.totalLabelKey !== undefined && (
+          <tfoot>
+            <tr>
+              <th
+                scope="row"
+                colSpan={table.columns.length - 1}
+                style={{ ...cellStyle('end'), color: 'var(--muted)' }}
+              >
+                {cols[table.totalLabelKey] ?? table.totalLabelKey}
+              </th>
+              <td style={{ ...cellStyle('end'), fontWeight: 700 }}>
+                <bdi>{table.total}</bdi>
+              </td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
 
 export function ChatDock({ locale }: { locale: Locale }) {
   const L = LABELS[locale];
@@ -119,6 +220,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           lane,
+          locale,
           messages: history
             .filter((t) => t.failed !== true)
             .map((t) => ({ role: t.role, content: t.content })),
@@ -134,6 +236,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
           role: 'assistant',
           content: data.answer,
           tools: data.tools,
+          table: data.table ?? null,
           meta: data,
         },
       ]);
@@ -303,6 +406,7 @@ export function ChatDock({ locale }: { locale: Locale }) {
             >
               {turn.content}
             </div>
+            {turn.table != null && <ToolTableView table={turn.table} locale={locale} />}
             {turn.tools !== undefined && turn.tools.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {turn.tools.map((tool, i) => (

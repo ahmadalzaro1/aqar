@@ -95,7 +95,8 @@ export const listArrears: ToolDef = {
   kind: 'read',
   title: 'Tenants in arrears',
   description:
-    'Every tenant whose allocated payments do not cover their charges, largest debt first, with the oldest unpaid due date. Amounts are integer fils.',
+    'Every tenant whose allocated payments do not cover their charges, largest debt first, with the oldest unpaid due date. ' +
+    'Use for "who has not paid", "arrears", "who owes money", "late tenants" — in Arabic: "مين ما دفع", "المتأخرات", "مين عليه", "متأخرين".',
   schema: listArrearsSchema,
   async run(ctx, raw) {
     const { limit } = listArrearsSchema.parse(raw);
@@ -106,6 +107,7 @@ export const listArrears: ToolDef = {
         nameAr: string | null;
         unitNumber: string | null;
         property: string | null;
+        propertyAr: string | null;
         chargedFils: string;
         allocatedFils: string;
         outstandingFils: string;
@@ -135,6 +137,7 @@ export const listArrears: ToolDef = {
              t.phone,
              u.unit_number as "unitNumber",
              p.name as property,
+             p.name_ar as "propertyAr",
              coalesce(ch.amount, 0)::text as "chargedFils",
              coalesce(al.amount, 0)::text as "allocatedFils",
              (coalesce(ch.amount, 0) - coalesce(al.amount, 0))::text as "outstandingFils",
@@ -162,6 +165,7 @@ export const listArrears: ToolDef = {
         phoneMasked: maskPhone(row.phone),
         unitNumber: row.unitNumber,
         property: row.property,
+        propertyAr: row.propertyAr,
         chargedFils: Number(row.chargedFils),
         allocatedFils: Number(row.allocatedFils),
         outstandingFils: outstanding,
