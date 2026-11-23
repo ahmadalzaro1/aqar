@@ -22,7 +22,15 @@ const projectsIx = args.indexOf('--projects');
 const projects = projectsIx === -1 ? null : args[projectsIx + 1];
 // one budget per check: a scoped run and a full run are not the same cost
 const tcIx = args.indexOf('--typecheck-budget');
-const typecheckBudget = tcIx === -1 ? 5 : Number(args[tcIx + 1]);
+// The typecheck budget is a regression tripwire, not a performance target. The
+// step runs 13 tsgo processes on 10 cores, so its wall time is dominated by
+// memory-bandwidth contention: packages/db alone is 2.1s, but the same project
+// measures 5.1s while twelve siblings run. A 5s budget sat inside that noise
+// band and failed legitimate pushes (measured 5.0-6.8s on an idle-to-busy
+// machine with no code change). 8s sits above the band, so it still catches a
+// real regression — a heavy new dependency lands well past it — without
+// flaking. Measured 2026-11-23 on the M1 Max host.
+const typecheckBudget = tcIx === -1 ? 8 : Number(args[tcIx + 1]);
 
 // Call the binary, not `pnpm exec`: the wrapper costs ~0.5s of the 1s budget
 // (measured 0.64s via pnpm vs 0.16s direct on a clean copy).
