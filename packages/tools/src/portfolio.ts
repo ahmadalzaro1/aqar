@@ -186,6 +186,7 @@ export const listVacantUnits: ToolDef = {
     const { propertyId, limit } = vacantUnitsSchema.parse(raw);
     const rows = await ctx.sql<
       {
+        total: number;
         id: string;
         property: string;
         building: string | null;
@@ -198,6 +199,7 @@ export const listVacantUnits: ToolDef = {
       }[]
     >`
       select u.id,
+             count(*) over () as total,
              p.name as property,
              b.name as building,
              u.unit_number as "unitNumber",
@@ -220,8 +222,10 @@ export const listVacantUnits: ToolDef = {
        limit ${limit}
     `;
 
+    const total = Number(rows[0]?.total ?? 0);
     return {
-      count: rows.length,
+      count: total,
+      returned: rows.length,
       units: rows.map((row) => ({
         unitId: row.id,
         property: row.property,
@@ -255,6 +259,7 @@ export const listExpiringLeases: ToolDef = {
     const { withinDays, limit } = expiringLeasesSchema.parse(raw);
     const rows = await ctx.sql<
       {
+        total: number;
         leaseId: string;
         endDate: string;
         rentFils: number;
@@ -266,6 +271,7 @@ export const listExpiringLeases: ToolDef = {
       }[]
     >`
       select l.id as "leaseId",
+             count(*) over () as total,
              to_char(l.end_date, 'YYYY-MM-DD') as "endDate",
              l.rent_fils as "rentFils",
              u.unit_number as "unitNumber",
@@ -287,7 +293,8 @@ export const listExpiringLeases: ToolDef = {
 
     return {
       withinDays,
-      count: rows.length,
+      count: Number(rows[0]?.total ?? 0),
+      returned: rows.length,
       leases: rows.map((row) => ({
         leaseId: row.leaseId,
         endDate: row.endDate,
