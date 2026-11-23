@@ -245,6 +245,7 @@ export const depositsHeld: ToolDef = {
         tenantId: string | null;
         unitNumber: string | null;
         property: string | null;
+        propertyAr: string | null;
         depositFils: number;
         leaseEnd: string;
       }[]
@@ -255,6 +256,7 @@ export const depositsHeld: ToolDef = {
              t.id as "tenantId",
              u.unit_number as "unitNumber",
              p.name as property,
+             p.name_ar as "propertyAr",
              l.deposit_fils as "depositFils",
              to_char(l.end_date, 'YYYY-MM-DD') as "leaseEnd"
         from leases l
@@ -280,6 +282,7 @@ export const depositsHeld: ToolDef = {
         tenant: row.tenant,
         unitNumber: row.unitNumber,
         property: row.property,
+        propertyAr: row.propertyAr,
         depositFils: row.depositFils,
         depositJod: formatFils(row.depositFils),
         leaseEnd: row.leaseEnd,
@@ -438,6 +441,7 @@ export const rentRoll: ToolDef = {
         totalCount: number;
         unitId: string;
         property: string;
+        propertyAr: string | null;
         building: string | null;
         unitNumber: string;
         floor: string | null;
@@ -457,6 +461,7 @@ export const rentRoll: ToolDef = {
       select count(*) over () as "totalCount",
              u.id as "unitId",
              p.name as property,
+             p.name_ar as "propertyAr",
              b.name as building,
              u.unit_number as "unitNumber",
              u.floor,
@@ -498,6 +503,7 @@ export const rentRoll: ToolDef = {
       units: rows.map((row) => ({
         unitId: row.unitId,
         property: row.property,
+        propertyAr: row.propertyAr,
         building: row.building,
         unitNumber: row.unitNumber,
         floor: row.floor,
