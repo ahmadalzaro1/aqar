@@ -96,7 +96,8 @@ export const listArrears: ToolDef = {
   title: 'Tenants in arrears',
   description:
     'Every tenant whose allocated payments do not cover their charges, largest debt first, with the oldest unpaid due date. ' +
-    'Use for "who has not paid", "arrears", "who owes money", "late tenants" — in Arabic: "مين ما دفع", "المتأخرات", "مين عليه", "متأخرين".',
+    'Use for "who has not paid", "arrears", "who owes money", "who owes the most", "biggest debt", "late tenants" — in Arabic: "مين ما دفع", "المتأخرات", "مين عليه", "متأخرين", "أكثر مستأجر متأخر", "أكبر مبلغ مستحق". ' +
+    'Rows already come sorted largest debt first, so "who owes the most" needs no aggregation.',
   schema: listArrearsSchema,
   async run(ctx, raw) {
     const { limit } = listArrearsSchema.parse(raw);

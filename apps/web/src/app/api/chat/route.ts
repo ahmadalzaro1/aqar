@@ -21,7 +21,7 @@ import { registry, type ToolContext } from '@aqar/tools';
 import type { Sql } from '@aqar/db';
 import { getSessionUser } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { tableForTool, type ToolTable } from '@/lib/toolTable';
+import { leadForTool, tableForTool, type ToolTable } from '@/lib/toolTable';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -169,6 +169,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const trace: ToolTrace[] = [];
   let table: ToolTable | null = null;
+  let lastTool: { name: string; result: unknown } | null = null;
   let costUsd = 0;
   let totalMs = 0;
   let answer = '';
@@ -176,31 +177,52 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
-      const ask = () =>
+      const ask = (msgs: ChatMessage[] = transcript) =>
         provider.chat({
-          messages: transcript,
+          messages: msgs,
           maxTokens: 700,
           temperature: 0.1,
           timeoutMs: 60_000,
           tools: chatTools,
         });
+      // Past the second turn the local 3B starts emitting reasoning markers, which the
+      // MLX runtime withholds instead of stripping (HTTP 502). A stateless re-ask is the
+      // one shape that always answers, so it is the last rung of the ladder — never the
+      // first, so conversational continuity survives whenever the model cooperates.
+      const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+      const lastAnswer = [...messages].reverse().find((m) => m.role === 'assistant')?.content ?? '';
+      const compact: ChatMessage[] = [
+        { role: 'system', content: systemFor(locale) },
+        ...(lastAnswer.length > 0
+          ? [{ role: 'assistant' as const, content: `Earlier answer: ${lastAnswer.slice(0, 300)}` }]
+          : []),
+        { role: 'user', content: lastUser },
+      ];
+      const withheld = (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        return /unresolved thinking delimiters|HTTP 50[23]/.test(msg);
+      };
       let res: ChatResponse;
       try {
         res = await ask();
       } catch (err) {
-        // The local MLX runtime withholds a completion whose visible content still
-        // contains thinking delimiters. It is a sampling artifact, not a bad request,
-        // so one retry is legitimate — and the second failure is reported verbatim.
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!/unresolved thinking delimiters|HTTP 50[23]/.test(msg)) throw err;
-        res = await ask();
+        if (!withheld(err)) throw err;
+        try {
+          res = await ask();
+        } catch (retryErr) {
+          if (!withheld(retryErr)) throw retryErr;
+          res = await ask(compact);
+        }
       }
       costUsd += res.estimatedCostUsd;
       totalMs += res.latencyMs;
       model = res.model;
 
       if (res.toolCalls.length === 0) {
-        answer = res.content.trim();
+        // Defence in depth: never let a stray reasoning block reach the operator.
+        const raw = res.content.trim();
+        const cut = raw.toLowerCase().lastIndexOf('</think>');
+        answer = cut >= 0 ? raw.slice(cut + 8).trim() : raw;
         break;
       }
 
@@ -221,6 +243,7 @@ export async function POST(req: Request): Promise<NextResponse> {
               : (JSON.parse(call.argumentsJson) as unknown);
           const result = await registry.run(call.name, args, ctx);
           table = tableForTool(call.name, result, locale) ?? table;
+          lastTool = { name: call.name, result };
           // The model sees a projection: no fils, no 25-row dumps. The table the
           // operator reads is built from the untouched result, below.
           body = JSON.stringify(projectForModel(result)).slice(0, MAX_TOOL_CHARS);
@@ -267,15 +290,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   // console it wrote "جند أردية" (a literal translation of "Jordanian dinar") and
   // leaked field names like "collectedJod". So for list answers the lead sentence
   // is assembled from tool fields and the model's prose is discarded.
-  const lead = leadFromTable(locale, table);
+  const lead =
+    lastTool === null
+      ? leadFromTable(locale, table)
+      : (leadForTool(lastTool.name, locale, lastTool.result, table) ??
+        leadFromTable(locale, table));
   if (lead !== null) {
     answer = lead;
   } else if (locale === 'ar' && answer.length > 0 && !ARABIC.test(answer)) {
     // Language guard for prose answers: an Arabic console must not get Latin-only text.
+    // The replacement routes the operator to a question the console answers well, rather
+    // than reporting an internal failure — a guest reading "I could not phrase this"
+    // concludes the product is broken, which is a worse outcome than a redirect.
     answer =
       locale === 'ar'
-        ? 'لم أجد صياغة عربية موثوقة لهذه الإجابة؛ الأرقام أعلاه من قاعدة البيانات.'
-        : answer;
+        ? 'لم أحدد المقصود تمامًا. جرّب: «مين ما دفع الإيجار؟» أو «كم إجمالي المتأخرات؟» أو «شو نسبة الإشغال؟»'
+        : 'I could not map that to the records. Try: "who has not paid rent?", "total arrears", or "occupancy rate".';
   }
 
   if (answer.length === 0) {
