@@ -29,15 +29,6 @@ export default async function LoginPage() {
           {t(m, 'app.tagline')}
         </p>
         <LoginForm locale={locale} messages={m} />
-        <p
-          style={{
-            color: 'var(--muted)',
-            fontSize: 'var(--text-xs)',
-            marginBlockStart: 'var(--space-4)',
-          }}
-        >
-          {t(m, 'login.hint')}
-        </p>
       </div>
     </main>
   );

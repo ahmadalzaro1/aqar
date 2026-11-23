@@ -531,10 +531,18 @@ export function leadForTool(
       typeof record['totalAllocatedJod'] === 'string' ? record['totalAllocatedJod'] : null;
     const periods = num(record['count']) ?? 0;
     if (rate === null || charged === null || collected === null) return null;
-    // Arabic counts 3–10 with a plural noun and 11+ with a singular.
-    const periodWord = periods >= 3 && periods <= 10 ? 'فترات' : 'فترة';
+    // Arabic numerals agree with the noun: one and two have their own forms,
+    // three to ten take the plural, eleven and above the singular.
+    const periodPhrase =
+      periods === 1
+        ? 'فترة واحدة'
+        : periods === 2
+          ? 'فترتين'
+          : periods >= 3 && periods <= 10
+            ? `${periods} فترات`
+            : `${periods} فترة`;
     return ar
-      ? `نسبة التحصيل ${rate}% — حُصّل ${collected} د.أ من أصل ${charged} د.أ عبر ${periods} ${periodWord}.`
+      ? `نسبة التحصيل ${rate}% — حُصّل ${collected} د.أ من أصل ${charged} د.أ عبر ${periodPhrase}.`
       : `Collection rate ${rate}% — ${collected} JOD collected of ${charged} JOD charged across ${periods} ${periods === 1 ? 'period' : 'periods'}.`;
   }
 
