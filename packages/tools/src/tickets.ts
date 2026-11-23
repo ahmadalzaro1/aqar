@@ -27,6 +27,7 @@ export const listOpenTickets: ToolDef = {
     const { propertyId, emergencyOnly, olderThanHours, limit } = listOpenTicketsSchema.parse(raw);
     const rows = await ctx.sql<
       {
+        total: number;
         id: string;
         subject: string;
         status: string;
@@ -42,6 +43,7 @@ export const listOpenTickets: ToolDef = {
       }[]
     >`
       select t.id,
+             count(*) over () as total,
              t.subject,
              t.status::text as status,
              t.channel::text as channel,
@@ -62,7 +64,7 @@ export const listOpenTickets: ToolDef = {
            where cl.ticket_id = t.id order by cl.created_at desc limit 1
         ) c on true
        where t.organization_id = ${ctx.org.id}
-         and t.status not in ('closed', 'cancelled')
+         and t.status not in ('completed', 'closed', 'cancelled')
          and (${propertyId ?? null}::uuid is null or t.property_id = ${propertyId ?? null}::uuid)
          and (${emergencyOnly} = false or t.emergency_flag = true)
          and (${olderThanHours ?? null}::int is null
@@ -71,8 +73,11 @@ export const listOpenTickets: ToolDef = {
        limit ${limit}
     `;
 
+    // `count` is the true total before the limit; `returned` is the page size.
+    const total = Number(rows[0]?.total ?? 0);
     return {
-      count: rows.length,
+      count: total,
+      returned: rows.length,
       tickets: rows.map((row) => ({
         ticketId: row.id,
         subject: row.subject,

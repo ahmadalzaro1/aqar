@@ -34,6 +34,7 @@ export const searchTenants: ToolDef = {
     const like = `%${query}%`;
     const rows = await ctx.sql<
       {
+        total: number;
         id: string;
         nameEn: string | null;
         nameAr: string | null;
@@ -46,6 +47,7 @@ export const searchTenants: ToolDef = {
       }[]
     >`
       select t.id,
+             count(*) over () as total,
              t.full_name_en as "nameEn",
              t.full_name_ar as "nameAr",
              t.phone,
@@ -69,8 +71,10 @@ export const searchTenants: ToolDef = {
        limit ${limit}
     `;
 
+    const total = Number(rows[0]?.total ?? 0);
     return {
-      count: rows.length,
+      count: total,
+      returned: rows.length,
       tenants: rows.map((row) => ({
         tenantId: row.id,
         nameEn: row.nameEn,
@@ -106,6 +110,8 @@ export const listArrears: ToolDef = {
         nameAr: string | null;
         unitNumber: string | null;
         property: string | null;
+        total: number;
+        grandTotal: string;
         chargedFils: string;
         allocatedFils: string;
         outstandingFils: string;
@@ -130,6 +136,8 @@ export const listArrears: ToolDef = {
          group by c.lease_id
       )
       select t.id as "tenantId",
+             count(*) over () as total,
+             (sum(coalesce(ch.amount, 0) - coalesce(al.amount, 0)) over ())::text as "grandTotal",
              t.full_name_en as "nameEn",
              t.full_name_ar as "nameAr",
              t.phone,
@@ -171,9 +179,11 @@ export const listArrears: ToolDef = {
       };
     });
 
-    const totalOutstanding = tenants.reduce((sum, tenant) => sum + tenant.outstandingFils, 0);
+    // Grand total and count come from window aggregates: correct even when the
+    // page is truncated by `limit`. Summing the page would understate arrears.
+    const totalOutstanding = Number(rows[0]?.grandTotal ?? 0);
     return {
-      count: tenants.length,
+      count: Number(rows[0]?.total ?? 0),
       totalOutstandingFils: totalOutstanding,
       totalOutstandingJod: formatFils(totalOutstanding),
       tenants,
