@@ -7,6 +7,7 @@
  * real answer here, so this tool reports zeros rather than refusing.
  */
 import { z } from 'zod';
+import { formatFils } from '@aqar/core';
 import type { ToolDef } from './registry.js';
 
 const uuid = z.string().uuid();
@@ -82,11 +83,12 @@ export const operatingSpend: ToolDef = {
 
     return {
       totalFils,
+      totalJod: formatFils(totalFils),
       from: start,
       to: end,
       category: category ?? null,
-      byCategory,
-      byProperty,
+      byCategory: byCategory.map((row) => ({ ...row, amountJod: formatFils(row.amountFils) })),
+      byProperty: byProperty.map((row) => ({ ...row, amountJod: formatFils(row.amountFils) })),
       note:
         byCategory.length === 0
           ? 'No expense is recorded for this window. The total is zero because nothing was entered — utility and municipal costs are not derivable from leases or charges.'

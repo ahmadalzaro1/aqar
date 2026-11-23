@@ -10,6 +10,7 @@
  * entered. Refusal is reserved for a question the data model cannot express.
  */
 import { z } from 'zod';
+import { formatFils } from '@aqar/core';
 import type { ToolDef } from './registry.js';
 
 const uuid = z.string().uuid();
@@ -86,12 +87,14 @@ export const maintenanceCost: ToolDef = {
 
     return {
       totalCostFils: total.totalFils,
+      totalCostJod: formatFils(total.totalFils),
       jobs: total.jobs,
       unitsWithCost: total.units,
       perUnitFils,
+      perUnitJod: perUnitFils === null ? null : formatFils(perUnitFils),
       from: from ?? null,
       to: to ?? null,
-      rows,
+      rows: rows.map((row) => ({ ...row, costJod: formatFils(row.costFils) })),
       note:
         total.jobs === 0
           ? 'No completed repair is recorded for this window, so the cost is zero because nothing was logged — not because nothing was spent.'
