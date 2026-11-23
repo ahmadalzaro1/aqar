@@ -1,0 +1,481 @@
+/* Estate atlas — land plate, building elevation, flats as buttons.
+   Tokens only; logical properties so RTL mirrors without a second stylesheet. */
+
+.atlas {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  inline-size: 12px;
+  block-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.swatch[data-status='occupied'] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.swatch[data-status='vacant'] {
+  background: var(--surface);
+  border-style: dashed;
+}
+
+.swatch[data-status='turnover'] {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.swatch[data-status='unavailable'] {
+  background: repeating-linear-gradient(45deg, var(--surface-3) 0 3px, var(--border) 3px 4px);
+}
+
+.totals {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrears {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.sites {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.site {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  min-inline-size: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.siteHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.siteIdent {
+  min-inline-size: 0;
+}
+
+.siteName {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 650;
+}
+
+.siteMeta {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.siteNums {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  text-align: end;
+}
+
+.siteNums > div {
+  display: grid;
+  gap: 2px;
+}
+
+.siteNums dt {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.siteNums dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+/* The land: a survey grid inside a surveyed boundary. */
+.plate {
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--surface-2);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--muted) 32%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 14px 14px;
+}
+
+.plot {
+  position: relative;
+  display: grid;
+  align-content: end;
+  min-block-size: 148px;
+  padding: var(--space-2);
+  border: 1px dashed color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: var(--radius-sm);
+  /* The yard: a ground plane the building actually stands on, so the elevation
+     reads as a site instead of a diagram floating in a box. */
+  background-image: linear-gradient(
+    180deg,
+    transparent 0 72%,
+    color-mix(in srgb, var(--surface-3) 65%, transparent) 72% 100%
+  );
+}
+
+/* Survey corner marks. */
+.plot::before,
+.plot::after {
+  content: '';
+  position: absolute;
+  inline-size: 9px;
+  block-size: 9px;
+  border: 0 solid color-mix(in srgb, var(--muted) 65%, transparent);
+}
+
+.plot::before {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  border-block-start-width: 1px;
+  border-inline-start-width: 1px;
+}
+
+.plot::after {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  border-block-end-width: 1px;
+  border-inline-end-width: 1px;
+}
+
+.bareLand {
+  margin: 0;
+  padding: var(--space-8) var(--space-3);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* The building: roof slab, floors, ground course, entrance. */
+.building {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  padding: 0 var(--space-2);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-3) 100%);
+  border-inline: 1px solid var(--border);
+  /* A hard offset shadow reads as mass, so the stack looks built rather than drawn. */
+  box-shadow: 3px 3px 0 -1px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.roof {
+  block-size: 6px;
+  margin-inline: -8px;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  border-radius: 2px 2px 0 0;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 30%, transparent);
+}
+
+/* One floor slab: a full-width plate with its number at the edge, so the rows
+   read as storeys of a building rather than as a table of cells. */
+.floor {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: stretch;
+  padding-block: 3px;
+  border-block-end: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--surface-3) 55%, transparent) 0%,
+    transparent 34%
+  );
+}
+
+.floor:last-of-type {
+  border-block-end: none;
+}
+
+.floorLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 5px;
+  container-type: inline-size;
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  align-content: center;
+  justify-items: center;
+  min-block-size: 44px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.tile:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--ink) 25%, var(--border));
+}
+
+.tile:active {
+  transform: translateY(0);
+}
+
+.tile[data-status='occupied'] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 30%, var(--border));
+}
+
+/* A lit window: the one cue that reads at a glance on a full floor. */
+.tile[data-status='occupied']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-end: 5px;
+  inline-size: 4px;
+  block-size: 4px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.tile[data-status='vacant'] {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.tile[data-status='turnover'] {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 30%, var(--border));
+}
+
+.tile[data-status='unavailable'] {
+  background: repeating-linear-gradient(135deg, var(--surface-3) 0 5px, var(--surface-2) 5px 10px);
+  color: var(--muted);
+}
+
+/* Selection keeps the status colour readable and adds a ring on top of it. */
+.tile[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.tileNum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.tileRent {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+@container (max-width: 158px) {
+  .tileRent {
+    display: none;
+  }
+}
+
+.ground {
+  position: relative;
+  block-size: 5px;
+  margin-inline: -8px;
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+
+.door {
+  position: absolute;
+  inset-block-end: 5px;
+  inset-inline-start: 50%;
+  inline-size: 18px;
+  block-size: 10px;
+  margin-inline-start: -9px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.plotMeta {
+  margin: var(--space-2) 0 0;
+  font-size: 10.5px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Inspector */
+.inspector {
+  position: sticky;
+  inset-block-start: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.inspectorTitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.inspectorHint {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.inspectorKicker {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.inspectorHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspectorUnit {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.rows {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  border-block-start: 1px solid var(--border);
+}
+
+.rows > div {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding-block: 6px;
+  font-size: var(--text-sm);
+  border-block-end: 1px solid var(--border);
+}
+
+.rows dt {
+  color: var(--muted);
+}
+
+.rows dd {
+  margin: 0;
+  font-weight: 550;
+  text-align: end;
+}
+
+.owed {
+  color: var(--danger);
+}
+
+.inspectorLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 1080px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector {
+    position: static;
+    order: -1;
+  }
+
+  /* Nothing selected yet: keep the first screen the atlas, not an empty card. */
+  .inspectorIdle {
+    display: none;
+  }
+}

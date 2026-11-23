@@ -20,6 +20,40 @@ function sha256(s: string): string {
   return createHash('sha256').update(s).digest('hex');
 }
 
+async function startSession(user: Record<string, unknown>): Promise<void> {
+  const token = randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+  await sql`
+    INSERT INTO sessions (id, organization_id, token_hash, user_id, expires_at)
+    VALUES (${randomBytes(16).toString('hex')}, ${String(user['organization_id'])}, ${sha256(token)}, ${String(user['id'])}, ${expires})`;
+  const store = await cookies();
+  store.set(COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    secure: process.env['NODE_ENV'] === 'production',
+    maxAge: 7 * 24 * 3600,
+  });
+}
+
+/**
+ * Email-only sign-in: the address identifies an existing, active account.
+ * Proof that the visitor owns that address comes from the edge (Cloudflare
+ * Access one-time PIN) for anyone outside the owner's own network, so this
+ * function deliberately holds no secret of its own.
+ */
+export async function loginByEmail(
+  email: string,
+): Promise<{ ok: true } | { ok: false; error: 'invalid' }> {
+  const rows = await sql`
+    SELECT id, email, role, organization_id, name_en, name_ar, is_active
+    FROM users WHERE lower(email) = lower(${email}) LIMIT 1`;
+  const user = rows[0];
+  if (user === undefined || user['is_active'] === false) return { ok: false, error: 'invalid' };
+  await startSession(user);
+  return { ok: true };
+}
+
 export async function login(
   email: string,
   password: string,
@@ -46,19 +80,7 @@ export async function login(
     const delta = totp.validate({ token: totpCode ?? '', window: 1 });
     if (delta === null) return { ok: false, error: 'totp' };
   }
-  const token = randomBytes(32).toString('hex');
-  const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000);
-  await sql`
-    INSERT INTO sessions (id, organization_id, token_hash, user_id, expires_at)
-    VALUES (${randomBytes(16).toString('hex')}, ${String(user['organization_id'])}, ${sha256(token)}, ${String(user['id'])}, ${expires})`;
-  const store = await cookies();
-  store.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    secure: process.env['NODE_ENV'] === 'production',
-    maxAge: 7 * 24 * 3600,
-  });
+  await startSession(user);
   return { ok: true };
 }
 

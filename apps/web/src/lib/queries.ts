@@ -50,6 +50,123 @@ export async function unitsByStatus(orgId: string): Promise<UnitRow[]> {
   }));
 }
 
+/**
+ * Everything the estate atlas draws, in one pass: the site (property), the
+ * building that holds the flats, each flat's status and rent, the active
+ * tenant, and what that flat owes past due. Grouping happens in TypeScript so
+ * the database is read once per render.
+ */
+export interface AtlasUnit {
+  id: string;
+  unitNumber: string;
+  floor: string | null;
+  spaceKind: string;
+  status: UnitStatus;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  areaSqm: number | null;
+  marketRentFils: number;
+  tenantName: string | null;
+  leaseEnd: string | null;
+  balanceFils: number;
+}
+
+export interface AtlasSite {
+  id: string;
+  name: string;
+  nameAr: string;
+  district: string;
+  city: string;
+  assetKind: string;
+  landAreaSqm: number | null;
+  /** Real coordinates from the deed record, so a site can be drawn on a map. */
+  lat: number | null;
+  lng: number | null;
+  buildingName: string | null;
+  floors: number | null;
+  units: AtlasUnit[];
+}
+
+export async function atlasSites(orgId: string): Promise<AtlasSite[]> {
+  const rows = await sql`
+    SELECT
+      u.id, u.unit_number, u.floor, u.space_kind::text AS space_kind, u.status::text AS status,
+      u.bedrooms, u.bathrooms, u.area_sqm, COALESCE(u.market_rent_fils, 0)::int AS market_rent_fils,
+      p.id AS property_id, p.name, p.name_ar, p.district, p.city,
+      p.asset_kind::text AS asset_kind, p.land_area_sqm, p.lat, p.lng,
+      -- Only one alias may be called building_name: the building row is the one
+      -- that carries a name the app displays (properties.building_name is the
+      -- deed label and is allowed to be empty).
+      b.name AS building_name, b.floors,
+      tn.tenant_name, tn.lease_end,
+      COALESCE(bal.balance_fils, 0)::int AS balance_fils
+    FROM units u
+    JOIN properties p ON p.id = u.property_id
+    LEFT JOIN buildings b ON b.id = u.building_id
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(NULLIF(t.full_name_ar, ''), t.full_name_en) AS tenant_name,
+             to_char(l.end_date, 'YYYY-MM-DD') AS lease_end
+      FROM leases l
+      JOIN lease_tenants lt ON lt.lease_id = l.id
+      JOIN tenants t ON t.id = lt.tenant_id
+      WHERE l.unit_id = u.id AND l.status = 'active'
+      ORDER BY lt.is_primary DESC, l.end_date DESC
+      LIMIT 1
+    ) tn ON true
+    -- Arrears for a flat = its charges past due, net of what has been allocated
+    -- to them. A per-charge subquery keeps the sum from fanning out.
+    LEFT JOIN LATERAL (
+      SELECT SUM(
+               c.amount_fils - COALESCE((
+                 SELECT SUM(pa.amount_fils) FROM payment_allocations pa WHERE pa.charge_id = c.id
+               ), 0)
+             ) AS balance_fils
+      FROM charges c
+      JOIN leases l2 ON l2.id = c.lease_id
+      WHERE l2.unit_id = u.id AND c.due_date < CURRENT_DATE
+    ) bal ON true
+    WHERE u.organization_id = ${orgId}
+    ORDER BY p.name, b.name, u.floor NULLS FIRST, u.unit_number`;
+
+  const sites = new Map<string, AtlasSite>();
+  for (const r of rows) {
+    const propertyId = String(r['property_id']);
+    let site = sites.get(propertyId);
+    if (site === undefined) {
+      site = {
+        id: propertyId,
+        name: String(r['name']),
+        nameAr: String(r['name_ar']),
+        district: String(r['district']),
+        city: String(r['city']),
+        assetKind: String(r['asset_kind']),
+        landAreaSqm: r['land_area_sqm'] === null ? null : Number(r['land_area_sqm']),
+        lat: r['lat'] === null ? null : Number(r['lat']),
+        lng: r['lng'] === null ? null : Number(r['lng']),
+        buildingName: r['building_name'] === null ? null : String(r['building_name']),
+        floors: r['floors'] === null ? null : Number(r['floors']),
+        units: [],
+      };
+      sites.set(propertyId, site);
+    }
+    site.units.push({
+      id: String(r['id']),
+      unitNumber: String(r['unit_number']),
+      floor: r['floor'] === null ? null : String(r['floor']),
+      spaceKind: String(r['space_kind']),
+      status: asUnitStatus(r['status']),
+      bedrooms: r['bedrooms'] === null ? null : Number(r['bedrooms']),
+      bathrooms: r['bathrooms'] === null ? null : Number(r['bathrooms']),
+      areaSqm: r['area_sqm'] === null ? null : Number(r['area_sqm']),
+      marketRentFils: Number(r['market_rent_fils']),
+      tenantName: r['tenant_name'] === null ? null : String(r['tenant_name']),
+      leaseEnd: r['lease_end'] === null ? null : String(r['lease_end']).slice(0, 10),
+      balanceFils: Number(r['balance_fils']),
+    });
+  }
+  return [...sites.values()];
+}
+
 export async function chargesForPeriod(orgId: string, period: string): Promise<ChargeRow[]> {
   const rows = await sql`
     SELECT c.id, c.lease_id, c.period, c.kind, c.amount_fils, c.due_date,
@@ -131,7 +248,7 @@ export async function ticketsForOrg(orgId: string, limit: number): Promise<Ticke
     id: String(r['id']),
     status: String(r['status']),
     emergencyFlag: Boolean(r['emergency_flag']),
-    openedAt: String(r['opened_at']),
+    openedAt: new Date(String(r['opened_at'])).toISOString(),
     channel: String(r['channel']),
     text: String(r['text']),
     category: r['category'] === null ? null : String(r['category']),

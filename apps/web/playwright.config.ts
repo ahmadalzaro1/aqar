@@ -24,6 +24,10 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'e2e-report.json' }]],
   use: {
     baseURL,
+    // The 3D dashboard view needs a GL context and headless Chromium has none
+    // without a software rasteriser. Forcing SwiftShader keeps the map tests
+    // real instead of skipping them when WebGL is missing.
+    launchOptions: { args: ['--enable-unsafe-swiftshader'] },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

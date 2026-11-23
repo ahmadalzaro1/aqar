@@ -41,7 +41,10 @@ export default function Home() {
               orders · vendor dispatch · bank reconciliation · owner statements · a plan library.
             </p>
             <p className="actions">
-              <a className="btn btn--primary" href="#money">
+              <a className="btn btn--solid" href="/login">
+                Sign in to the console
+              </a>
+              <a className="btn btn--quiet" href="#money">
                 Read the ledger
               </a>
               <a className="btn btn--quiet" href="https://github.com/ahmadalzaro1/aqar">
@@ -357,7 +360,7 @@ export default function Home() {
             <span lang="ar" dir="rtl">
               عقار
             </span>{' '}
-            · property operations ledger · MIT ·
+            · property operations ledger · <a href="/login">Sign in</a> · MIT ·
             <a href="https://github.com/ahmadalzaro1/aqar">github.com/ahmadalzaro1/aqar</a> ·
             <a href="mailto:hello@aqar.example">hello@aqar.example</a>
           </p>
