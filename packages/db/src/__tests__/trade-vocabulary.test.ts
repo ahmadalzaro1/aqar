@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { EQUIPMENT_KINDS, EQUIPMENT_TRADE, JOB_TEMPLATES, TRADE_TOKENS } from '@aqar/core';
 import postgres from 'postgres';
 import { migrateUp } from '../migrate.js';

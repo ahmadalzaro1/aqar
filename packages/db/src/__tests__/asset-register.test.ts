@@ -12,6 +12,7 @@
  *     by convention;
  *   - the scope CHECK refuses an asset that names both a unit and a building.
  */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { withOrganization } from '../client.js';
