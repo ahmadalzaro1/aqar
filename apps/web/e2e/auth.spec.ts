@@ -1,17 +1,35 @@
 import { expect, test } from '@playwright/test';
-import { DEV_ADMIN, login, setLocale } from './helpers';
+import { login, setLocale } from './helpers';
 
 test.describe('authentication', () => {
-  test('wrong password is rejected and no session is created', async ({ page }) => {
+  test('the form asks for an email address only', async ({ page }) => {
     await setLocale(page, 'en');
     await page.goto('/login');
-    await page.fill('input[name="email"]', DEV_ADMIN.email);
-    await page.fill('input[name="password"]', 'definitely-not-the-password');
+    await expect(page.locator('input[name="email"]')).toBeVisible();
+    await expect(page.locator('input[name="password"]')).toHaveCount(0);
+    await expect(page.locator('input[name="totp"]')).toHaveCount(0);
+  });
+
+  test('an unregistered email is rejected and no session is created', async ({ page }) => {
+    await setLocale(page, 'en');
+    await page.goto('/login');
+    await page.fill('input[name="email"]', 'nobody@not-on-this-ledger.example');
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator('form p[role="alert"]')).toBeVisible();
+    const cookies = await page.context().cookies();
+    const session = cookies.find((c) => c.name === 'aqar_session' && c.value.length > 0);
+    expect(session, 'a rejected sign-in must not set a session cookie').toBeUndefined();
+  });
+
+  test('a malformed email is rejected without a session', async ({ page }) => {
+    await setLocale(page, 'en');
+    await page.goto('/login');
+    await page.fill('input[name="email"]', 'not-an-email');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/login/);
     const cookies = await page.context().cookies();
-    const session = cookies.find((c) => c.name === 'aqar_session' && c.value.length > 0);
-    expect(session, 'a failed login must not set a session cookie').toBeUndefined();
+    expect(cookies.find((c) => c.name === 'aqar_session' && c.value.length > 0)).toBeUndefined();
   });
 
   test('seeded admin logs in and reaches the dashboard', async ({ page }) => {

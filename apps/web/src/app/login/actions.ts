@@ -2,12 +2,15 @@
 
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { login } from '@/lib/auth';
+import { loginByEmail } from '@/lib/auth';
 
+/**
+ * Email-only sign-in. The form collects one field; the address must belong to
+ * an existing, active account. Ownership of the address is proven at the edge
+ * (Cloudflare Access one-time PIN) for anyone outside the owner's network.
+ */
 const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  totp: z.string().optional(),
+  email: z.string().trim().email(),
 });
 
 export interface LoginState {
@@ -15,19 +18,9 @@ export interface LoginState {
 }
 
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const parsed = schema.safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-    totp: formData.get('totp') ?? undefined,
-  });
+  const parsed = schema.safeParse({ email: formData.get('email') });
   if (!parsed.success) return { error: 'login.error.required' };
-  const totp = parsed.data.totp;
-  const result = await login(
-    parsed.data.email,
-    parsed.data.password,
-    totp === undefined || totp === '' ? null : totp,
-  );
-  if (!result.ok)
-    return { error: result.error === 'totp' ? 'login.error.totp' : 'login.error.invalid' };
+  const result = await loginByEmail(parsed.data.email);
+  if (!result.ok) return { error: 'login.error.invalid' };
   redirect('/dashboard');
 }

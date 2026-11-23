@@ -1,0 +1,28 @@
+/* Layout only: the 3D view puts the map beside the record panel on wide
+   screens and stacks them on narrow ones, where a 460px map would push the
+   record off-screen. */
+.map3d {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.frame {
+  block-size: 460px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+  background: var(--surface-3);
+}
+
+@media (max-width: 900px) {
+  .map3d {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .frame {
+    block-size: 320px;
+  }
+}

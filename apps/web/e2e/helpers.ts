@@ -1,29 +1,25 @@
 import { expect, type Page } from '@playwright/test';
 
 /** Dev fixture seeded by `pnpm db:seed` (public, documented in packages/db/src/seed.ts). */
-/**
- * The local dev fixture, not a real credential: `packages/db/src/seed.ts` stores
- * only the argon2id hash of exactly this password, and the seed refuses to run
- * outside development. Overridable so CI or a shared environment never has to
- * rely on a literal.
- */
 export const DEV_ADMIN = {
   email: process.env['E2E_ADMIN_EMAIL'] ?? 'admin@aqar.example',
-  password: process.env['E2E_ADMIN_PASSWORD'] ?? 'aqar-dev-admin-123',
 } as const;
 
 export type Locale = 'en' | 'ar';
 
 /** The app reads its locale from this cookie (see apps/web/src/i18n/server.ts). */
 export async function setLocale(page: Page, locale: Locale): Promise<void> {
-  await page.context().addCookies([{ name: 'aqar_locale', value: locale, path: '/' }]);
+  // Playwright rejects a cookie with only `path`; bind it to the origin under test
+  // so the helper works whether Playwright boots the server or E2E_BASE_URL points
+  // at an existing one.
+  const origin = new URL(process.env['E2E_BASE_URL'] ?? 'http://127.0.0.1:3000').origin;
+  await page.context().addCookies([{ name: 'aqar_locale', value: locale, url: origin }]);
 }
 
 export async function login(page: Page, locale: Locale = 'en'): Promise<void> {
   await setLocale(page, locale);
   await page.goto('/login');
   await page.fill('input[name="email"]', DEV_ADMIN.email);
-  await page.fill('input[name="password"]', DEV_ADMIN.password);
   await page.click('button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.locator('main#main')).toBeVisible();

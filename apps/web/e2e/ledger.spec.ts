@@ -47,7 +47,9 @@ test.describe('rent ledger money invariants', () => {
         trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => (td.textContent ?? '').trim())),
       );
 
-    await page.context().addCookies([{ name: 'aqar_locale', value: 'ar', path: '/' }]);
+    await page
+      .context()
+      .addCookies([{ name: 'aqar_locale', value: 'ar', url: new URL(page.url()).origin }]);
     await page.goto('/ledger');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     const arabic = await page

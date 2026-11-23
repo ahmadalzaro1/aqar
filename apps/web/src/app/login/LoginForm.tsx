@@ -20,40 +20,31 @@ export function LoginForm({
   const label: React.CSSProperties = { fontSize: 'var(--text-sm)', fontWeight: 500 };
   return (
     <form action={formAction}>
-      <h2 style={{ fontSize: 'var(--text-md)', marginBlockEnd: 'var(--space-4)' }}>
+      <h2 style={{ fontSize: 'var(--text-md)', marginBlockEnd: 'var(--space-3)' }}>
         {t('login.title')}
       </h2>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--muted-foreground)',
+          marginBlockEnd: 'var(--space-4)',
+        }}
+      >
+        {t('login.subtitle')}
+      </p>
       <div style={field}>
         <label htmlFor="email" style={label}>
           {t('login.email')}
         </label>
-        <input id="email" name="email" type="email" required autoComplete="username" dir="ltr" />
-      </div>
-      <div style={field}>
-        <label htmlFor="password" style={label}>
-          {t('login.password')}
-        </label>
         <input
-          id="password"
-          name="password"
-          type="password"
+          id="email"
+          name="email"
+          type="email"
           required
-          autoComplete="current-password"
+          autoComplete="email"
+          autoFocus
           dir="ltr"
-        />
-      </div>
-      <div style={field}>
-        <label htmlFor="totp" style={label}>
-          {t('login.totp')}
-        </label>
-        <input
-          id="totp"
-          name="totp"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          dir="ltr"
-          placeholder="······"
+          placeholder="you@company.com"
         />
       </div>
       {state.error !== null && (

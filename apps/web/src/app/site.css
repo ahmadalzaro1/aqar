@@ -164,6 +164,23 @@
   border-bottom-width: 1px;
 }
 
+/* The console entry point is the page's one real control: filled, so a visitor
+   asking "where do I sign in" cannot read it as body text. */
+.site .actions .btn--solid {
+  width: auto;
+  padding: 0.5rem var(--space-3);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-bottom-width: 1px;
+  color: var(--paper);
+  font-weight: 700;
+}
+
+.site .actions .btn--solid:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
 .site .btn:hover {
   transform: translateY(-2px);
 }
