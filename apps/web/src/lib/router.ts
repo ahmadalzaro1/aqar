@@ -106,14 +106,18 @@ const INTENTS: Intent[] = [
  * A clause word maps to the vocabulary the tool accepts — nothing else does, so
  * an unrecognised repair question falls through to the nudge instead of a guess.
  */
-const CLAUSE_WORDS: ReadonlyArray<{ pattern: RegExp; clause: string }> = [
+const CLAUSE_WORDS: ReadonlyArray<{ pattern: RegExp; clause: string; equipmentKind?: string }> = [
   {
     pattern: /سخان|سخانات|أجهزة|اجهزة|water\s*heater|appliance|boiler/i,
     clause: 'repairs_appliance',
+    // Naming the equipment lets the tool consult the recorded maintenance
+    // policy; without it the same question can only reach the legal corpus.
+    equipmentKind: 'water_heater',
   },
   {
     pattern: /إنشائي|انشائي|هيكل|سطح|تسريب|structural|roof|foundation/i,
     clause: 'repairs_structural',
+    equipmentKind: 'structure',
   },
   {
     pattern: /رسوم\s*الخدمات|خدمات\s*المبنى|service\s*charge|building\s*fee/i,
@@ -134,10 +138,14 @@ const NOTICE_ASK = /إشعار|اشعار|إخطار|اخطار|إنذار|ان�
 const RENEWAL_ASK =
   /تجديد|جدّد|جدد\s*العقد|عرض\s*تجديد|renew|renewal|زيادة\s*الإيجار|rent\s*increase/i;
 
-function clauseFor(text: string): string | null {
+function clauseFor(text: string): { clause: string; equipmentKind?: string } | null {
   if (!RESPONSIBILITY.test(text)) return null;
   for (const entry of CLAUSE_WORDS) {
-    if (entry.pattern.test(text)) return entry.clause;
+    if (entry.pattern.test(text)) {
+      return entry.equipmentKind === undefined
+        ? { clause: entry.clause }
+        : { clause: entry.clause, equipmentKind: entry.equipmentKind };
+    }
   }
   return null;
 }
@@ -180,7 +188,11 @@ export async function routeQuestion(
   // answers a narrower question ("what ends soon") than "what do we renew".
   const clause = clauseFor(text);
   if (clause !== null) {
-    return { name: 'obligation_for', args: { clause }, reason: `responsibility for ${clause}` };
+    return {
+      name: 'obligation_for',
+      args: clause,
+      reason: `responsibility for ${clause.clause}`,
+    };
   }
   if (NOTICE_ASK.test(text)) {
     return { name: 'notices_due', args: { horizonDays: 60 }, reason: 'notices and deadlines' };
@@ -211,7 +223,7 @@ export function refusalAnswer(code: string, locale: 'ar' | 'en'): string {
     no_notices:
       'لا يوجد أي إشعار صادر مسجّل حتى الآن، لذلك لا يوجد تاريخ استحقاق يُحسب. يُسجَّل الإشعار أولًا في سجل الإشعارات، ويُحسب تاريخ الاستحقاق تلقائيًا من مدة الإخطار المكتوبة في العقد.',
     no_obligation_record:
-      'لا يوجد سند موثّق لهذه المسألة: لا بند في العقود ولا مادة قانونية مراجَعة. لن أخمّن. لتُصبح قابلة للإجابة يجب تسجيل بند العقد، أو إدخال المادة القانونية مع رابط المصدر واسم من راجعها.',
+      'لا يوجد سند موثّق لهذه المسألة: لا بند في العقود، ولا قرار مسؤولية مسجّل لهذا النوع من التجهيزات، ولا مادة قانونية مراجَعة. لن أخمّن. لتُصبح قابلة للإجابة يجب تسجيل بند العقد، أو تسجيل قرار المسؤولية (من يتحمّل الصيانة ونوع السند)، أو إدخال المادة القانونية مع رابط المصدر واسم من راجعها.',
     not_found: 'لم أجد السجل المطلوب ضمن بيانات المؤسسة.',
     no_rows: 'لا توجد صفوف مطابقة في البيانات الحالية.',
   };
@@ -219,7 +231,7 @@ export function refusalAnswer(code: string, locale: 'ar' | 'en'): string {
     no_notices:
       'No outgoing notice is recorded yet, so there is no deadline to compute. Once a notice is entered, its due date is derived from the notice period written into the lease.',
     no_obligation_record:
-      'There is no documented basis for this: no lease clause and no reviewed legal article. I will not guess. Record the clause, or enter the article with its source URL and reviewer.',
+      'There is no documented basis for this: no lease clause, no recorded responsibility decision for this equipment, and no reviewed legal article. I will not guess. Record the clause, record the responsibility decision (who bears the repair, and on what basis), or enter the article with its source URL and reviewer.',
     not_found: 'No matching record in this organisation.',
     no_rows: 'No rows match in the current data.',
   };
